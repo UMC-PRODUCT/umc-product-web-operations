@@ -14,12 +14,22 @@ pnpm lint:boundaries     # FSD 레이어 경계 검사
 pnpm test:run            # 테스트 1회
 ```
 
-그다음 스테이징·커밋합니다. 커밋 시 Husky가 스테이징 파일 lint/format과 커밋 메시지(commitlint)를 한 번 더 검사합니다.
+그다음 스테이징·커밋합니다.
 
 ```bash
 git add .
 git commit -m "✨ feat: 예시 메시지"
 ```
+
+`git commit` 시 Husky가 **자동으로** 한 번 더 검사합니다.
+
+| 시점         | 검사                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pre-commit` | 스테이징된 파일에 **ESLint `--fix` + Prettier `--write`** (`lint-staged`). 전체 `pnpm format`이 아니라 **이번에 올리는 파일만** 포맷합니다. |
+| `commit-msg` | **commitlint**로 커밋 메시지 형식 검사. 틀리면 커밋이 만들어지지 않습니다.                                                                  |
+
+Prettier/ESLint가 파일을 수정하면, 그 변경이 스테이징에 안 들어 있을 수 있습니다. 그 경우 `git add` 후 다시 커밋하세요.  
+메시지 규칙은 아래 「커밋 메시지」 절을 따릅니다. PowerShell에서는 **`-m`과 메시지 전체를 큰따옴표**로 감싸세요.
 
 ### 빌드 검사 (커밋 전과 별개)
 
@@ -183,38 +193,87 @@ pnpm dev          # 화면 보며 개발
 
 `git commit` 할 때 Husky가 아래를 **자동으로** 실행합니다. 실패하면 커밋이 취소됩니다.
 
-| 훅           | 실행 내용                        | 하는 일                                                                                                                                                                                                  |
-| ------------ | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-commit` | `pnpm lint-staged`               | **스테이징된 파일만** 대상으로, `*.{ts,tsx}`는 `eslint --fix` + `prettier --write`, `*.{json,md,css}`는 `prettier --write`. 전체 프로젝트를 다시 도는 게 아니라, 이번에 올리는 변경만 깨끗하게 만듭니다. |
-| `commit-msg` | `pnpm exec commitlint --edit $1` | 작성한 커밋 메시지가 gitmoji 형식인지 검사합니다. type 누락·허용되지 않은 type 등이면 커밋이 거부됩니다.                                                                                                 |
+| 훅           | 실행 내용                        | 하는 일                                                                           |
+| ------------ | -------------------------------- | --------------------------------------------------------------------------------- |
+| `pre-commit` | `pnpm lint-staged`               | **스테이징된 파일만** 검사·수정합니다. 전체 프로젝트를 다시 포맷하지 않습니다.    |
+| `commit-msg` | `pnpm exec commitlint --edit $1` | 커밋 메시지가 gitmoji 형식인지 검사합니다. 실패하면 **커밋이 생성되지 않습니다.** |
+
+`lint-staged` 대상 (`package.json`):
+
+| 파일              | 실행                                |
+| ----------------- | ----------------------------------- |
+| `*.{ts,tsx}`      | `eslint --fix` → `prettier --write` |
+| `*.{json,md,css}` | `prettier --write`                  |
+
+즉 커밋할 때도 **Prettier가 돌아갑니다.** (스테이징된 해당 확장자 파일에 한함)  
+훅이 파일을 고친 뒤에는 `git status`로 확인한 다음, 필요하면 `git add` 후 다시 커밋하세요.
 
 로컬에서 hook을 끄고 커밋하는 것은 권장하지 않습니다. 팀 규칙을 우회하게 됩니다.
 
 ### 커밋 메시지
 
-형식: `<gitmoji> <type>: <subject>`
+`commitlint-config-gitmoji` 규칙을 따릅니다. 형식:
 
-| 요소    | 규칙                                                                 |
-| ------- | -------------------------------------------------------------------- |
-| gitmoji | 메시지 맨 앞. 이모지(`✨`) 또는 숏코드(`:sparkles:`)                 |
-| type    | 필수, 소문자. 아래 목록만 허용                                       |
-| subject | 필수. 무엇을 왜 바꿨는지 짧게. 끝에 `.` 금지. header 전체 최대 100자 |
+```
+<gitmoji> <type>: <subject>
+```
 
-허용 type: `feat` · `fix` · `refactor` · `chore` · `docs` · `test` · `style` · `build` · `ci` · `perf` · `revert` · `wip`
+| 요소       | 규칙                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| gitmoji    | **맨 앞 필수.** 이모지(`✨`) 또는 숏코드(`:sparkles:`). [gitmoji](https://gitmoji.dev/) 참고 |
+| 공백       | gitmoji와 type 사이 공백 1개                                                                 |
+| type       | **필수, 소문자.** 아래 표만 허용. `init` 등은 불가                                           |
+| `:` + 공백 | type 뒤에 `:` 그리고 공백 1개                                                                |
+| subject    | **필수.** 짧은 설명. 끝에 `.` 금지. header 전체 최대 100자                                   |
+
+#### 허용 type
+
+| type       | 용도                                 |
+| ---------- | ------------------------------------ |
+| `feat`     | 새 기능                              |
+| `fix`      | 버그 수정                            |
+| `refactor` | 동작은 그대로인 구조 개선            |
+| `chore`    | 빌드·설정·의존성·스캐폴드 등         |
+| `docs`     | 문서만 변경                          |
+| `test`     | 테스트 추가·수정                     |
+| `style`    | 포맷·스타일만 (로직 변경 없음)       |
+| `build`    | 빌드 시스템·번들 관련                |
+| `ci`       | CI 설정                              |
+| `perf`     | 성능 개선                            |
+| `revert`   | 이전 커밋 되돌림                     |
+| `wip`      | 작업 중 (가급적 PR 머지 전에는 지양) |
+
+#### 올바른 예
 
 ```
 ✨ feat: 회원 목록 페이지 추가
 🐛 fix: 로그인 폼 검증 오류 수정
 📝 docs: README 개발 가이드 수정
 🎉 chore: umc-product-web-operations 초기 스캐폴드 구성
+:tada: chore: umc-product-web-operations 초기 스캐폴드 구성
 ```
 
-잘못된 예 (commitlint 실패):
+PowerShell:
+
+```powershell
+git commit -m ":tada: chore: umc-product-web-operations 초기 스캐폴드 구성"
+```
+
+`-m` 없이 쓰거나 따옴표를 빼면 Git이 메시지를 파일 경로로 오인해 `pathspec` 에러가 납니다.
+
+#### 잘못된 예 (commitlint 실패 → 커밋 안 됨)
 
 ```
-🎉 umc-product-web-operations 초기 스캐폴드 구성  # type 없음
-init: 프로젝트 생성                              # gitmoji 없음, init은 허용 type 아님
-✨ feat: 회원 목록 추가.                         # subject 끝 마침표
+🎉 umc-product-web-operations 초기 스캐폴드 구성   # type 없음
+init: 프로젝트 생성                                 # gitmoji 없음, init은 허용 type 아님
+✨ feat: 회원 목록 추가.                            # subject 끝 마침표
+feat: 회원 목록 추가                                # gitmoji 없음
+```
+
+커밋 전에 메시지만 미리 검사:
+
+```bash
+echo ":tada: chore: umc-product-web-operations 초기 스캐폴드 구성" | pnpm exec commitlint
 ```
 
 ---
