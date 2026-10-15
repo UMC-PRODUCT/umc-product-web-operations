@@ -1,9 +1,11 @@
+import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react"
 
 import { canDeletePointHistory } from "../model/admin-role"
 import { MOCK_MEMBERS } from "../model/mock-members"
 import { getMockPointHistory } from "../model/mock-point-history"
 import { MemberDetailNetworkError } from "./MemberDetailNetworkError"
+import { MemberDetailPermissionDenied } from "./MemberDetailPermissionDenied"
 import { MemberProfileCard } from "./MemberProfileCard"
 import { PointHistoryEmpty } from "./PointHistoryEmpty"
 import { PointHistoryTable } from "./PointHistoryTable"
@@ -18,8 +20,9 @@ type MemberDetailPageProps = {
   memberId: string
   /** TODO: 인증/권한 컨텍스트 연동 시 교체 */
   viewerRole?: AdminRole
-  /** TODO: API 연동 시 실제 에러 상태로 교체 */
+  /** TODO: API 연동 시 실제 에러/권한 상태로 교체 */
   isError?: boolean
+  isForbidden?: boolean
   onRetry?: () => void
 }
 
@@ -42,8 +45,10 @@ export function MemberDetailPage({
   memberId,
   viewerRole = "SUPER_ADMIN",
   isError = false,
+  isForbidden = false,
   onRetry,
 }: MemberDetailPageProps) {
+  const navigate = useNavigate()
   const member = useMemo(
     () => MOCK_MEMBERS.find((item) => item.id === memberId),
     [memberId],
@@ -58,6 +63,16 @@ export function MemberDetailPage({
 
   const summary = useMemo(() => buildSummary(history), [history])
   const canDelete = canDeletePointHistory(viewerRole)
+
+  if (isForbidden) {
+    return (
+      <MemberDetailPermissionDenied
+        onGoToList={() => {
+          void navigate({ to: "/activity/points" })
+        }}
+      />
+    )
+  }
 
   if (isError) {
     return <MemberDetailNetworkError onRetry={onRetry} />
