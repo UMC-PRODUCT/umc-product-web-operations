@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router"
-
-import { PointsPage } from "@/features/points"
+import { createFileRoute, Outlet } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/_admin/activity/points")({
-  component: PointsPage,
+  component: PointsLayout,
 })
+
+function PointsLayout() {
+  return <Outlet />
+}

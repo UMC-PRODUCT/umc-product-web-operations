@@ -47,7 +47,11 @@ export function MemberTable({
         id: "member",
         header: "구성원",
         cell: ({ row }) => (
-          <div className="flex min-w-0 items-center gap-(--umc-spacing-gap-10)">
+          <button
+            className="flex min-w-0 cursor-pointer items-center gap-(--umc-spacing-gap-10) text-left"
+            onClick={() => onAssignPoints(row.original.id)}
+            type="button"
+          >
             <span
               aria-hidden
               className="bg-fill-neutral-weak-75 text-icon-neutral-weak-400 flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -57,7 +61,7 @@ export function MemberTable({
             <span className="text-body-2-regular text-neutral-default-900 truncate">
               {row.original.name} / {row.original.nickname}
             </span>
-          </div>
+          </button>
         ),
         meta: {
           headerClass: "w-[240px] shrink-0 px-(--umc-spacing-padding-24)",

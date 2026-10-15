@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react"
 
 import { filterMembers } from "../model/filter-members"
@@ -12,6 +13,7 @@ import type {
 } from "../model/types"
 
 export function PointsPage() {
+  const navigate = useNavigate()
   const [region, setRegion] = useState<MemberRegion | null>(null)
   const [school, setSchool] = useState<MemberSchool | null>(null)
   const [part, setPart] = useState<MemberPartFilter | null>(null)
@@ -75,8 +77,11 @@ export function PointsPage() {
           isForbidden={isForbidden}
           isLoading={isLoading}
           members={members}
-          onAssignPoints={() => {
-            // 상벌점 부여 플로우는 후속 작업에서 연결
+          onAssignPoints={(memberId) => {
+            void navigate({
+              to: "/activity/points/$memberId",
+              params: { memberId },
+            })
           }}
           onRetry={() => {
             setLoadKey((key) => key + 1)
