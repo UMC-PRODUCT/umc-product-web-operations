@@ -69,6 +69,7 @@ export function PointsPage() {
           onAssignPoints={() => {
             // 상벌점 부여 플로우는 후속 작업에서 연결
           }}
+          query={query}
         />
       </div>
     </section>

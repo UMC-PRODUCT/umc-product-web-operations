@@ -8,6 +8,7 @@ import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
 import { PartTag, RoleTag, StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
+import { MemberSearchEmpty } from "./MemberSearchEmpty"
 import { MemberTableSkeleton } from "./MemberTableSkeleton"
 
 import type { PointsMember } from "../model/types"
@@ -16,6 +17,7 @@ type MemberTableProps = {
   isLoading?: boolean
   members: PointsMember[]
   onAssignPoints: (memberId: string) => void
+  query?: string
 }
 
 const columnHelper = createColumnHelper<PointsMember>()
@@ -29,6 +31,7 @@ export function MemberTable({
   isLoading = false,
   members,
   onAssignPoints,
+  query = "",
 }: MemberTableProps) {
   const columns = useMemo(
     () => [
@@ -148,6 +151,10 @@ export function MemberTable({
 
   if (isLoading) {
     return <MemberTableSkeleton />
+  }
+
+  if (members.length === 0) {
+    return <MemberSearchEmpty query={query} />
   }
 
   return (
