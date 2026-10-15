@@ -3,7 +3,7 @@ import {
   HeadContent,
   Outlet,
 } from "@tanstack/react-router"
-import { LinkProvider } from "@umc-product/react"
+import { LinkProvider, ToastProvider } from "@umc-product/react"
 
 import { RouterLink } from "@/shared/lib/router-link"
 
@@ -29,8 +29,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
   return (
     <LinkProvider component={RouterLink}>
-      <HeadContent />
-      <Outlet />
+      <ToastProvider placement="bottom">
+        <HeadContent />
+        <Outlet />
+      </ToastProvider>
     </LinkProvider>
   )
 }
