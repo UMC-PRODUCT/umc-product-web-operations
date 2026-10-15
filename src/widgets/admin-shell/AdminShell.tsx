@@ -9,6 +9,10 @@ export function AdminShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const section = resolveAdminSection(pathname)
   const { breadcrumbs, title } = getPageBreadcrumbs(pathname, section)
+  const isPointsSurface =
+    pathname === "/activity" ||
+    pathname === "/activity/points" ||
+    pathname.startsWith("/activity/points/")
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -18,9 +22,16 @@ export function AdminShell() {
         <div className="flex min-w-0 flex-1 flex-col overflow-auto px-8 pt-12 pb-20">
           <PageHeader
             breadcrumbs={breadcrumbs}
+            className={
+              isPointsSurface
+                ? "[&_.umc-page-header__title-block]:hidden"
+                : undefined
+            }
             title={<span className="sr-only">{title}</span>}
           />
-          <main className="mt-6 flex-1">
+          <main
+            className={isPointsSurface ? "mt-[26px] flex-1" : "mt-6 flex-1"}
+          >
             <Outlet />
           </main>
         </div>
