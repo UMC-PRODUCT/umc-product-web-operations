@@ -18,9 +18,20 @@ export function AdminShell() {
         <div className="flex min-w-0 flex-1 flex-col overflow-auto px-8 pt-12 pb-20">
           <PageHeader
             breadcrumbs={breadcrumbs}
+            className={
+              pathname === "/activity/points" || pathname === "/activity"
+                ? "[&_.umc-page-header__title-block]:hidden"
+                : undefined
+            }
             title={<span className="sr-only">{title}</span>}
           />
-          <main className="mt-6 flex-1">
+          <main
+            className={
+              pathname === "/activity/points" || pathname === "/activity"
+                ? "mt-[26px] flex-1"
+                : "mt-6 flex-1"
+            }
+          >
             <Outlet />
           </main>
         </div>
