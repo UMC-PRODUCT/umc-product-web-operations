@@ -16,14 +16,16 @@ export function PointsPage() {
   const [school, setSchool] = useState<MemberSchool | null>(null)
   const [part, setPart] = useState<MemberPartFilter | null>(null)
   const [query, setQuery] = useState("")
-  // TODO: API 연동 시 실제 로딩/에러 상태로 교체
+  // TODO: API 연동 시 실제 로딩/에러/권한 상태로 교체
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
+  const [isForbidden, setIsForbidden] = useState(false)
   const [loadKey, setLoadKey] = useState(0)
 
   useEffect(() => {
     setIsLoading(true)
     setIsError(false)
+    setIsForbidden(false)
 
     const timer = window.setTimeout(() => {
       setIsLoading(false)
@@ -70,6 +72,7 @@ export function PointsPage() {
         />
         <MemberTable
           isError={isError}
+          isForbidden={isForbidden}
           isLoading={isLoading}
           members={members}
           onAssignPoints={() => {

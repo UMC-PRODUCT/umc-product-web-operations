@@ -9,6 +9,7 @@ import { PartTag, RoleTag, StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
 import { MemberNetworkError } from "./MemberNetworkError"
+import { MemberPermissionDenied } from "./MemberPermissionDenied"
 import { MemberSearchEmpty } from "./MemberSearchEmpty"
 import { MemberTableSkeleton } from "./MemberTableSkeleton"
 
@@ -16,6 +17,7 @@ import type { PointsMember } from "../model/types"
 
 type MemberTableProps = {
   isError?: boolean
+  isForbidden?: boolean
   isLoading?: boolean
   members: PointsMember[]
   onAssignPoints: (memberId: string) => void
@@ -32,6 +34,7 @@ type ColumnMeta = {
 
 export function MemberTable({
   isError = false,
+  isForbidden = false,
   isLoading = false,
   members,
   onAssignPoints,
@@ -156,6 +159,10 @@ export function MemberTable({
 
   if (isLoading) {
     return <MemberTableSkeleton />
+  }
+
+  if (!isForbidden) {
+    return <MemberPermissionDenied />
   }
 
   if (isError) {
