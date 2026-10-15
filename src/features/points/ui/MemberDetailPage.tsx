@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { canDeletePointHistory } from "../model/admin-role"
 import { MOCK_MEMBERS } from "../model/mock-members"
 import { getMockPointHistory } from "../model/mock-point-history"
+import { MemberDetailNetworkError } from "./MemberDetailNetworkError"
 import { MemberProfileCard } from "./MemberProfileCard"
 import { PointHistoryEmpty } from "./PointHistoryEmpty"
 import { PointHistoryTable } from "./PointHistoryTable"
@@ -17,6 +18,9 @@ type MemberDetailPageProps = {
   memberId: string
   /** TODO: 인증/권한 컨텍스트 연동 시 교체 */
   viewerRole?: AdminRole
+  /** TODO: API 연동 시 실제 에러 상태로 교체 */
+  isError?: boolean
+  onRetry?: () => void
 }
 
 function buildSummary(history: PointHistoryItem[]): MemberPointSummary {
@@ -37,6 +41,8 @@ function buildSummary(history: PointHistoryItem[]): MemberPointSummary {
 export function MemberDetailPage({
   memberId,
   viewerRole = "SUPER_ADMIN",
+  isError = false,
+  onRetry,
 }: MemberDetailPageProps) {
   const member = useMemo(
     () => MOCK_MEMBERS.find((item) => item.id === memberId),
@@ -52,6 +58,10 @@ export function MemberDetailPage({
 
   const summary = useMemo(() => buildSummary(history), [history])
   const canDelete = canDeletePointHistory(viewerRole)
+
+  if (isError) {
+    return <MemberDetailNetworkError onRetry={onRetry} />
+  }
 
   if (!member) {
     return (
