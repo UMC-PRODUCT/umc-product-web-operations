@@ -161,7 +161,7 @@ export function MemberTable({
     return <MemberTableSkeleton />
   }
 
-  if (!isForbidden) {
+  if (isForbidden) {
     return <MemberPermissionDenied />
   }
 
