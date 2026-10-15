@@ -489,7 +489,7 @@ export function AwardPointsModal({
               <Button
                 color="neutral"
                 onClick={() => setDiscardOpen(false)}
-                size="sm"
+                size="xs"
                 type="button"
                 variant="weak"
               >
@@ -498,7 +498,7 @@ export function AwardPointsModal({
               <Button
                 color="primary"
                 onClick={confirmDiscard}
-                size="sm"
+                size="xs"
                 type="button"
                 variant="fill"
               >
