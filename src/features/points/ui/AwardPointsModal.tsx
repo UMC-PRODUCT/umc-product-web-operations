@@ -169,12 +169,12 @@ export function AwardPointsModal({
             }}
             placeholder="사유를 입력하세요"
             required
-            rows={3}
             value={reason}
             render={(controlProps) => (
               <textarea
                 {...controlProps}
                 className="umc-input-box__input umc-text-area__input pb-(--umc-spacing-padding-20)"
+                rows={3}
                 style={{ resize: "none" }}
               />
             )}
