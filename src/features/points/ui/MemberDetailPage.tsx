@@ -4,6 +4,7 @@ import { canDeletePointHistory } from "../model/admin-role"
 import { MOCK_MEMBERS } from "../model/mock-members"
 import { getMockPointHistory } from "../model/mock-point-history"
 import { MemberProfileCard } from "./MemberProfileCard"
+import { PointHistoryEmpty } from "./PointHistoryEmpty"
 import { PointHistoryTable } from "./PointHistoryTable"
 
 import type { AdminRole } from "../model/admin-role"
@@ -82,7 +83,9 @@ export function MemberDetailPage({
         <h2 className="text-heading-4-semibold text-neutral-default-900">
           상벌점 이력
         </h2>
-        {history.length > 0 ? (
+        {history.length === 0 ? (
+          <PointHistoryEmpty />
+        ) : (
           <PointHistoryTable
             canDelete={canDelete}
             items={history}
@@ -90,7 +93,7 @@ export function MemberDetailPage({
               setHistory((prev) => prev.filter((item) => item.id !== historyId))
             }}
           />
-        ) : null}
+        )}
       </div>
     </section>
   )
