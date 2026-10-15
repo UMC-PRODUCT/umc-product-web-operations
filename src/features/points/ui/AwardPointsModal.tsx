@@ -438,7 +438,7 @@ export function AwardPointsModal({
                 onClick={requestClose}
                 size="md"
                 type="button"
-                variant="fill"
+                variant="weak"
               >
                 취소
               </Button>
@@ -491,7 +491,7 @@ export function AwardPointsModal({
                 onClick={() => setDiscardOpen(false)}
                 size="sm"
                 type="button"
-                variant="fill"
+                variant="weak"
               >
                 계속 작성
               </Button>

@@ -181,9 +181,9 @@ export function DeletePointHistoryDialog({
             color="neutral"
             disabled={isLoading}
             onClick={handleClose}
-            size="sm"
+            size="xs"
             type="button"
-            variant="fill"
+            variant="weak"
           >
             취소
           </Button>
@@ -193,7 +193,7 @@ export function DeletePointHistoryDialog({
             onClick={() => {
               void handleDelete()
             }}
-            size="sm"
+            size="xs"
             type="button"
             variant="fill"
           >
