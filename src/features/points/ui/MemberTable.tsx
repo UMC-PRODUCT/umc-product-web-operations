@@ -8,15 +8,18 @@ import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
 import { PartTag, RoleTag, StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
+import { MemberNetworkError } from "./MemberNetworkError"
 import { MemberSearchEmpty } from "./MemberSearchEmpty"
 import { MemberTableSkeleton } from "./MemberTableSkeleton"
 
 import type { PointsMember } from "../model/types"
 
 type MemberTableProps = {
+  isError?: boolean
   isLoading?: boolean
   members: PointsMember[]
   onAssignPoints: (memberId: string) => void
+  onRetry?: () => void
   query?: string
 }
 
@@ -28,9 +31,11 @@ type ColumnMeta = {
 }
 
 export function MemberTable({
+  isError = false,
   isLoading = false,
   members,
   onAssignPoints,
+  onRetry,
   query = "",
 }: MemberTableProps) {
   const columns = useMemo(
@@ -151,6 +156,10 @@ export function MemberTable({
 
   if (isLoading) {
     return <MemberTableSkeleton />
+  }
+
+  if (isError) {
+    return <MemberNetworkError onRetry={onRetry} />
   }
 
   if (members.length === 0) {

@@ -16,10 +16,15 @@ export function PointsPage() {
   const [school, setSchool] = useState<MemberSchool | null>(null)
   const [part, setPart] = useState<MemberPartFilter | null>(null)
   const [query, setQuery] = useState("")
-  // TODO: API 연동 시 실제 로딩 상태로 교체
+  // TODO: API 연동 시 실제 로딩/에러 상태로 교체
   const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
+  const [loadKey, setLoadKey] = useState(0)
 
   useEffect(() => {
+    setIsLoading(true)
+    setIsError(false)
+
     const timer = window.setTimeout(() => {
       setIsLoading(false)
     }, 800)
@@ -27,7 +32,7 @@ export function PointsPage() {
     return () => {
       window.clearTimeout(timer)
     }
-  }, [])
+  }, [loadKey])
 
   const members = useMemo(
     () =>
@@ -64,10 +69,14 @@ export function PointsPage() {
           school={school}
         />
         <MemberTable
+          isError={isError}
           isLoading={isLoading}
           members={members}
           onAssignPoints={() => {
             // 상벌점 부여 플로우는 후속 작업에서 연결
+          }}
+          onRetry={() => {
+            setLoadKey((key) => key + 1)
           }}
           query={query}
         />
