@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { filterMembers } from "../model/filter-members"
 import { MOCK_MEMBERS } from "../model/mock-members"
@@ -16,6 +16,18 @@ export function PointsPage() {
   const [school, setSchool] = useState<MemberSchool | null>(null)
   const [part, setPart] = useState<MemberPartFilter | null>(null)
   const [query, setQuery] = useState("")
+  // TODO: API 연동 시 실제 로딩 상태로 교체
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsLoading(false)
+    }, 800)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [])
 
   const members = useMemo(
     () =>
@@ -52,6 +64,7 @@ export function PointsPage() {
           school={school}
         />
         <MemberTable
+          isLoading={isLoading}
           members={members}
           onAssignPoints={() => {
             // 상벌점 부여 플로우는 후속 작업에서 연결

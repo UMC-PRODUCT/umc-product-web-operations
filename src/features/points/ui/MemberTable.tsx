@@ -8,9 +8,12 @@ import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
 import { PartTag, RoleTag, StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
+import { MemberTableSkeleton } from "./MemberTableSkeleton"
+
 import type { PointsMember } from "../model/types"
 
 type MemberTableProps = {
+  isLoading?: boolean
   members: PointsMember[]
   onAssignPoints: (memberId: string) => void
 }
@@ -22,7 +25,11 @@ type ColumnMeta = {
   cellClass?: string
 }
 
-export function MemberTable({ members, onAssignPoints }: MemberTableProps) {
+export function MemberTable({
+  isLoading = false,
+  members,
+  onAssignPoints,
+}: MemberTableProps) {
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -138,6 +145,10 @@ export function MemberTable({ members, onAssignPoints }: MemberTableProps) {
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
+
+  if (isLoading) {
+    return <MemberTableSkeleton />
+  }
 
   return (
     <div className="w-full [scrollbar-width:none] overflow-x-auto rounded-(--umc-radius-12) [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
