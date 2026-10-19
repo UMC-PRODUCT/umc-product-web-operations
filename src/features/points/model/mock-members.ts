@@ -8,7 +8,7 @@ export const MOCK_MEMBERS: PointsMember[] = [
     school: "cau",
     schoolLabel: "중앙대학교",
     region: "seoul",
-    part: "pm",
+    part: "web-pe",
     generation: "11기",
     role: "campus",
     roleLabel: "교내 운영진",
