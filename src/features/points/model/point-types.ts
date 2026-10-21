@@ -30,16 +30,7 @@ export const MOCK_PENALTY_TYPES: PointTypeOption[] = [
 
 export const REASON_MAX_LENGTH = 200
 
-export function getAwardModalTitle(tab: PointAwardTab): string {
-  switch (tab) {
-    case "reward":
-      return "상점 부여하기"
-    case "penalty":
-      return "벌점 부여하기"
-    case "other":
-      return "기타 상벌점 부여하기"
-  }
-}
+export const AWARD_MODAL_TITLE = "상벌점 부여하기"
 
 export function getTypeListLabel(tab: Exclude<PointAwardTab, "other">): string {
   return tab === "reward" ? "상점 유형" : "벌점 유형"

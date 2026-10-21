@@ -19,8 +19,8 @@ import { cn } from "@/shared/lib/cn"
 
 import { getPartLabel } from "../model/member-labels"
 import {
+  AWARD_MODAL_TITLE,
   formatAwardScoreLabel,
-  getAwardModalTitle,
   getTypeListLabel,
   MOCK_PENALTY_TYPES,
   MOCK_REWARD_TYPES,
@@ -280,7 +280,7 @@ export function AwardPointsModal({
               className="text-heading-2-semibold text-neutral-default-900 px-1"
               id={titleId}
             >
-              {getAwardModalTitle(tab)}
+              {AWARD_MODAL_TITLE}
             </h2>
           </div>
 
