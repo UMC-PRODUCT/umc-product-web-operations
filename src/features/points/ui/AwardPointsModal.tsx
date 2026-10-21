@@ -9,7 +9,6 @@ import {
   Checkbox,
   Field,
   FieldControl,
-  InputBox,
   Tab,
   TabList,
   Tabs,
@@ -26,9 +25,8 @@ import {
   AWARD_MODAL_TITLE,
   formatAwardScoreLabel,
   formatOtherScoreCaption,
+  getPointTypeOptions,
   getTypeListLabel,
-  MOCK_PENALTY_TYPES,
-  MOCK_REWARD_TYPES,
   REASON_MAX_LENGTH,
   toSignedOtherScore,
 } from "../model/point-types"
@@ -108,14 +106,23 @@ export function AwardPointsModal({
   }, [open, initialTab])
 
   const typeOptions = useMemo(
-    () => (tab === "penalty" ? MOCK_PENALTY_TYPES : MOCK_REWARD_TYPES),
-    [tab],
+    () => (tab === "other" ? [] : getPointTypeOptions(tab, member.role)),
+    [member.role, tab],
   )
 
   const selectedType = useMemo(
     () => typeOptions.find((item) => item.id === selectedTypeId) ?? null,
     [selectedTypeId, typeOptions],
   )
+
+  useEffect(() => {
+    if (
+      selectedTypeId !== null &&
+      !typeOptions.some((item) => item.id === selectedTypeId)
+    ) {
+      setSelectedTypeId(null)
+    }
+  }, [selectedTypeId, typeOptions])
 
   const otherScore =
     tab === "other" && otherKind !== null && otherMagnitude !== null
@@ -130,6 +137,7 @@ export function AwardPointsModal({
       : selectedTypeId !== null
 
   const reasonLength = reason.length
+  const reasonAtMax = reasonLength >= REASON_MAX_LENGTH
   const isDirty =
     reason.trim() !== "" ||
     selectedTypeId !== null ||
@@ -163,19 +171,32 @@ export function AwardPointsModal({
     </div>
   ) : null
 
+  /*
+   * Figma Text Field/Box (795:16309):
+   * 기본 2줄 · 최대 3줄 · 카운터는 박스 하단(회색 유지)
+   * 200자 도달 시 label/box/caption error
+   */
   const reasonField = (
     <Field
+      caption={
+        !reasonInvalid && reasonAtMax
+          ? "최대 200자까지 입력할 수 있어요"
+          : undefined
+      }
+      className="umc-text-area-field"
       errorMessage={reasonInvalid ? "사유를 입력해 주세요" : undefined}
-      invalid={reasonInvalid}
+      invalid={reasonInvalid || reasonAtMax}
       label="사유"
       required
     >
-      <div className="relative">
-        <InputBox
-          className="umc-text-field-area"
-          invalid={reasonInvalid}
-          size="lg"
-        >
+      <div
+        className={cn(
+          "umc-text-area justify-between",
+          "[--umc-text-area-min-height:calc(var(--umc-typography-label-3-medium-font-size)*1.4*3+1.5em+var(--umc-text-area-padding-block)*2)]",
+        )}
+        data-invalid={reasonInvalid || reasonAtMax ? "" : undefined}
+      >
+        <div className="max-h-[calc(var(--umc-typography-label-3-medium-font-size)*1.4*3)] min-h-[calc(var(--umc-typography-label-3-medium-font-size)*1.4*2)] w-full shrink-0 overflow-y-auto">
           <FieldControl
             maxLength={REASON_MAX_LENGTH}
             onChange={(event) => {
@@ -190,22 +211,13 @@ export function AwardPointsModal({
             render={(controlProps) => (
               <textarea
                 {...controlProps}
-                className="umc-input-box__input umc-text-field-area__input pb-(--umc-spacing-padding-20)"
-                rows={3}
-                style={{ resize: "none" }}
+                className="umc-text-area__input [field-sizing:content] overflow-hidden"
+                rows={2}
               />
             )}
           />
-        </InputBox>
-        <span
-          aria-hidden
-          className={cn(
-            "text-body-3-regular pointer-events-none absolute right-(--umc-spacing-padding-16) bottom-(--umc-spacing-padding-12)",
-            reasonLength >= REASON_MAX_LENGTH
-              ? "text-error"
-              : "text-neutral-weak-500",
-          )}
-        >
+        </div>
+        <span aria-hidden className="umc-text-area__counter shrink-0">
           {reasonLength}/{REASON_MAX_LENGTH}
         </span>
       </div>
@@ -322,9 +334,12 @@ export function AwardPointsModal({
         : `+${otherMagnitude}`
 
   /*
-   * Figma Web/Panel (889:15371) hierarchy:
-   * Header → Control Footer(justify-between) → Control Slot(gap-16 siblings) + Button Area
-   * Control Slot children: 대상 → Tabs → 구분 → 점수 → 사유
+   * Figma Web/Panel (795:16342) hierarchy:
+   * Header → Control Footer(justify-between)
+   *   Control Slot(gap-10):
+   *     Frame 2680(gap-16): 대상 → Tabs → 유형/구분·스테퍼
+   *     Frame 2681(gap-16): 점수바 → 사유
+   *   Button Area
    */
   return createPortal(
     <>
@@ -356,9 +371,9 @@ export function AwardPointsModal({
 
           {/* Control Footer — justify-between: Slot top, Button Area bottom */}
           <div className="flex min-h-0 flex-1 flex-col justify-between">
-            {/* Control Slot — px-32 py-20 */}
-            <div className="min-h-0 overflow-y-auto px-(--umc-spacing-padding-32) py-(--umc-spacing-padding-20)">
-              {/* Frame 2087332680 — vertical gap-16 siblings */}
+            {/* Control Slot — px-32 py-20, gap-10 between groups */}
+            <div className="flex min-h-0 flex-col gap-(--umc-spacing-gap-10) overflow-y-auto px-(--umc-spacing-padding-32) py-(--umc-spacing-padding-20)">
+              {/* Frame 2087332680 */}
               <div className="flex flex-col gap-(--umc-spacing-gap-16)">
                 {/* 대상 */}
                 <div className="bg-fill-neutral-disabled flex min-h-12 items-center gap-(--umc-spacing-gap-16) overflow-hidden rounded-(--umc-radius-14) pr-2 pl-(--umc-spacing-padding-16)">
@@ -513,7 +528,7 @@ export function AwardPointsModal({
                       <span>{getTypeListLabel(tab)}</span>
                       <span className="text-error">*</span>
                     </p>
-                    <div className="border-neutral-disabled max-h-[195px] overflow-y-auto rounded-(--umc-radius-12) border">
+                    <div className="border-neutral-disabled max-h-[191px] overflow-y-auto rounded-(--umc-radius-12) border">
                       {typeOptions.map((option, index) => {
                         const selected = option.id === selectedTypeId
                         const isFirst = index === 0
@@ -555,7 +570,10 @@ export function AwardPointsModal({
                     </div>
                   </div>
                 )}
+              </div>
 
+              {/* Frame 2087332681 — 점수바 + 사유 */}
+              <div className="flex flex-col gap-(--umc-spacing-gap-16)">
                 {tab !== "other" ? (
                   <div className="bg-fill-neutral-disabled flex min-h-12 items-center gap-(--umc-spacing-gap-16) overflow-hidden rounded-(--umc-radius-14) pr-2 pl-(--umc-spacing-padding-16)">
                     <span className="text-body-1-medium text-neutral-weak-500 shrink-0">
@@ -593,7 +611,6 @@ export function AwardPointsModal({
                   </div>
                 ) : null}
 
-                {/* 사유 — Text Field/Box */}
                 {reasonField}
                 {errorBanner}
               </div>
