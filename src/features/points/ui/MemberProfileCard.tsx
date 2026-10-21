@@ -1,4 +1,4 @@
-import { AddIcon, PersonIcon, SubtractionIcon } from "@umc-product/icons"
+import { AddIcon, PersonIcon } from "@umc-product/icons"
 import { Button, StatusTag } from "@umc-product/react"
 
 import { getPartLabel, getRegionLabel } from "../model/member-labels"
@@ -10,11 +10,15 @@ import type { PointsMember } from "../model/types"
 type MemberProfileCardProps = {
   member: PointsMember
   summary: MemberPointSummary
-  onGrantReward?: () => void
-  onGrantPenalty?: () => void
-  onGrantOther?: () => void
+  onAwardPoints?: () => void
 }
 
+/*
+ * Figma Profile Card (713:11320) hierarchy:
+ * Card(col gap-20 p-32) →
+ *   Top(row justify-between): Left(avatar + info) | Button
+ *   Score row(gap-12): 총점 | 상점 합계 | 벌점 합계
+ */
 function ScoreStat({
   label,
   value,
@@ -29,11 +33,13 @@ function ScoreStat({
       <p className="text-body-1-regular text-neutral-weak-500 w-full truncate text-center">
         {label}
       </p>
-      <p
-        className={`text-heading-1-semibold w-full truncate text-center ${tone === "brand" ? "text-brand-default-600" : "text-error"}`}
-      >
-        {formatPointScore(value)}
-      </p>
+      <div className="flex w-full items-center justify-center pr-0.5">
+        <p
+          className={`text-heading-1-semibold min-w-0 flex-1 truncate text-center ${tone === "brand" ? "text-brand-default-600" : "text-error"}`}
+        >
+          {formatPointScore(value)}
+        </p>
+      </div>
     </div>
   )
 }
@@ -41,9 +47,7 @@ function ScoreStat({
 export function MemberProfileCard({
   member,
   summary,
-  onGrantReward,
-  onGrantPenalty,
-  onGrantOther,
+  onAwardPoints,
 }: MemberProfileCardProps) {
   const meta = [
     member.schoolLabel,
@@ -54,7 +58,8 @@ export function MemberProfileCard({
 
   return (
     <section className="border-neutral-disabled flex w-full flex-col gap-(--umc-spacing-gap-20) overflow-hidden rounded-(--umc-radius-12) border bg-white p-(--umc-spacing-padding-32)">
-      <div className="flex items-start justify-between">
+      {/* Top — Frame 2087331287 */}
+      <div className="flex items-start justify-between rounded-(--umc-radius-8)">
         <div className="flex min-w-0 items-center gap-(--umc-spacing-gap-12)">
           <span
             aria-hidden
@@ -69,13 +74,15 @@ export function MemberProfileCard({
               </h1>
               <StatusTag color="brand">활동</StatusTag>
             </div>
-            <p className="text-body-1-regular text-teal-grey-700 flex flex-wrap items-center gap-(--umc-spacing-gap-12)">
+            {/* log — school | region | part | generation */}
+            <div className="text-body-1-regular text-teal-grey-700 flex flex-wrap items-center gap-(--umc-spacing-gap-12)">
               {meta.map((item, index) => (
                 <span
                   className="flex items-center gap-(--umc-spacing-gap-12)"
                   key={item}
                 >
-                  {index > 0 ? (
+                  <span>{item}</span>
+                  {index < meta.length - 1 ? (
                     <span
                       aria-hidden
                       className="text-body-3-regular text-teal-grey-400"
@@ -83,10 +90,9 @@ export function MemberProfileCard({
                       |
                     </span>
                   ) : null}
-                  <span>{item}</span>
                 </span>
               ))}
-            </p>
+            </div>
           </div>
         </div>
 
@@ -94,35 +100,17 @@ export function MemberProfileCard({
           <Button
             color="primary"
             leadingIcon={<AddIcon aria-hidden size={14} />}
-            onClick={onGrantReward}
+            onClick={onAwardPoints}
             size="sm"
             type="button"
             variant="fill"
           >
-            상점 부여
-          </Button>
-          <Button
-            color="primary"
-            leadingIcon={<SubtractionIcon aria-hidden size={14} />}
-            onClick={onGrantPenalty}
-            size="sm"
-            type="button"
-            variant="weak"
-          >
-            벌점 부여
-          </Button>
-          <Button
-            color="white"
-            onClick={onGrantOther}
-            size="sm"
-            type="button"
-            variant="fill"
-          >
-            기타 상벌점
+            상벌점 부여하기
           </Button>
         </div>
       </div>
 
+      {/* Score cards — Frame 2087332429 */}
       <div className="flex items-start gap-(--umc-spacing-gap-12)">
         <ScoreStat
           label="총점"
