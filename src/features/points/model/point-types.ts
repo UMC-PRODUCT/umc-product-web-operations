@@ -32,6 +32,8 @@ export const REASON_MAX_LENGTH = 200
 
 export const AWARD_MODAL_TITLE = "상벌점 부여하기"
 
+export type OtherPointKind = "reward" | "penalty"
+
 export function getTypeListLabel(tab: Exclude<PointAwardTab, "other">): string {
   return tab === "reward" ? "상점 유형" : "벌점 유형"
 }
@@ -41,4 +43,21 @@ export function formatAwardScoreLabel(score: number): string {
     return `+${score}점`
   }
   return `${score}점`
+}
+
+export function formatOtherScoreCaption(
+  kind: OtherPointKind,
+  magnitude: number,
+): string {
+  if (kind === "reward") {
+    return `상점 +${magnitude}점으로 기록돼요`
+  }
+  return `벌점 -${magnitude}점으로 기록돼요`
+}
+
+export function toSignedOtherScore(
+  kind: OtherPointKind,
+  magnitude: number,
+): number {
+  return kind === "penalty" ? -magnitude : magnitude
 }
