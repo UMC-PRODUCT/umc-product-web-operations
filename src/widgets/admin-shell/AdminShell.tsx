@@ -1,12 +1,22 @@
 import { Outlet, useRouterState } from "@tanstack/react-router"
 import { PageHeader } from "@umc-product/react"
 
+import { shouldHideNoticeDetailPageHeader } from "@/features/notices/model/load-notice-detail"
 import { cn } from "@/shared/lib/cn"
 
 import { AdminContentsArea } from "./AdminContentsArea"
 import { AdminHeader } from "./AdminHeader"
 import { AdminSideNav } from "./AdminSideNav"
 import { getPageBreadcrumbs, resolveAdminSection } from "./nav"
+
+function getNoticeDetailIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/notices\/([^/]+)$/)
+  const noticeId = match?.[1]
+  if (!noticeId || noticeId === "new") {
+    return null
+  }
+  return noticeId
+}
 
 export function AdminShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
@@ -16,8 +26,10 @@ export function AdminShell() {
     pathname === "/activity" ||
     pathname === "/activity/points" ||
     pathname.startsWith("/activity/points/")
-  const isNoticeDetailPage =
-    pathname.startsWith("/notices/") && pathname !== "/notices/new"
+  const noticeDetailId = getNoticeDetailIdFromPath(pathname)
+  const isNoticeDetailPage = noticeDetailId !== null
+  const hideNoticeDetailPageHeader =
+    noticeDetailId !== null && shouldHideNoticeDetailPageHeader(noticeDetailId)
   const isNoticesListPage = pathname === "/notices"
   const usesFeaturePageHeader =
     isPointsSurface || isNoticesListPage || isNoticeDetailPage
@@ -30,6 +42,7 @@ export function AdminShell() {
         {isNoticeDetailPage ? (
           <AdminContentsArea
             breadcrumbs={breadcrumbs}
+            hidePageHeader={hideNoticeDetailPageHeader}
             hideTitleBlock
             title={<span className="sr-only">{title}</span>}
           >

@@ -7,11 +7,13 @@ const LOADING_MOCK_MS = 1500
 const SUCCESS_AUTO_DISMISS_MS = 3000
 
 type UseNoticeDetailImageLoadFlowOptions = {
+  imageLoadPause?: boolean
   imageLoadState?: NoticeImageLoadState
   noticeId: string
 }
 
 export function useNoticeDetailImageLoadFlow({
+  imageLoadPause = false,
   imageLoadState,
   noticeId,
 }: UseNoticeDetailImageLoadFlowOptions) {
@@ -36,7 +38,7 @@ export function useNoticeDetailImageLoadFlow({
   }
 
   useEffect(() => {
-    if (imageLoadState !== "loading") {
+    if (imageLoadState !== "loading" || imageLoadPause) {
       return
     }
 
@@ -52,7 +54,7 @@ export function useNoticeDetailImageLoadFlow({
     return () => {
       window.clearTimeout(timer)
     }
-  }, [imageLoadState, navigate, noticeId])
+  }, [imageLoadPause, imageLoadState, navigate, noticeId])
 
   useEffect(() => {
     if (imageLoadState !== "success") {

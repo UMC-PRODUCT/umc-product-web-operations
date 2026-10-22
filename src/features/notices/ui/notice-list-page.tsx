@@ -12,6 +12,7 @@ import { useNoticeListOutcomeToasts } from "./use-notice-list-outcome-toasts"
 
 import type {
   NoticeDeleteOutcome,
+  NoticeImageRegisterOutcome,
   NoticeListLoadOutcome,
   NoticePublishOutcome,
 } from "../model/notice-outcomes"
@@ -20,6 +21,8 @@ import type { NoticeAudience, NoticeListFilters } from "../model/types"
 type NoticeListPageProps = {
   /** TODO: API 연동 시 제거. 삭제 성공 Toast 시뮬레이션용 */
   deleteOutcome?: NoticeDeleteOutcome
+  /** TODO: API 연동 시 제거. 이미지 등록 성공 Toast 시뮬레이션용 */
+  imageRegisterOutcome?: NoticeImageRegisterOutcome
   /** TODO: API 연동 시 제거. 목록 조회 결과 시뮬레이션용 */
   listOutcome?: NoticeListLoadOutcome
   /** TODO: API 연동 시 제거. 등록 성공 Toast 시뮬레이션용 */
@@ -34,11 +37,16 @@ const DEFAULT_FILTERS: Omit<NoticeListFilters, "audience"> = {
 
 export function NoticeListPage({
   deleteOutcome,
+  imageRegisterOutcome,
   listOutcome,
   publishOutcome,
 }: NoticeListPageProps) {
   const navigate = useNavigate()
-  useNoticeListOutcomeToasts({ deleteOutcome, publishOutcome })
+  useNoticeListOutcomeToasts({
+    deleteOutcome,
+    imageRegisterOutcome,
+    publishOutcome,
+  })
   const [audience, setAudience] = useState<NoticeAudience>("challenger")
   const [filters, setFilters] =
     useState<Omit<NoticeListFilters, "audience">>(DEFAULT_FILTERS)

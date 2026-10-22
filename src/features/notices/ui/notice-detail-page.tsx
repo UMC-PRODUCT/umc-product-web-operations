@@ -1,22 +1,34 @@
 import { useNavigate } from "@tanstack/react-router"
-import { Button, Tag } from "@umc-product/react"
+import { Button, Dialog, Tag, useToast } from "@umc-product/react"
+import { useState } from "react"
 
+import { mockDeleteNotice } from "../model/mock-delete-notice"
+import { NOTICE_DELETE_FAILURE_TOAST_MESSAGE } from "../model/notice-outcomes"
 import { NoticeDetailBody } from "./notice-detail-body"
 import { NoticeDetailImageGallery } from "./notice-detail-image-gallery"
-import { NoticeDetailImageLoadToast } from "./notice-detail-image-load-toast"
+import { NoticeDetailImageLoadInlineToast } from "./notice-detail-image-load-inline-toast"
 import { NoticeDetailLinkCard } from "./notice-detail-link-card"
+import { NoticeDetailLoadingContents } from "./notice-detail-loading-contents"
 import { NoticeDetailMetaRow } from "./notice-detail-meta-row"
 import { NoticeDetailVoteCard } from "./notice-detail-vote-card"
+import { showNoticeErrorToast } from "./show-notice-error-toast"
 import { useNoticeDetailImageLoadFlow } from "./use-notice-detail-image-load-flow"
+import { useNoticeDetailImageRegisterSuccessToast } from "./use-notice-detail-image-register-success-toast"
 
+import type { DeleteNoticeOutcome } from "../model/mock-delete-notice"
 import type {
   NoticeDetail,
   NoticeImageLoadState,
 } from "../model/notice-detail.types"
 
 type NoticeDetailPageProps = {
+  canManageNotice?: boolean
+  /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
+  deleteOutcome?: DeleteNoticeOutcome
   notice: NoticeDetail
-  /** TODO: API 연동 시 제거. 브레드크럼 ↔ 본문 사이 인라인 토스트 */
+  /** TODO: API 연동 시 제거. mock loading → success 자동 전환 끔 */
+  imageLoadPause?: boolean
+  /** TODO: API 연동 시 제거. DS Toast 시뮬레이션 */
   imageLoadState?: NoticeImageLoadState
 }
 
@@ -25,96 +37,124 @@ type NoticeDetailPageProps = {
  * — 브레드크럼·gap 32는 AdminContentsArea, 아래는 카드·목록으로 버튼
  */
 export function NoticeDetailPage({
+  canManageNotice = false,
+  deleteOutcome,
+  imageLoadPause,
   notice,
   imageLoadState,
 }: NoticeDetailPageProps) {
   const navigate = useNavigate()
-  const { clearImageLoadSearch, startLoadImages } =
-    useNoticeDetailImageLoadFlow({
-      imageLoadState,
-      noticeId: notice.id,
-    })
+  const toast = useToast()
+  const { startLoadImages } = useNoticeDetailImageLoadFlow({
+    imageLoadPause,
+    imageLoadState,
+    noticeId: notice.id,
+  })
+
+  useNoticeDetailImageRegisterSuccessToast({ imageLoadState })
+
+  const showImageLoadInlineToast =
+    imageLoadState === "pending" || imageLoadState === "loading"
 
   const createdMeta = `${notice.authorDisplay} · ${notice.createdAt}`
+  const isImageLoading = imageLoadState === "loading"
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   return (
     <div className="flex w-full flex-col gap-(--umc-spacing-gap-32)">
-      {imageLoadState ? (
-        <NoticeDetailImageLoadToast
-          onDismissSuccess={clearImageLoadSearch}
+      {showImageLoadInlineToast ? (
+        <NoticeDetailImageLoadInlineToast
           onLoadImages={startLoadImages}
           state={imageLoadState}
         />
       ) : null}
       {/**패딩값 -40 만들어지면 32-> 40으로 변경 */}
-      <article className="border-neutral-disabled flex w-full flex-col items-start gap-(--umc-spacing-gap-24) rounded-(--umc-radius-14) border bg-white p-(--umc-spacing-padding-32)">
-        <div className="flex w-full items-start gap-(--umc-spacing-gap-20)">
-          <div className="flex min-w-0 flex-1 flex-col gap-(--umc-spacing-gap-8)">
-            {notice.required ? (
-              <Tag
-                className="w-fit px-[7px]"
-                color="error"
-                size="md"
-                variant="weak"
-              >
-                필독
-              </Tag>
+      <article
+        aria-busy={isImageLoading ? true : undefined}
+        className="border-neutral-disabled flex w-full flex-col items-start gap-(--umc-spacing-gap-24) rounded-(--umc-radius-14) border bg-white p-(--umc-spacing-padding-32)"
+      >
+        {isImageLoading ? (
+          <NoticeDetailLoadingContents showRequiredTag={notice.required} />
+        ) : (
+          <>
+            <div className="flex w-full items-start gap-(--umc-spacing-gap-20)">
+              <div className="flex min-w-0 flex-1 flex-col gap-(--umc-spacing-gap-8)">
+                {notice.required ? (
+                  <Tag
+                    className="w-fit px-[7px]"
+                    color="error"
+                    size="md"
+                    variant="weak"
+                  >
+                    필독
+                  </Tag>
+                ) : null}
+                <h1 className="text-heading-4-semibold text-neutral-default-900">
+                  {notice.title}
+                </h1>
+                <NoticeDetailMetaRow
+                  items={[
+                    {
+                      label: "대상",
+                      showDividerAfter: true,
+                      value: notice.targetDisplay,
+                    },
+                    {
+                      label: "작성",
+                      showDividerAfter: true,
+                      value: createdMeta,
+                    },
+                    {
+                      label: "수정",
+                      value: notice.updatedAt,
+                    },
+                  ]}
+                />
+              </div>
+              {canManageNotice ? (
+                <div className="flex shrink-0 items-start gap-(--umc-spacing-gap-12)">
+                  <Button
+                    color="white"
+                    size="sm"
+                    type="button"
+                    variant="fill"
+                    disabled={false}
+                    isLoading={false}
+                  >
+                    수정
+                  </Button>
+                  <Button
+                    color="white"
+                    size="sm"
+                    type="button"
+                    variant="fill"
+                    disabled={false}
+                    isLoading={false}
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                  >
+                    삭제
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            <hr className="border-neutral-disabled m-0 w-full shrink-0 border-0 border-t" />
+
+            <NoticeDetailBody body={notice.body} />
+
+            <NoticeDetailImageGallery images={notice.images} variant="scroll" />
+
+            {notice.link ? <NoticeDetailLinkCard link={notice.link} /> : null}
+
+            {notice.poll ? (
+              <NoticeDetailVoteCard
+                canManagePoll={canManageNotice}
+                poll={notice.poll}
+              />
             ) : null}
-            <h1 className="text-heading-4-semibold text-neutral-default-900">
-              {notice.title}
-            </h1>
-            <NoticeDetailMetaRow
-              items={[
-                {
-                  label: "대상",
-                  showDividerAfter: true,
-                  value: notice.targetDisplay,
-                },
-                {
-                  label: "작성",
-                  showDividerAfter: true,
-                  value: createdMeta,
-                },
-                {
-                  label: "수정",
-                  value: notice.updatedAt,
-                },
-              ]}
-            />
-          </div>
-          <div className="flex shrink-0 items-start gap-(--umc-spacing-gap-12)">
-            <Button
-              color="white"
-              size="sm"
-              type="button"
-              variant="fill"
-              disabled={false}
-              isLoading={false}
-            >
-              수정
-            </Button>
-            <Button
-              color="white"
-              size="sm"
-              type="button"
-              variant="fill"
-              disabled={false}
-              isLoading={false}
-            >
-              삭제
-            </Button>
-          </div>
-        </div>
-
-        <hr className="border-neutral-disabled m-0 w-full shrink-0 border-0 border-t" />
-
-        <NoticeDetailBody body={notice.body} />
-
-        <NoticeDetailImageGallery images={notice.images} variant="scroll" />
-
-        {notice.link ? <NoticeDetailLinkCard link={notice.link} /> : null}
-
-        {notice.poll ? <NoticeDetailVoteCard poll={notice.poll} /> : null}
+          </>
+        )}
       </article>
 
       <Button
@@ -131,6 +171,35 @@ export function NoticeDetailPage({
       >
         목록으로
       </Button>
+      <Dialog
+        title="이 공지를 삭제할까요?"
+        description="삭제하면 챌린저 앱에서도 사라지고 되돌릴 수 없어요"
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        confirmLabel="삭제하기"
+        cancelLabel="돌아가기"
+        color="primary"
+        onConfirm={async () => {
+          if (isDeleting) {
+            return
+          }
+
+          setIsDeleting(true)
+          const outcome = await mockDeleteNotice(deleteOutcome ?? "success")
+          setIsDeleting(false)
+          setIsDeleteDialogOpen(false)
+
+          if (outcome === "success") {
+            void navigate({
+              to: "/notices",
+              search: { deleteOutcome: "success" },
+            })
+            return
+          }
+
+          showNoticeErrorToast(toast, NOTICE_DELETE_FAILURE_TOAST_MESSAGE)
+        }}
+      />
     </div>
   )
 }

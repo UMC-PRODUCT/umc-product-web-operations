@@ -1,11 +1,16 @@
 export type NoticePublishOutcome = "success"
 export type NoticeDeleteOutcome = "success"
+export type NoticeImageRegisterOutcome = "success"
 
 /** TODO: API 연동 시 제거. 목록 조회 결과 시뮬레이션용 */
 export type NoticeListLoadOutcome = "network_error" | "forbidden"
 
 export const NOTICE_PUBLISH_TOAST_MESSAGE = "공지를 등록했어요"
 export const NOTICE_DELETE_TOAST_MESSAGE = "공지를 삭제했어요"
+/** Figma 516:12555 — 삭제 실패 Toast */
+export const NOTICE_DELETE_FAILURE_TOAST_MESSAGE =
+  "공지를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요"
+export const NOTICE_IMAGE_REGISTER_TOAST_MESSAGE = "이미지를 등록했어요"
 
 /** Strict Mode·effect 재실행 시 등록 성공 Toast 중복 방지 (TODO: API 연동 시 제거) */
 let publishSuccessToastConsumed = false
@@ -37,4 +42,20 @@ export function consumeDeleteSuccessToast(): boolean {
 
 export function resetDeleteSuccessToastConsumption(): void {
   deleteSuccessToastConsumed = false
+}
+
+/** Strict Mode·effect 재실행 시 이미지 등록 성공 Toast 중복 방지 (TODO: API 연동 시 제거) */
+let imageRegisterSuccessToastConsumed = false
+
+export function consumeImageRegisterSuccessToast(): boolean {
+  if (imageRegisterSuccessToastConsumed) {
+    return false
+  }
+
+  imageRegisterSuccessToastConsumed = true
+  return true
+}
+
+export function resetImageRegisterSuccessToastConsumption(): void {
+  imageRegisterSuccessToastConsumed = false
 }
