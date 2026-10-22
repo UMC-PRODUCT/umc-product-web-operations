@@ -13,6 +13,8 @@ export function AdminShell() {
     pathname === "/activity" ||
     pathname === "/activity/points" ||
     pathname.startsWith("/activity/points/")
+  /** Figma Web/Page Header: 브레드크럼 ↔ 화면 제목 26px — feature에서 h1을 직접 렌더 */
+  const usesFeaturePageHeader = isPointsSurface || pathname === "/notices"
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -23,14 +25,16 @@ export function AdminShell() {
           <PageHeader
             breadcrumbs={breadcrumbs}
             className={
-              isPointsSurface
+              usesFeaturePageHeader
                 ? "[&_.umc-page-header__title-block]:hidden"
                 : undefined
             }
             title={<span className="sr-only">{title}</span>}
           />
           <main
-            className={isPointsSurface ? "mt-[26px] flex-1" : "mt-6 flex-1"}
+            className={
+              usesFeaturePageHeader ? "mt-[26px] flex-1" : "mt-6 flex-1"
+            }
           >
             <Outlet />
           </main>
