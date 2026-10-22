@@ -1,16 +1,19 @@
-import { CheckCircleIcon, ChevronRightIcon } from "@umc-product/icons"
+import {
+  AddIcon,
+  CheckCircleIcon,
+  ChevronRightIcon,
+  SubtractionIcon,
+} from "@umc-product/icons"
 import {
   Button,
   Checkbox,
   Field,
   FieldControl,
-  InputBox,
   Tab,
   TabList,
   Tabs,
   Tag,
   TextButton,
-  TextField,
 } from "@umc-product/react"
 import { useEffect, useId, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
@@ -19,16 +22,21 @@ import { cn } from "@/shared/lib/cn"
 
 import { getPartLabel } from "../model/member-labels"
 import {
+  AWARD_MODAL_TITLE,
   formatAwardScoreLabel,
-  getAwardModalTitle,
+  formatOtherScoreCaption,
+  getPointTypeOptions,
   getTypeListLabel,
-  MOCK_PENALTY_TYPES,
-  MOCK_REWARD_TYPES,
   REASON_MAX_LENGTH,
+  toSignedOtherScore,
 } from "../model/point-types"
 
 import type { AwardPointOutcome } from "../model/mock-award-point"
-import type { PointAwardTab, PointTypeOption } from "../model/point-types"
+import type {
+  OtherPointKind,
+  PointAwardTab,
+  PointTypeOption,
+} from "../model/point-types"
 import type { PointsMember } from "../model/types"
 
 type AwardPayload = {
@@ -71,7 +79,8 @@ export function AwardPointsModal({
   const titleId = useId()
   const [tab, setTab] = useState<PointAwardTab>(initialTab)
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
-  const [customScore, setCustomScore] = useState("")
+  const [otherKind, setOtherKind] = useState<OtherPointKind | null>(null)
+  const [otherMagnitude, setOtherMagnitude] = useState<number | null>(null)
   const [reason, setReason] = useState("")
   const [reasonInvalid, setReasonInvalid] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
@@ -87,7 +96,8 @@ export function AwardPointsModal({
     }
     setTab(initialTab)
     setSelectedTypeId(null)
-    setCustomScore("")
+    setOtherKind(null)
+    setOtherMagnitude(null)
     setReason("")
     setReasonInvalid(false)
     setDiscardOpen(false)
@@ -96,8 +106,8 @@ export function AwardPointsModal({
   }, [open, initialTab])
 
   const typeOptions = useMemo(
-    () => (tab === "penalty" ? MOCK_PENALTY_TYPES : MOCK_REWARD_TYPES),
-    [tab],
+    () => (tab === "other" ? [] : getPointTypeOptions(tab, member.role)),
+    [member.role, tab],
   )
 
   const selectedType = useMemo(
@@ -105,23 +115,34 @@ export function AwardPointsModal({
     [selectedTypeId, typeOptions],
   )
 
-  const parsedCustomScore = Number(customScore)
-  const hasValidCustomScore =
-    customScore.trim() !== "" && Number.isFinite(parsedCustomScore)
+  useEffect(() => {
+    if (
+      selectedTypeId !== null &&
+      !typeOptions.some((item) => item.id === selectedTypeId)
+    ) {
+      setSelectedTypeId(null)
+    }
+  }, [selectedTypeId, typeOptions])
 
-  const score =
-    tab === "other"
-      ? hasValidCustomScore
-        ? parsedCustomScore
-        : null
-      : (selectedType?.score ?? null)
+  const otherScore =
+    tab === "other" && otherKind !== null && otherMagnitude !== null
+      ? toSignedOtherScore(otherKind, otherMagnitude)
+      : null
+
+  const score = tab === "other" ? otherScore : (selectedType?.score ?? null)
 
   const canSubmit =
-    tab === "other" ? hasValidCustomScore : selectedTypeId !== null
+    tab === "other"
+      ? otherKind !== null && otherMagnitude !== null
+      : selectedTypeId !== null
 
   const reasonLength = reason.length
+  const reasonAtMax = reasonLength >= REASON_MAX_LENGTH
   const isDirty =
-    reason.trim() !== "" || selectedTypeId !== null || customScore.trim() !== ""
+    reason.trim() !== "" ||
+    selectedTypeId !== null ||
+    otherKind !== null ||
+    otherMagnitude !== null
 
   const memberMetaParts = [
     `${member.name} / ${member.nickname}`,
@@ -150,15 +171,40 @@ export function AwardPointsModal({
     </div>
   ) : null
 
+  /*
+   * Figma Text Field/Box (795:16309):
+   * 기본 2줄 · 최대 3줄 · 카운터는 박스 하단(회색 유지)
+   * 200자 도달 시 label/box/caption error
+   */
   const reasonField = (
     <Field
+      caption={
+        !reasonInvalid && reasonAtMax
+          ? "최대 200자까지 입력할 수 있어요"
+          : undefined
+      }
+      className="umc-text-area-field"
       errorMessage={reasonInvalid ? "사유를 입력해 주세요" : undefined}
-      invalid={reasonInvalid}
+      invalid={reasonInvalid || reasonAtMax}
       label="사유"
       required
     >
-      <div className="relative">
-        <InputBox className="umc-text-area" invalid={reasonInvalid} size="lg">
+      <div
+        className={cn(
+          "umc-text-area justify-between",
+          "[--umc-text-area-min-height:calc(var(--umc-typography-label-3-medium-font-size)*1.4*3+1.5em+var(--umc-text-area-padding-block)*2)]",
+        )}
+        data-invalid={reasonInvalid || reasonAtMax ? "" : undefined}
+      >
+        <div
+          className={cn(
+            "max-h-[calc(var(--umc-typography-label-3-medium-font-size)*1.4*3)] min-h-[calc(var(--umc-typography-label-3-medium-font-size)*1.4*2)] w-full shrink-0 overflow-y-auto",
+            "[&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5",
+            "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#adadad]",
+            "[&::-webkit-scrollbar-track]:bg-transparent",
+            "[&::-webkit-scrollbar-button]:hidden [&::-webkit-scrollbar-button]:h-0 [&::-webkit-scrollbar-button]:w-0",
+          )}
+        >
           <FieldControl
             maxLength={REASON_MAX_LENGTH}
             onChange={(event) => {
@@ -173,22 +219,13 @@ export function AwardPointsModal({
             render={(controlProps) => (
               <textarea
                 {...controlProps}
-                className="umc-input-box__input umc-text-area__input pb-(--umc-spacing-padding-20)"
-                rows={3}
-                style={{ resize: "none" }}
+                className="umc-text-area__input [field-sizing:content] overflow-hidden"
+                rows={2}
               />
             )}
           />
-        </InputBox>
-        <span
-          aria-hidden
-          className={cn(
-            "text-body-3-regular pointer-events-none absolute right-(--umc-spacing-padding-16) bottom-(--umc-spacing-padding-12)",
-            reasonLength >= REASON_MAX_LENGTH
-              ? "text-error"
-              : "text-neutral-weak-500",
-          )}
-        >
+        </div>
+        <span aria-hidden className="umc-text-area__counter shrink-0">
           {reasonLength}/{REASON_MAX_LENGTH}
         </span>
       </div>
@@ -204,7 +241,8 @@ export function AwardPointsModal({
     }
     setTab(value)
     setSelectedTypeId(null)
-    setCustomScore("")
+    setOtherKind(null)
+    setOtherMagnitude(null)
     setReasonInvalid(false)
     setSubmitError(null)
   }
@@ -215,6 +253,38 @@ export function AwardPointsModal({
     }
     setSelectedTypeId(option.id)
     setReasonInvalid(false)
+    setSubmitError(null)
+  }
+
+  const handleSelectOtherKind = (kind: OtherPointKind, checked: boolean) => {
+    if (submitting) {
+      return
+    }
+    setOtherKind(checked ? kind : null)
+    if (!checked) {
+      setOtherMagnitude(null)
+    }
+    setSubmitError(null)
+  }
+
+  const handleIncrementScore = () => {
+    if (submitting || otherKind === null) {
+      return
+    }
+    setOtherMagnitude((prev) => (prev === null ? 1 : prev + 1))
+    setSubmitError(null)
+  }
+
+  const handleDecrementScore = () => {
+    if (submitting || otherKind === null || otherMagnitude === null) {
+      return
+    }
+    setOtherMagnitude((prev) => {
+      if (prev === null || prev <= 1) {
+        return null
+      }
+      return prev - 1
+    })
     setSubmitError(null)
   }
 
@@ -231,7 +301,12 @@ export function AwardPointsModal({
     setSubmitError(null)
     const outcome = await onSubmit({
       tab,
-      typeLabel: tab === "other" ? "기타" : (selectedType?.label ?? "기타"),
+      typeLabel:
+        tab === "other"
+          ? otherKind === "reward"
+            ? "기타 상점"
+            : "기타 벌점"
+          : (selectedType?.label ?? "기타"),
       score,
       reason: trimmedReason.slice(0, REASON_MAX_LENGTH),
     })
@@ -258,9 +333,25 @@ export function AwardPointsModal({
     onOpenChange(false)
   }
 
+  const scoreStepperEnabled = otherKind !== null && !submitting
+  const scoreDisplay =
+    otherKind === null || otherMagnitude === null
+      ? "-"
+      : otherKind === "penalty"
+        ? `-${otherMagnitude}`
+        : `+${otherMagnitude}`
+
+  /*
+   * Figma Web/Panel (795:16342) hierarchy:
+   * Header → Control Footer(justify-between)
+   *   Control Slot(gap-10):
+   *     Frame 2680(gap-16): 대상 → Tabs → 유형/구분·스테퍼
+   *     Frame 2681(gap-16): 점수바 → 사유
+   *   Button Area
+   */
   return createPortal(
     <>
-      <div className="fixed inset-0 z-[var(--umc-z-dialog,1000)] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[var(--umc-z-dialog,1000)] flex items-center justify-center p-(--umc-spacing-padding-32)">
         <button
           aria-label="닫기"
           className="absolute inset-0 border-0 bg-[var(--umc-color-dimmed-medium)]"
@@ -271,24 +362,28 @@ export function AwardPointsModal({
         <div
           aria-labelledby={titleId}
           aria-modal="true"
-          className="relative z-10 flex max-h-[calc(100vh-32px)] w-full max-w-[512px] flex-col overflow-hidden rounded-(--umc-radius-16) bg-white shadow-(--umc-shadow-drop-neutral-2)"
+          className="relative z-10 flex max-h-full w-full max-w-[512px] flex-col overflow-hidden rounded-(--umc-radius-16) bg-white pb-(--umc-spacing-padding-24) shadow-(--umc-shadow-drop-neutral-2)"
           role="dialog"
         >
-          {/* Header */}
-          <div className="flex shrink-0 flex-col gap-(--umc-spacing-gap-8) px-(--umc-spacing-padding-32) pt-(--umc-spacing-padding-32)">
-            <h2
-              className="text-heading-2-semibold text-neutral-default-900 px-1"
-              id={titleId}
-            >
-              {getAwardModalTitle(tab)}
-            </h2>
+          {/* Header — Frame 2087331771 */}
+          <div className="flex shrink-0 flex-col px-(--umc-spacing-padding-32) pt-(--umc-spacing-padding-32)">
+            <div className="flex flex-col px-1">
+              <h2
+                className="text-heading-2-semibold text-neutral-default-900"
+                id={titleId}
+              >
+                {AWARD_MODAL_TITLE}
+              </h2>
+            </div>
           </div>
 
-          {/* Control Footer */}
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex min-h-0 flex-1 flex-col gap-(--umc-spacing-gap-10) overflow-y-auto px-(--umc-spacing-padding-32) py-(--umc-spacing-padding-20)">
-              {/* Group 1: 대상 + 탭 + 유형/점수입력 */}
+          {/* Control Footer — justify-between: Slot top, Button Area bottom */}
+          <div className="flex min-h-0 flex-1 flex-col justify-between">
+            {/* Control Slot — px-32 py-20, gap-10 between groups */}
+            <div className="flex min-h-0 flex-col gap-(--umc-spacing-gap-10) overflow-y-auto px-(--umc-spacing-padding-32) py-(--umc-spacing-padding-20)">
+              {/* Frame 2087332680 */}
               <div className="flex flex-col gap-(--umc-spacing-gap-16)">
+                {/* 대상 */}
                 <div className="bg-fill-neutral-disabled flex min-h-12 items-center gap-(--umc-spacing-gap-16) overflow-hidden rounded-(--umc-radius-14) pr-2 pl-(--umc-spacing-padding-16)">
                   <span className="text-body-1-medium text-neutral-weak-500 shrink-0">
                     대상
@@ -313,6 +408,7 @@ export function AwardPointsModal({
                   </p>
                 </div>
 
+                {/* Tabs */}
                 <Tabs onValueChange={handleTabChange} value={tab}>
                   <TabList aria-label="상벌점 구분">
                     <Tab value="reward">상점</Tab>
@@ -322,27 +418,125 @@ export function AwardPointsModal({
                 </Tabs>
 
                 {tab === "other" ? (
-                  <TextField
-                    className="[&_input]:[appearance:textfield] [&_input::-webkit-inner-spin-button]:appearance-none [&_input::-webkit-outer-spin-button]:appearance-none"
-                    inputMode="decimal"
-                    label="점수"
-                    onChange={(event) => {
-                      setCustomScore(event.target.value)
-                      setSubmitError(null)
-                    }}
-                    placeholder="점수를 입력하세요"
-                    required
-                    size="lg"
-                    type="number"
-                    value={customScore}
-                  />
+                  <>
+                    {/* 구분 — Label + options(gap-16) */}
+                    <div className="flex flex-col gap-(--umc-spacing-gap-12)">
+                      <p className="text-label-4-medium text-neutral-medium-600 flex items-center gap-px px-1">
+                        <span>구분</span>
+                        <span className="text-error">*</span>
+                      </p>
+                      <div className="flex flex-col gap-(--umc-spacing-gap-16)">
+                        <div className="flex items-center gap-(--umc-spacing-gap-8)">
+                          <Checkbox
+                            checked={otherKind === "reward"}
+                            color={otherKind === "reward" ? "brand" : "neutral"}
+                            disabled={submitting}
+                            labelPlacement="end"
+                            onCheckedChange={(checked) => {
+                              handleSelectOtherKind("reward", checked)
+                            }}
+                            size="lg"
+                          >
+                            상점
+                          </Checkbox>
+                          <span className="text-body-3-regular text-neutral-medium-600">
+                            점수가 더해져요
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-(--umc-spacing-gap-8)">
+                          <Checkbox
+                            checked={otherKind === "penalty"}
+                            color={
+                              otherKind === "penalty" ? "brand" : "neutral"
+                            }
+                            disabled={submitting}
+                            labelPlacement="end"
+                            onCheckedChange={(checked) => {
+                              handleSelectOtherKind("penalty", checked)
+                            }}
+                            size="lg"
+                          >
+                            벌점
+                          </Checkbox>
+                          <span className="text-body-3-regular text-neutral-medium-600">
+                            점수가 깎여요
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 점수 — Label + (stepper + caption gap-8) */}
+                    <div className="flex flex-col gap-(--umc-spacing-gap-12)">
+                      <p className="text-label-4-medium text-neutral-medium-600 flex items-center gap-px px-1">
+                        <span>점수</span>
+                        <span className="text-error">*</span>
+                      </p>
+                      <div className="flex flex-col gap-(--umc-spacing-gap-8)">
+                        <div className="flex items-center gap-(--umc-spacing-gap-8)">
+                          <button
+                            aria-label="점수 감소"
+                            className={cn(
+                              "flex size-11 shrink-0 items-center justify-center rounded-(--umc-radius-8) border bg-white",
+                              scoreStepperEnabled && otherMagnitude !== null
+                                ? "border-neutral-weak-200 text-neutral-strong-800"
+                                : "border-neutral-disabled text-neutral-weak-500",
+                            )}
+                            disabled={
+                              !scoreStepperEnabled || otherMagnitude === null
+                            }
+                            onClick={handleDecrementScore}
+                            type="button"
+                          >
+                            <SubtractionIcon
+                              aria-hidden
+                              size={24}
+                              weight="fill"
+                            />
+                          </button>
+                          <div className="bg-fill-neutral-weak-75 flex h-11 min-w-0 flex-1 items-center justify-center rounded-(--umc-radius-12) p-1">
+                            <span
+                              className={cn(
+                                "text-heading-2-semibold w-full truncate text-center",
+                                otherMagnitude === null || otherKind === null
+                                  ? "text-neutral-weak-500"
+                                  : otherKind === "penalty"
+                                    ? "text-error"
+                                    : "text-brand-default-600",
+                              )}
+                            >
+                              {scoreDisplay}
+                            </span>
+                          </div>
+                          <button
+                            aria-label="점수 증가"
+                            className={cn(
+                              "flex size-11 shrink-0 items-center justify-center rounded-(--umc-radius-8) border bg-white",
+                              scoreStepperEnabled
+                                ? "border-neutral-weak-200 text-neutral-strong-800"
+                                : "border-neutral-disabled text-neutral-weak-500",
+                            )}
+                            disabled={!scoreStepperEnabled}
+                            onClick={handleIncrementScore}
+                            type="button"
+                          >
+                            <AddIcon aria-hidden size={24} weight="fill" />
+                          </button>
+                        </div>
+                        {otherKind !== null && otherMagnitude !== null ? (
+                          <p className="text-body-3-regular text-neutral-weak-500 flex h-6 items-center">
+                            {formatOtherScoreCaption(otherKind, otherMagnitude)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="flex flex-col gap-(--umc-spacing-gap-12)">
                     <p className="text-label-4-medium text-neutral-medium-600 flex items-center gap-px px-1">
                       <span>{getTypeListLabel(tab)}</span>
                       <span className="text-error">*</span>
                     </p>
-                    <div className="border-neutral-disabled max-h-[195px] overflow-y-auto rounded-(--umc-radius-12) border">
+                    <div className="border-neutral-disabled max-h-[191px] overflow-y-auto rounded-(--umc-radius-12) border">
                       {typeOptions.map((option, index) => {
                         const selected = option.id === selectedTypeId
                         const isFirst = index === 0
@@ -386,7 +580,7 @@ export function AwardPointsModal({
                 )}
               </div>
 
-              {/* Group 2: 점수요약 + 사유 + 에러배너 */}
+              {/* Frame 2087332681 — 점수바 + 사유 */}
               <div className="flex flex-col gap-(--umc-spacing-gap-16)">
                 {tab !== "other" ? (
                   <div className="bg-fill-neutral-disabled flex min-h-12 items-center gap-(--umc-spacing-gap-16) overflow-hidden rounded-(--umc-radius-14) pr-2 pl-(--umc-spacing-padding-16)">
@@ -430,8 +624,8 @@ export function AwardPointsModal({
               </div>
             </div>
 
-            {/* Button Area */}
-            <div className="grid shrink-0 grid-cols-3 gap-(--umc-spacing-gap-8) px-(--umc-spacing-padding-20) pt-(--umc-spacing-padding-32) pb-(--umc-spacing-padding-24)">
+            {/* Button Area — pt-32 px-20, panel pb-24 handles bottom */}
+            <div className="grid shrink-0 grid-cols-3 gap-(--umc-spacing-gap-8) px-(--umc-spacing-padding-20) pt-(--umc-spacing-padding-32)">
               <Button
                 color="neutral"
                 disabled={submitting}

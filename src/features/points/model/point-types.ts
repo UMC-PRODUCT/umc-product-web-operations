@@ -1,3 +1,5 @@
+import type { RoleTagColor } from "@umc-product/react"
+
 export type PointAwardTab = "reward" | "penalty" | "other"
 
 export type PointTypeOption = {
@@ -6,40 +8,79 @@ export type PointTypeOption = {
   score: number
 }
 
-/** TODO: API 연동 시 서버 목록으로 교체 */
-export const MOCK_REWARD_TYPES: PointTypeOption[] = [
-  { id: "r1", label: "해커톤 우수상", score: 3 },
-  { id: "r2", label: "스터디 리드", score: 2 },
-  { id: "r3", label: "프로젝트 기여", score: 2 },
-  { id: "r4", label: "행사 스태프", score: 1 },
-  { id: "r5", label: "멘토링 활동", score: 2 },
-]
+export type PenaltyScope = "all" | "campus" | "presidency"
 
 /** TODO: API 연동 시 서버 목록으로 교체 */
-export const MOCK_PENALTY_TYPES: PointTypeOption[] = [
-  { id: "p1", label: "과제 미수행", score: -4 },
-  { id: "p2", label: "스터디 무단 지각", score: -2 },
-  { id: "p3", label: "스터디 무단 불참", score: -4 },
-  { id: "p4", label: "행사 무단 지각", score: -2 },
-  { id: "p5", label: "행사 무단 조퇴", score: -2 },
-  { id: "p6", label: "행사 기간 외 취소", score: -4 },
-  { id: "p7", label: "노쇼", score: -10 },
-  { id: "p8", label: "기간 외 피드백", score: -4 },
-  { id: "p9", label: "회의 무단 불참", score: -4 },
+export const MOCK_REWARD_TYPES: PointTypeOption[] = [
+  { id: "r-blog", label: "블로그 챌린지", score: 3 },
+  { id: "r-workbook", label: "베스트 워크북 선정", score: 2 },
+  { id: "r-reviewer", label: "행사 리뷰어", score: 1 },
+  { id: "r-central-event", label: "중앙 행사 참여", score: 2 },
+  { id: "r-knowledge", label: "지식인 채널 활동", score: 1 },
 ]
+
+/** 벌점 — 전체 적용 */
+export const MOCK_PENALTY_TYPES_ALL: PointTypeOption[] = [
+  { id: "p-all-homework", label: "과제 미수행", score: -4 },
+  { id: "p-all-study-late", label: "스터디 지각", score: -2 },
+  { id: "p-all-study-absent", label: "스터디 불참", score: -4 },
+  { id: "p-all-event-late", label: "행사 지각", score: -2 },
+  { id: "p-all-event-leave", label: "행사 중도 퇴실", score: -2 },
+  { id: "p-all-event-cancel", label: "행사 기간 외 취소", score: -4 },
+  { id: "p-all-noshow", label: "노쇼", score: -10 },
+]
+
+/** 벌점 — 교내 운영진 */
+export const MOCK_PENALTY_TYPES_CAMPUS: PointTypeOption[] = [
+  { id: "p-campus-duty", label: "업무 불이행", score: -4 },
+  { id: "p-campus-policy", label: "운영 기준 위반", score: -6 },
+]
+
+/** 벌점 — 회장단 */
+export const MOCK_PENALTY_TYPES_PRESIDENCY: PointTypeOption[] = [
+  { id: "p-pres-meeting", label: "회의 불참", score: -4 },
+  { id: "p-pres-duty", label: "업무 불이행", score: -4 },
+  { id: "p-pres-document", label: "문서 미제출", score: -4 },
+  { id: "p-pres-policy", label: "운영 기준 위반", score: -6 },
+]
+
+const PENALTY_BY_SCOPE: Record<PenaltyScope, PointTypeOption[]> = {
+  all: MOCK_PENALTY_TYPES_ALL,
+  campus: MOCK_PENALTY_TYPES_CAMPUS,
+  presidency: MOCK_PENALTY_TYPES_PRESIDENCY,
+}
+
+/** 대상 구성원 역할에 따라 노출할 벌점 스코프 */
+export function getPenaltyScopesForMemberRole(
+  role: RoleTagColor,
+): PenaltyScope[] {
+  const scopes: PenaltyScope[] = ["all"]
+  if (role === "campus") {
+    scopes.push("campus")
+  }
+  if (role === "chapter" || role === "central" || role === "product") {
+    scopes.push("presidency")
+  }
+  return scopes
+}
+
+export function getPointTypeOptions(
+  tab: Exclude<PointAwardTab, "other">,
+  memberRole: RoleTagColor,
+): PointTypeOption[] {
+  if (tab === "reward") {
+    return MOCK_REWARD_TYPES
+  }
+  return getPenaltyScopesForMemberRole(memberRole).flatMap(
+    (scope) => PENALTY_BY_SCOPE[scope],
+  )
+}
 
 export const REASON_MAX_LENGTH = 200
 
-export function getAwardModalTitle(tab: PointAwardTab): string {
-  switch (tab) {
-    case "reward":
-      return "상점 부여하기"
-    case "penalty":
-      return "벌점 부여하기"
-    case "other":
-      return "기타 상벌점 부여하기"
-  }
-}
+export const AWARD_MODAL_TITLE = "상벌점 부여하기"
+
+export type OtherPointKind = "reward" | "penalty"
 
 export function getTypeListLabel(tab: Exclude<PointAwardTab, "other">): string {
   return tab === "reward" ? "상점 유형" : "벌점 유형"
@@ -50,4 +91,21 @@ export function formatAwardScoreLabel(score: number): string {
     return `+${score}점`
   }
   return `${score}점`
+}
+
+export function formatOtherScoreCaption(
+  kind: OtherPointKind,
+  magnitude: number,
+): string {
+  if (kind === "reward") {
+    return `상점 +${magnitude}점으로 기록돼요`
+  }
+  return `벌점 -${magnitude}점으로 기록돼요`
+}
+
+export function toSignedOtherScore(
+  kind: OtherPointKind,
+  magnitude: number,
+): number {
+  return kind === "penalty" ? -magnitude : magnitude
 }

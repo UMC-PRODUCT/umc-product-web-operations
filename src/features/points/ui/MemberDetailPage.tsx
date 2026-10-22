@@ -164,9 +164,7 @@ export function MemberDetailPage({
     <section className="flex flex-col gap-[40px]">
       <MemberProfileCard
         member={member}
-        onGrantOther={() => openAwardModal("other")}
-        onGrantPenalty={() => openAwardModal("penalty")}
-        onGrantReward={() => openAwardModal("reward")}
+        onAwardPoints={() => openAwardModal("reward")}
         summary={summary}
       />
 
