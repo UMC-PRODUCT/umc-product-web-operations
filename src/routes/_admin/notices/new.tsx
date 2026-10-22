@@ -1,14 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router"
 
+import { NoticeCreatePage } from "@/features/notices"
+
+import type { CreateNoticeOutcome } from "@/features/notices/model/mock-create-notice"
+
+type NoticeCreateSearch = {
+  /** TODO: API 연동 시 제거. 등록 결과 시뮬레이션용 */
+  createOutcome?: CreateNoticeOutcome
+}
+
 export const Route = createFileRoute("/_admin/notices/new")({
-  component: NoticeCreatePage,
+  validateSearch: (search: Record<string, unknown>): NoticeCreateSearch => ({
+    createOutcome:
+      search.createOutcome === "network_error" ||
+      search.createOutcome === "forbidden" ||
+      search.createOutcome === "success"
+        ? search.createOutcome
+        : undefined,
+  }),
+  component: NoticeCreateRoute,
 })
 
-function NoticeCreatePage() {
-  return (
-    <section className="flex flex-col gap-2">
-      <h1 className="text-xl font-semibold">공지작성</h1>
-      <p className="text-teal-grey-600 text-sm">새 공지를 작성합니다.</p>
-    </section>
-  )
+function NoticeCreateRoute() {
+  const { createOutcome } = Route.useSearch()
+
+  return <NoticeCreatePage createOutcome={createOutcome} />
 }

@@ -50,8 +50,8 @@ export function getSideNavItems(
   switch (section) {
     case "notices":
       return [
-        { label: "공지목록", href: "/notices" },
-        { label: "공지작성", href: "/notices/new" },
+        { label: "공지 목록", href: "/notices", icon: peopleIcon },
+        { label: "공지 작성", href: "/notices/new", icon: peopleIcon },
       ]
     case "activity":
       return [
