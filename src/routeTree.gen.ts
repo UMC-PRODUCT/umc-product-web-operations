@@ -18,6 +18,7 @@ import { Route as AdminRecruitingRouteRouteImport } from './routes/_admin/recrui
 import { Route as AdminActivityIndexRouteImport } from './routes/_admin/activity/index'
 import { Route as AdminActivityPointsRouteImport } from './routes/_admin/activity/points'
 import { Route as AdminNoticesIndexRouteImport } from './routes/_admin/notices/index'
+import { Route as AdminNoticesNoticeIdRouteImport } from './routes/_admin/notices/$noticeId'
 import { Route as AdminNoticesNewRouteImport } from './routes/_admin/notices/new'
 import { Route as AdminRecruitingIndexRouteImport } from './routes/_admin/recruiting/index'
 import { Route as AdminActivityPointsIndexRouteImport } from './routes/_admin/activity/points.index'
@@ -67,6 +68,11 @@ const AdminNoticesIndexRoute = AdminNoticesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminNoticesRouteRoute,
 } as any)
+const AdminNoticesNoticeIdRoute = AdminNoticesNoticeIdRouteImport.update({
+  id: '/$noticeId',
+  path: '/$noticeId',
+  getParentRoute: () => AdminNoticesRouteRoute,
+} as any)
 const AdminNoticesNewRoute = AdminNoticesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/notices': typeof AdminNoticesRouteRouteWithChildren
   '/recruiting': typeof AdminRecruitingRouteRouteWithChildren
   '/activity/points': typeof AdminActivityPointsRouteWithChildren
+  '/notices/$noticeId': typeof AdminNoticesNoticeIdRoute
   '/notices/new': typeof AdminNoticesNewRoute
   '/activity/': typeof AdminActivityIndexRoute
   '/notices/': typeof AdminNoticesIndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof AdminIndexRoute
+  '/notices/$noticeId': typeof AdminNoticesNoticeIdRoute
   '/notices/new': typeof AdminNoticesNewRoute
   '/activity': typeof AdminActivityIndexRoute
   '/notices': typeof AdminNoticesIndexRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/_admin/recruiting': typeof AdminRecruitingRouteRouteWithChildren
   '/_admin/': typeof AdminIndexRoute
   '/_admin/activity/points': typeof AdminActivityPointsRouteWithChildren
+  '/_admin/notices/$noticeId': typeof AdminNoticesNoticeIdRoute
   '/_admin/notices/new': typeof AdminNoticesNewRoute
   '/_admin/activity/': typeof AdminActivityIndexRoute
   '/_admin/notices/': typeof AdminNoticesIndexRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/notices'
     | '/recruiting'
     | '/activity/points'
+    | '/notices/$noticeId'
     | '/notices/new'
     | '/activity/'
     | '/notices/'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/'
+    | '/notices/$noticeId'
     | '/notices/new'
     | '/activity'
     | '/notices'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_admin/recruiting'
     | '/_admin/'
     | '/_admin/activity/points'
+    | '/_admin/notices/$noticeId'
     | '/_admin/notices/new'
     | '/_admin/activity/'
     | '/_admin/notices/'
@@ -242,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNoticesIndexRouteImport
       parentRoute: typeof AdminNoticesRouteRoute
     }
+    '/_admin/notices/$noticeId': {
+      id: '/_admin/notices/$noticeId'
+      path: '/$noticeId'
+      fullPath: '/notices/$noticeId'
+      preLoaderRoute: typeof AdminNoticesNoticeIdRouteImport
+      parentRoute: typeof AdminNoticesRouteRoute
+    }
     '/_admin/notices/new': {
       id: '/_admin/notices/new'
       path: '/new'
@@ -300,11 +319,13 @@ const AdminActivityRouteRouteWithChildren =
   AdminActivityRouteRoute._addFileChildren(AdminActivityRouteRouteChildren)
 
 interface AdminNoticesRouteRouteChildren {
+  AdminNoticesNoticeIdRoute: typeof AdminNoticesNoticeIdRoute
   AdminNoticesNewRoute: typeof AdminNoticesNewRoute
   AdminNoticesIndexRoute: typeof AdminNoticesIndexRoute
 }
 
 const AdminNoticesRouteRouteChildren: AdminNoticesRouteRouteChildren = {
+  AdminNoticesNoticeIdRoute: AdminNoticesNoticeIdRoute,
   AdminNoticesNewRoute: AdminNoticesNewRoute,
   AdminNoticesIndexRoute: AdminNoticesIndexRoute,
 }

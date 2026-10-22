@@ -1,4 +1,4 @@
-import { Tag } from "@umc-product/react"
+import { Tag, TextButton } from "@umc-product/react"
 
 import { cn } from "@/shared/lib/cn"
 
@@ -17,6 +17,7 @@ type NoticeListTableProps = {
   isForbidden?: boolean
   isLoading?: boolean
   notices?: Notice[]
+  onOpenNotice?: (noticeId: string) => void
   onRetry?: () => void
 }
 
@@ -143,7 +144,11 @@ function SkeletonRow({ isLast }: { isLast: boolean }) {
   )
 }
 
-function renderCell(notice: Notice, columnId: string) {
+function renderCell(
+  notice: Notice,
+  columnId: string,
+  onOpenNotice?: (noticeId: string) => void,
+) {
   switch (columnId) {
     case "required":
       return notice.required ? (
@@ -154,7 +159,22 @@ function renderCell(notice: Notice, columnId: string) {
         <span aria-hidden className="block h-[26px]" />
       )
     case "title":
-      return notice.title
+      return onOpenNotice ? (
+        <TextButton
+          className="max-w-full truncate"
+          color="neutral"
+          onClick={() => {
+            onOpenNotice(notice.id)
+          }}
+          size="xs"
+          type="button"
+          variant="plain"
+        >
+          {notice.title}
+        </TextButton>
+      ) : (
+        notice.title
+      )
     case "target":
       return notice.target
     case "author":
@@ -174,6 +194,7 @@ export function NoticeListTable({
   isForbidden = false,
   isLoading = false,
   notices = [],
+  onOpenNotice,
   onRetry,
 }: NoticeListTableProps) {
   if (isLoading) {
@@ -244,7 +265,7 @@ export function NoticeListTable({
                   key={column.id}
                   role="cell"
                 >
-                  {renderCell(notice, column.id)}
+                  {renderCell(notice, column.id, onOpenNotice)}
                 </div>
               ))}
             </div>

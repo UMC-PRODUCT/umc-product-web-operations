@@ -156,6 +156,12 @@ export function NoticeListPage({
           isError={isListError}
           isForbidden={isListForbidden}
           notices={notices}
+          onOpenNotice={(noticeId) => {
+            void navigate({
+              to: "/notices/$noticeId",
+              params: { noticeId },
+            })
+          }}
           onRetry={() => {
             void navigate({
               to: "/notices",

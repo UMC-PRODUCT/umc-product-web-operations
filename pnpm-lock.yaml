@@ -27,8 +27,8 @@ importers:
         specifier: ^0.5.0
         version: 0.5.0(react@19.3.0)
       '@umc-product/react':
-        specifier: ^0.5.0
-        version: 0.5.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
+        specifier: ^0.6.0
+        version: 0.6.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
       axios:
         specifier: 1.13.5
         version: 1.13.5
@@ -1416,14 +1416,27 @@ packages:
     resolution: {integrity: sha512-UzBE+/GosTErOQovgX0IlAfiicX0sIr6mVCTIkNuIsozqlkzEJLqIkYGQKcucTs9tPnP+nbgm2XWuejC96Fpkw==, tarball: https://npm.pkg.github.com/download/@umc-product/design-tokens/0.5.0/5a861fa4389afd00a1ef15cf20792537b073b2a6}
     peerDependencies:
       tailwindcss: ^4.0.0
+    peerDependenciesMeta:
+      tailwindcss:
+        optional: true
+
+  '@umc-product/design-tokens@0.6.0':
+    resolution: {integrity: sha512-9CUkF5V0yVszkVoMGiLTL87dmXLetU3VBxczd5i6NCm9Ym3nntHaUVlZ7/2WvExUPJYH6dTyLyu0lLFYrWMgrw==, tarball: https://npm.pkg.github.com/download/@umc-product/design-tokens/0.6.0/bb1904505072245e47563352d9e83a3acfad2eea}
+    peerDependencies:
+      tailwindcss: ^4.0.0
 
   '@umc-product/icons@0.5.0':
     resolution: {integrity: sha512-ZP4n38yf+xWWSoxDAEuQnYopp0PjyTeVKTyzqqhzRk+2N6weg3mLul9kfXi653m19sGmEdSoq9SIdSEUf/H6+g==, tarball: https://npm.pkg.github.com/download/@umc-product/icons/0.5.0/1eb8e08a17553a99e0ab2c042147fb239fbadadc}
     peerDependencies:
       react: ^19.0.0
 
-  '@umc-product/react@0.5.0':
-    resolution: {integrity: sha512-7tLoTHE6H3kTtWfFNyNRNq9xR1AWVQQ6EpQNSNyAxgISDovRat1nuuS0EsbXcy2cfUc/F9yAng7XMpHROMKBRQ==, tarball: https://npm.pkg.github.com/download/@umc-product/react/0.5.0/c1d7a1059c646f7dffecc7550b4ced3a73432d16}
+  '@umc-product/icons@0.6.0':
+    resolution: {integrity: sha512-Hm7dAYAkM9jt744U1a/POtOvgEKBFrJeqcyJd7Ama/L6+RB44iakO3OHqjr0BGtF0x0QaADXWu6CJPZoGnaTnw==, tarball: https://npm.pkg.github.com/download/@umc-product/icons/0.6.0/e1218e8a5c9ad08dd8f4997d3b34237f68036712}
+    peerDependencies:
+      react: ^19.0.0
+
+  '@umc-product/react@0.6.0':
+    resolution: {integrity: sha512-YGxSQBT3VUZpIuYnya9drkTlL5TUJjcqFZpn0CDSeTyt038aIp1xIash3jNYUnYzVDstR8cza475VeaTtMKhkg==, tarball: https://npm.pkg.github.com/download/@umc-product/react/0.6.0/2425cdd4df649c8c52b8f7ad1208a6378c6b3e58}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
@@ -4585,18 +4598,28 @@ snapshots:
   '@umc-product/design-tokens@0.5.0(tailwindcss@4.3.3)':
     dependencies:
       pretendard: 1.3.9
+    optionalDependencies:
+      tailwindcss: 4.3.3
+
+  '@umc-product/design-tokens@0.6.0(tailwindcss@4.3.3)':
+    dependencies:
+      pretendard: 1.3.9
       tailwindcss: 4.3.3
 
   '@umc-product/icons@0.5.0(react@19.3.0)':
     dependencies:
       react: 19.3.0
 
-  '@umc-product/react@0.5.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
+  '@umc-product/icons@0.6.0(react@19.3.0)':
+    dependencies:
+      react: 19.3.0
+
+  '@umc-product/react@0.6.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
     dependencies:
       '@base-ui/react': 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@fontsource/orbitron': 5.3.0
-      '@umc-product/design-tokens': 0.5.0(tailwindcss@4.3.3)
-      '@umc-product/icons': 0.5.0(react@19.3.0)
+      '@umc-product/design-tokens': 0.6.0(tailwindcss@4.3.3)
+      '@umc-product/icons': 0.6.0(react@19.3.0)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:

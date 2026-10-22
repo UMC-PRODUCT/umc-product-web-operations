@@ -81,11 +81,21 @@ export function getPageBreadcrumbs(
           ],
         }
       }
+      if (/^\/notices\/[^/]+$/.test(pathname)) {
+        return {
+          title: "공지 상세",
+          breadcrumbs: [
+            { label: "공지", href: "/notices" },
+            { label: "공지 목록", href: "/notices" },
+            { label: "공지 상세" },
+          ],
+        }
+      }
       return {
         title: "공지목록",
         breadcrumbs: [
           { label: "공지", href: "/notices" },
-          { label: "공지목록" },
+          { label: "공지 목록" },
         ],
       }
     case "activity":
