@@ -12,7 +12,7 @@ export const MOCK_NOTICES: Notice[] = [
     title: SAMPLE_TITLE,
     audience: "challenger",
     target: SAMPLE_TARGET,
-    author: "중앙 운영국",
+    author: "중앙 총괄",
     createdAt: "26/10/06",
     views: 59121,
   },

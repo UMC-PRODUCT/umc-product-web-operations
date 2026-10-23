@@ -20,6 +20,7 @@ export function AdminSideNav({ currentPath, section }: AdminSideNavProps) {
   return (
     <SideNavigation
       aria-label="운영 메뉴"
+      className="w-(--umc-layout-sidebar-width) shrink-0"
       currentPath={currentPath}
       items={getSideNavItems(
         section,

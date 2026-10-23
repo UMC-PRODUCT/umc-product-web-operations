@@ -4,6 +4,7 @@ import { NoticeListPage } from "@/features/notices"
 
 import type {
   NoticeDeleteOutcome,
+  NoticeImageRegisterOutcome,
   NoticeListLoadOutcome,
   NoticePublishOutcome,
 } from "@/features/notices/model/notice-outcomes"
@@ -11,6 +12,8 @@ import type {
 type NoticesSearch = {
   /** TODO: API 연동 시 제거. 삭제 성공 Toast 시뮬레이션용 */
   deleteOutcome?: NoticeDeleteOutcome
+  /** TODO: API 연동 시 제거. 이미지 등록 성공 Toast 시뮬레이션용 */
+  imageRegisterOutcome?: NoticeImageRegisterOutcome
   /** TODO: API 연동 시 제거. 목록 조회 결과 시뮬레이션용 */
   listOutcome?: NoticeListLoadOutcome
   /** TODO: API 연동 시 제거. 등록 성공 Toast 시뮬레이션용 */
@@ -21,6 +24,10 @@ export const Route = createFileRoute("/_admin/notices/")({
   validateSearch: (search: Record<string, unknown>): NoticesSearch => ({
     deleteOutcome:
       search.deleteOutcome === "success" ? search.deleteOutcome : undefined,
+    imageRegisterOutcome:
+      search.imageRegisterOutcome === "success"
+        ? search.imageRegisterOutcome
+        : undefined,
     listOutcome:
       search.listOutcome === "network_error" ||
       search.listOutcome === "forbidden"
@@ -33,11 +40,13 @@ export const Route = createFileRoute("/_admin/notices/")({
 })
 
 function NoticesPage() {
-  const { deleteOutcome, listOutcome, publishOutcome } = Route.useSearch()
+  const { deleteOutcome, imageRegisterOutcome, listOutcome, publishOutcome } =
+    Route.useSearch()
 
   return (
     <NoticeListPage
       deleteOutcome={deleteOutcome}
+      imageRegisterOutcome={imageRegisterOutcome}
       listOutcome={listOutcome}
       publishOutcome={publishOutcome}
     />
