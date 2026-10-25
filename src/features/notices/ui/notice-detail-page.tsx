@@ -69,7 +69,6 @@ export function NoticeDetailPage({
           state={imageLoadState}
         />
       ) : null}
-      {/**패딩값 -40 만들어지면 32-> 40으로 변경 */}
       <article
         aria-busy={isImageLoading ? true : undefined}
         className="border-neutral-disabled flex w-full flex-col items-start gap-(--umc-spacing-gap-24) rounded-(--umc-radius-14) border bg-white p-(--umc-spacing-padding-32)"
