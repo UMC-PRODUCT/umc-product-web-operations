@@ -51,8 +51,8 @@ export function MemberProfileCard({
 }: MemberProfileCardProps) {
   const meta = [
     member.schoolLabel,
-    getRegionLabel(member.region),
-    getPartLabel(member.part),
+    member.regionLabel ?? getRegionLabel(member.region),
+    member.partLabel ?? getPartLabel(member.part),
     member.generation,
   ]
 
