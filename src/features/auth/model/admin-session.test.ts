@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { isOperator, toAdminSession, widestScope } from "./admin-session"
+import {
+  isOperator,
+  schoolExecutiveLock,
+  toAdminSession,
+  widestScope,
+} from "./admin-session"
 
 import type { RoleType } from "./admin-session"
 
@@ -75,5 +80,58 @@ describe("toAdminSession", () => {
 
     expect(isOperator(session)).toBe(false)
     expect(session.scope).toBeNull()
+  })
+})
+
+describe("schoolExecutiveLock", () => {
+  it("locks a school president to their school", () => {
+    const session = toAdminSession({
+      id: 3,
+      name: "하늘",
+      isSuperAdmin: false,
+      schoolId: 9,
+      schoolName: "중앙대학교",
+      currentGisuMemberInfo: {
+        gisuId: 11,
+        generation: 8,
+        isAdmin: true,
+        roleTypes: ["SCHOOL_PRESIDENT"],
+      },
+    })
+
+    expect(schoolExecutiveLock(session)).toEqual({
+      schoolId: "9",
+      schoolName: "중앙대학교",
+    })
+  })
+
+  it("does not lock a wider role or a campus admin", () => {
+    const president = toAdminSession({
+      id: 4,
+      name: "지부",
+      schoolId: 9,
+      schoolName: "중앙대학교",
+      currentGisuMemberInfo: {
+        gisuId: 11,
+        generation: 8,
+        isAdmin: true,
+        roleTypes: ["CHAPTER_PRESIDENT", "SCHOOL_PRESIDENT"],
+      },
+    })
+    const campus = toAdminSession({
+      id: 5,
+      name: "파트장",
+      schoolId: 9,
+      schoolName: "중앙대학교",
+      currentGisuMemberInfo: {
+        gisuId: 11,
+        generation: 8,
+        isAdmin: true,
+        roleTypes: ["SCHOOL_ETC_ADMIN"],
+      },
+    })
+
+    expect(schoolExecutiveLock(president)).toBeNull()
+    expect(schoolExecutiveLock(campus)).toBeNull()
   })
 })

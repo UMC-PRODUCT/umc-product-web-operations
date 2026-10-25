@@ -5,6 +5,16 @@ export {
   clearAdminSession,
   fetchAdminSession,
 } from "./api/session"
-export { isOperator, toAdminSession, widestScope } from "./model/admin-session"
+export {
+  isOperator,
+  schoolExecutiveLock,
+  toAdminSession,
+  widestScope,
+} from "./model/admin-session"
 
-export type { AdminScope, AdminSession, RoleType } from "./model/admin-session"
+export type {
+  AdminScope,
+  AdminSession,
+  RoleType,
+  SchoolExecutiveLock,
+} from "./model/admin-session"
