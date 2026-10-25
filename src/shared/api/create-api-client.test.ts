@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest"
 
 import { clearAccessToken, setAccessToken } from "./access-token"
 import { api } from "./client"
-import { createApiClient } from "./create-api-client"
+import { createApiClient, resolveApiBaseURL } from "./create-api-client"
 
 function jsonAdapter(body: unknown) {
   return async (config: InternalAxiosRequestConfig) => ({
@@ -14,6 +14,21 @@ function jsonAdapter(body: unknown) {
     config,
   })
 }
+
+describe("resolveApiBaseURL", () => {
+  it("appends /api when the base url is only the origin", () => {
+    expect(resolveApiBaseURL("https://api-dev.university.neordinary.com")).toBe(
+      "https://api-dev.university.neordinary.com/api",
+    )
+  })
+
+  it("keeps a base url that already ends with /api", () => {
+    expect(resolveApiBaseURL("/api")).toBe("/api")
+    expect(resolveApiBaseURL("https://example.test/api/")).toBe(
+      "https://example.test/api",
+    )
+  })
+})
 
 describe("createApiClient", () => {
   afterEach(() => {

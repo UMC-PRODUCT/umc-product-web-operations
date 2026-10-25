@@ -10,7 +10,6 @@ import {
   formatAwardToastMessage,
   formatDeleteToastMessage,
 } from "../model/point-history"
-import { usePointDeletePermission } from "../model/use-point-delete-permission"
 import { AwardPointsModal } from "./AwardPointsModal"
 import { DeletePointHistoryDialog } from "./DeletePointHistoryDialog"
 import { MemberDetailNetworkError } from "./MemberDetailNetworkError"
@@ -90,7 +89,6 @@ export function MemberDetailPage({
   }, [memberId])
 
   const summary = useMemo(() => buildSummary(history), [history])
-  const { data: canDelete = false } = usePointDeletePermission()
 
   const openAwardModal = (tab: PointAwardTab) => {
     setAwardTab(tab)
@@ -172,7 +170,7 @@ export function MemberDetailPage({
           <PointHistoryEmpty />
         ) : (
           <PointHistoryTable
-            canDelete={canDelete}
+            canDelete
             items={history}
             onDelete={(historyId) => {
               const target = history.find((item) => item.id === historyId)
