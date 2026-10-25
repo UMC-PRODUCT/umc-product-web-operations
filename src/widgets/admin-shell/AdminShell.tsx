@@ -3,6 +3,10 @@ import { PageHeader } from "@umc-product/react"
 
 import { shouldHideNoticeDetailPageHeader } from "@/features/notices/model/load-notice-detail"
 import { cn } from "@/shared/lib/cn"
+import {
+  SelectedGisuProvider,
+  useSelectedGisu,
+} from "@/shared/model/selected-gisu"
 
 import { AdminContentsArea } from "./AdminContentsArea"
 import { AdminHeader } from "./AdminHeader"
@@ -19,7 +23,16 @@ function getNoticeDetailIdFromPath(pathname: string): string | null {
 }
 
 export function AdminShell() {
+  return (
+    <SelectedGisuProvider>
+      <AdminShellFrame />
+    </SelectedGisuProvider>
+  )
+}
+
+function AdminShellFrame() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const selectedGisu = useSelectedGisu()
   const section = resolveAdminSection(pathname)
   const { breadcrumbs, title } = getPageBreadcrumbs(pathname, section)
   const isPointsSurface =
@@ -36,9 +49,18 @@ export function AdminShell() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <AdminHeader currentPath={pathname} />
+      <AdminHeader
+        currentPath={pathname}
+        generation={selectedGisu.generation ?? 11}
+      />
       <div className="flex min-h-0 min-w-0 flex-1">
-        <AdminSideNav currentPath={pathname} section={section} />
+        <AdminSideNav
+          currentPath={pathname}
+          generationOptions={selectedGisu.options}
+          generationValue={selectedGisu.selectedValue}
+          onGenerationChange={selectedGisu.setGisuId}
+          section={section}
+        />
         {isNoticeDetailPage ? (
           <AdminContentsArea
             breadcrumbs={breadcrumbs}

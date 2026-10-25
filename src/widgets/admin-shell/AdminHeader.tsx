@@ -5,9 +5,10 @@ import { HEADER_NAV_ITEMS } from "./nav"
 
 type AdminHeaderProps = {
   currentPath: string
+  generation: number
 }
 
-export function AdminHeader({ currentPath }: AdminHeaderProps) {
+export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
   return (
     <Header
       actions={
@@ -23,7 +24,9 @@ export function AdminHeader({ currentPath }: AdminHeaderProps) {
         </>
       }
       currentPath={currentPath}
-      logo={<HeaderHomeLink context="operation" generation={11} href="/" />}
+      logo={
+        <HeaderHomeLink context="operation" generation={generation} href="/" />
+      }
       mode="light"
       navItems={HEADER_NAV_ITEMS}
     />

@@ -1,22 +1,28 @@
 import { PeoplePictogram } from "@umc-product/icons"
 import { ContextSwitcher, SideNavigation } from "@umc-product/react"
-import { useState } from "react"
 
-import {
-  type AdminSection,
-  GENERATION_OPTIONS,
-  getSideNavItems,
-  getSideNavTitle,
-} from "./nav"
+import { type AdminSection, getSideNavItems, getSideNavTitle } from "./nav"
+
+type GenerationOption = {
+  value: string
+  label: string
+}
 
 type AdminSideNavProps = {
   currentPath: string
   section: AdminSection
+  generationOptions: readonly GenerationOption[]
+  generationValue: string | null
+  onGenerationChange: (gisuId: string) => void
 }
 
-export function AdminSideNav({ currentPath, section }: AdminSideNavProps) {
-  const [generation, setGeneration] = useState("11")
-
+export function AdminSideNav({
+  currentPath,
+  section,
+  generationOptions,
+  generationValue,
+  onGenerationChange,
+}: AdminSideNavProps) {
   return (
     <SideNavigation
       aria-label="운영 메뉴"
@@ -27,11 +33,13 @@ export function AdminSideNav({ currentPath, section }: AdminSideNavProps) {
         <PeoplePictogram aria-hidden color="currentColor" size={20} />,
       )}
       slot={
-        <ContextSwitcher
-          onValueChange={setGeneration}
-          options={[...GENERATION_OPTIONS]}
-          value={generation}
-        />
+        generationValue == null ? undefined : (
+          <ContextSwitcher
+            onValueChange={onGenerationChange}
+            options={[...generationOptions]}
+            value={generationValue}
+          />
+        )
       }
       title={getSideNavTitle(section)}
     />
