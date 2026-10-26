@@ -27,7 +27,7 @@ export type ChallengerPointInfo = {
   id: number
   challengerId?: number | null
   pointType?: PointType | string | null
-  point?: number | null
+  point?: number | string | null
   description?: string | null
   createdAt?: string | null
 }

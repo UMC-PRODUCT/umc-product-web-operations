@@ -118,6 +118,7 @@ export function MemberDetailPage({
     await queryClient.fetchQuery({
       queryKey: challengerQueryKey(challengerId),
       queryFn: () => fetchChallenger(challengerId),
+      staleTime: 0,
     })
   }
 
@@ -145,8 +146,16 @@ export function MemberDetailPage({
     }
 
     try {
-      await grantChallengerPoint(challengerId, toGrantPointBody(payload))
-      await refreshHistory()
+      const updated = await grantChallengerPoint(
+        challengerId,
+        toGrantPointBody(payload),
+      )
+      queryClient.setQueryData(challengerQueryKey(challengerId), updated)
+      try {
+        await refreshHistory()
+      } catch {
+        // 부여 응답으로 이력을 이미 반영했다.
+      }
       setAwardOpen(false)
       toast.show({
         message: formatAwardToastMessage(payload.typeLabel, payload.score),

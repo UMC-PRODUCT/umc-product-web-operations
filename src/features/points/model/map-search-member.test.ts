@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { toGrantPointBody, toPointHistoryItem } from "./map-point-history"
+import {
+  challengerPointList,
+  toGrantPointBody,
+  toPointHistoryItem,
+} from "./map-point-history"
 import {
   toChapterOptions,
   toMemberSearchPart,
@@ -8,6 +12,7 @@ import {
   toPointsMember,
   toSchoolOptions,
 } from "./map-search-member"
+import { buildSummary } from "./point-history"
 
 describe("member search mapping", () => {
   it("maps a search item onto the table fields", () => {
@@ -101,6 +106,41 @@ describe("point grant body", () => {
     })
   })
 
+  it("shows a newly granted penalty ahead of the previous history", () => {
+    const history = challengerPointList({
+      challengerId: 1,
+      challengerPoints: [
+        {
+          id: 1,
+          pointType: "BLOG_CHALLENGE",
+          point: 3,
+          createdAt: "2026-10-01T00:00:00.000Z",
+        },
+      ],
+      points: [
+        {
+          id: 1,
+          pointType: "BLOG_CHALLENGE",
+          point: 3,
+          createdAt: "2026-10-01T00:00:00.000Z",
+        },
+        {
+          id: 2,
+          pointType: "STUDY_LATE",
+          point: "2",
+          description: "지각",
+          createdAt: "2026-10-20T00:00:00.000Z",
+        },
+      ],
+    }).map(toPointHistoryItem)
+
+    expect(history.map((item) => item.typeLabel)).toEqual([
+      "스터디 지각",
+      "블로그 챌린지",
+    ])
+    expect(history[0]?.score).toBe(-2)
+  })
+
   it("maps a point record onto a history row", () => {
     expect(
       toPointHistoryItem({
@@ -111,5 +151,32 @@ describe("point grant body", () => {
         createdAt: "2026-03-01T01:02:00.000Z",
       }).typeLabel,
     ).toBe("스터디 지각")
+  })
+
+  it("sums reward and penalty totals from signed scores", () => {
+    const history = [
+      toPointHistoryItem({
+        id: 1,
+        pointType: "BLOG_CHALLENGE",
+        point: "3",
+      }),
+      toPointHistoryItem({
+        id: 2,
+        pointType: "STUDY_LATE",
+        point: "2",
+      }),
+      toPointHistoryItem({
+        id: 3,
+        pointType: "CUSTOM",
+        point: "-1",
+      }),
+    ]
+
+    expect(history.map((item) => item.score)).toEqual([3, -2, -1])
+    expect(buildSummary(history)).toEqual({
+      total: 0,
+      rewardTotal: 3,
+      penaltyTotal: -3,
+    })
   })
 })

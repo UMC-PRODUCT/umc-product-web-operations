@@ -70,10 +70,41 @@ export function formatOccurredAt(value: string | null | undefined): string {
   return `${yyyy}.${mm}.${dd} ${hh}:${mi}`
 }
 
+const PENALTY_POINT_TYPES = new Set<PointType>([
+  "WARNING",
+  "OUT",
+  "NO_WORKBOOK_MISSION",
+  "STUDY_LATE",
+  "STUDY_ABSENT",
+  "EVENT_LATE",
+  "EVENT_EARLY_LEAVE",
+  "EVENT_LATE_CANCEL",
+  "EVENT_NO_SHOW",
+  "PART_LEAD_FEEDBACK_LATE",
+  "SCHOOL_CORE_MEETING_ABSENT",
+  "SCHOOL_CORE_TASK_NOT_COMPLETED",
+])
+
+function toPointScore(
+  pointType: string | null | undefined,
+  value: number | string | null | undefined,
+) {
+  const parsed = typeof value === "number" ? value : Number(value)
+  const score = Number.isFinite(parsed) ? parsed : 0
+  if (
+    pointType != null &&
+    PENALTY_POINT_TYPES.has(pointType as PointType) &&
+    score > 0
+  ) {
+    return -score
+  }
+  return score
+}
+
 export function toPointHistoryItem(
   point: ChallengerPointInfo,
 ): PointHistoryItem {
-  const score = point.point ?? 0
+  const score = toPointScore(point.pointType, point.point)
   return {
     id: String(point.id),
     kind: score < 0 ? "penalty" : "reward",
@@ -84,10 +115,28 @@ export function toPointHistoryItem(
   }
 }
 
+function pointTime(point: ChallengerPointInfo) {
+  const time = point.createdAt ? Date.parse(point.createdAt) : Number.NaN
+  return Number.isFinite(time) ? time : 0
+}
+
 export function challengerPointList(
   info: ChallengerInfo,
 ): ChallengerPointInfo[] {
-  return info.challengerPoints ?? info.points ?? []
+  const merged = new Map<string, ChallengerPointInfo>()
+  for (const point of [
+    ...(info.challengerPoints ?? []),
+    ...(info.points ?? []),
+  ]) {
+    merged.set(String(point.id), point)
+  }
+  return [...merged.values()].sort((left, right) => {
+    const byTime = pointTime(right) - pointTime(left)
+    if (byTime !== 0) {
+      return byTime
+    }
+    return Number(right.id) - Number(left.id)
+  })
 }
 
 export function toGrantPointBody(input: {
