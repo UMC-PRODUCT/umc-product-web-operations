@@ -1,17 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, getRouteApi } from "@tanstack/react-router"
 
+import { useOperatorGisu } from "@/features/auth"
 import { NoticeDetailPage } from "@/features/notices"
 import { loadNoticeDetail } from "@/features/notices/model/load-notice-detail"
-import {
-  isNoticeAuthor,
-  MOCK_NOTICE_VIEWER_AUTHOR,
-} from "@/features/notices/model/notice-viewer"
+import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
+import { isNoticeAuthor } from "@/features/notices/model/notice-viewer"
 import { NoticeDetailStatusView } from "@/features/notices/ui/notice-detail-status-view"
+
+import { toNoticeOperatorSession } from "./-notice-session"
 
 import type { DeleteNoticeOutcome } from "@/features/notices/model/mock-delete-notice"
 import type { NoticeImageLoadState } from "@/features/notices/model/notice-detail.types"
+import type { NoticeAudience } from "@/features/notices/model/types"
 
 type NoticeDetailSearch = {
+  /** 목록으로 돌아갈 때 복원할 탭(챌린저/운영진) */
+  listAudience?: NoticeAudience
   /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
   deleteOutcome?: DeleteNoticeOutcome
   /** TODO: API 연동 시 제거. `pending` | `loading` | `success` */
@@ -46,6 +50,7 @@ function parseImageLoadState(
 
 export const Route = createFileRoute("/_admin/notices/$noticeId")({
   validateSearch: (search: Record<string, unknown>): NoticeDetailSearch => ({
+    listAudience: parseNoticeListAudienceOptional(search.listAudience),
     deleteOutcome:
       search.deleteOutcome === "network_error" ||
       search.deleteOutcome === "success"
@@ -59,14 +64,26 @@ export const Route = createFileRoute("/_admin/notices/$noticeId")({
         ? search.viewerAuthor
         : undefined,
   }),
-  loader: ({ params }) => loadNoticeDetail(params.noticeId),
+  loader: async ({ params }) => loadNoticeDetail(params.noticeId),
   component: NoticeDetailRoute,
 })
 
+const adminRouteApi = getRouteApi("/_admin")
+
 function NoticeDetailRoute() {
   const loaderData = Route.useLoaderData()
-  const { deleteOutcome, imageLoadPause, imageLoadState, viewerAuthor } =
-    Route.useSearch()
+  const { session: adminSession } = adminRouteApi.useRouteContext()
+  const { selectedGisuId } = useOperatorGisu()
+  const session = toNoticeOperatorSession(adminSession, {
+    gisuId: selectedGisuId,
+  })
+  const {
+    deleteOutcome,
+    imageLoadPause,
+    imageLoadState,
+    listAudience,
+    viewerAuthor,
+  } = Route.useSearch()
 
   if (loaderData.kind === "forbidden") {
     return <NoticeDetailStatusView variant="forbidden" />
@@ -77,10 +94,7 @@ function NoticeDetailRoute() {
   }
 
   const { notice } = loaderData
-  const canManageNotice = isNoticeAuthor(
-    notice.author,
-    viewerAuthor ?? MOCK_NOTICE_VIEWER_AUTHOR,
-  )
+  const canManageNotice = isNoticeAuthor(notice, session, viewerAuthor)
 
   return (
     <NoticeDetailPage
@@ -88,6 +102,7 @@ function NoticeDetailRoute() {
       deleteOutcome={deleteOutcome}
       imageLoadPause={imageLoadPause}
       imageLoadState={imageLoadState}
+      listAudience={listAudience}
       notice={notice}
     />
   )

@@ -1,16 +1,33 @@
-import { Button, Checkbox, Dialog, ProgressBar, Tag } from "@umc-product/react"
-import { useMemo, useState } from "react"
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  ProgressBar,
+  Tag,
+  useToast,
+} from "@umc-product/react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
+import { getServerErrorMessage } from "@/shared/api/server-error"
+
+import { deleteNoticeVoteByNoticeId } from "../model/delete-notice-vote"
 import {
   applyPollVote,
   getInitialViewerSelection,
   getLeadingOptionIds,
+  shouldCancelNoticeVoteOnLeave,
 } from "../model/notice-poll-vote"
+import {
+  cancelNoticeVoteResponse,
+  saveNoticeVoteResponse,
+} from "../model/submit-notice-vote"
+import { showNoticeErrorToast } from "./show-notice-error-toast"
 
 import type { NoticePoll, NoticePollOption } from "../model/notice-detail.types"
 
 type NoticeDetailVoteCardProps = {
   canManagePoll?: boolean
+  noticeId: string
   poll: NoticePoll
 }
 
@@ -99,8 +116,10 @@ function VoteOptionResultRow({
 
 export function NoticeDetailVoteCard({
   canManagePoll = false,
+  noticeId,
   poll,
 }: NoticeDetailVoteCardProps) {
+  const toast = useToast()
   const allowMultiple = isMultipleChoicePoll(poll)
   const initialSelection = useMemo(
     () => getInitialViewerSelection(poll.options),
@@ -119,6 +138,42 @@ export function NoticeDetailVoteCard({
   const [draftSelection, setDraftSelection] =
     useState<string[]>(initialSelection)
   const [endDialogOpen, setEndDialogOpen] = useState(false)
+  const [isEndingPoll, setIsEndingPoll] = useState(false)
+  const [isSubmittingVote, setIsSubmittingVote] = useState(false)
+
+  const voteLeaveStateRef = useRef({
+    draftSelection,
+    hasEverVoted,
+    isRevoting,
+    noticeId,
+    viewerSelection,
+  })
+
+  useEffect(() => {
+    voteLeaveStateRef.current = {
+      draftSelection,
+      hasEverVoted,
+      isRevoting,
+      noticeId,
+      viewerSelection,
+    }
+  })
+
+  useEffect(() => {
+    return () => {
+      const state = voteLeaveStateRef.current
+      if (!shouldCancelNoticeVoteOnLeave(state)) {
+        return
+      }
+
+      const parsedNoticeId = Number(state.noticeId)
+      if (!Number.isFinite(parsedNoticeId)) {
+        return
+      }
+
+      void cancelNoticeVoteResponse(parsedNoticeId)
+    }
+  }, [])
 
   const isClosed = status === "closed"
   const isInputMode = !isClosed && (!hasEverVoted || isRevoting)
@@ -143,24 +198,46 @@ export function NoticeDetailVoteCard({
     })
   }
 
-  const handleSubmitVote = () => {
-    if (draftSelection.length === 0) {
+  const handleSubmitVote = async () => {
+    if (draftSelection.length === 0 || isSubmittingVote) {
       return
     }
 
-    const result = applyPollVote({
-      isFirstVote: !hasEverVoted,
-      newSelection: draftSelection,
-      options,
-      participantCount,
-      previousSelection: viewerSelection,
-    })
+    const parsedNoticeId = Number(noticeId)
+    if (!Number.isFinite(parsedNoticeId)) {
+      return
+    }
 
-    setOptions(result.options)
-    setParticipantCount(result.participantCount)
-    setViewerSelection(result.viewerSelection)
-    setHasEverVoted(true)
-    setIsRevoting(false)
+    setIsSubmittingVote(true)
+    try {
+      await saveNoticeVoteResponse({
+        noticeId: parsedNoticeId,
+        optionIds: draftSelection.map((optionId) => Number(optionId)),
+        hasExistingResponse: hasEverVoted,
+      })
+
+      const result = applyPollVote({
+        isFirstVote: !hasEverVoted,
+        newSelection: draftSelection,
+        options,
+        participantCount,
+        previousSelection: viewerSelection,
+      })
+
+      setOptions(result.options)
+      setParticipantCount(result.participantCount)
+      setViewerSelection(result.viewerSelection)
+      setHasEverVoted(true)
+      setIsRevoting(false)
+    } catch (error) {
+      showNoticeErrorToast(
+        toast,
+        getServerErrorMessage(error) ??
+          "투표를 저장하지 못했어요. 잠시 후 다시 시도해주세요.",
+      )
+    } finally {
+      setIsSubmittingVote(false)
+    }
   }
 
   const handleStartRevote = () => {
@@ -168,10 +245,31 @@ export function NoticeDetailVoteCard({
     setIsRevoting(true)
   }
 
-  const handleEndPoll = () => {
-    setStatus("closed")
-    setIsRevoting(false)
-    setEndDialogOpen(false)
+  const handleEndPoll = async () => {
+    if (isEndingPoll) {
+      return
+    }
+
+    const parsedNoticeId = Number(noticeId)
+    if (!Number.isFinite(parsedNoticeId)) {
+      return
+    }
+
+    setIsEndingPoll(true)
+    try {
+      await deleteNoticeVoteByNoticeId(parsedNoticeId)
+      setStatus("closed")
+      setIsRevoting(false)
+      setEndDialogOpen(false)
+    } catch (error) {
+      showNoticeErrorToast(
+        toast,
+        getServerErrorMessage(error) ??
+          "투표를 종료하지 못했어요. 잠시 후 다시 시도해주세요.",
+      )
+    } finally {
+      setIsEndingPoll(false)
+    }
   }
 
   const canSubmitVote = draftSelection.length > 0
@@ -249,12 +347,14 @@ export function NoticeDetailVoteCard({
             {showVoteButton ? (
               <Button
                 color="primary"
-                onClick={handleSubmitVote}
+                disabled={isSubmittingVote}
+                isLoading={isSubmittingVote}
+                onClick={() => {
+                  void handleSubmitVote()
+                }}
                 size="xs"
                 type="button"
                 variant="weak"
-                disabled={false}
-                isLoading={false}
               >
                 투표하기
               </Button>
@@ -297,11 +397,17 @@ export function NoticeDetailVoteCard({
 
       <Dialog
         cancelLabel="취소"
-        color="primary"
+        color="brand"
         confirmLabel="종료하기"
         description="지금까지 참여한 결과만 집계되어 종료돼요"
-        onConfirm={handleEndPoll}
-        onOpenChange={setEndDialogOpen}
+        onConfirm={() => {
+          void handleEndPoll()
+        }}
+        onOpenChange={(open) => {
+          if (!isEndingPoll) {
+            setEndDialogOpen(open)
+          }
+        }}
         open={endDialogOpen}
         title="투표를 종료할까요?"
       />

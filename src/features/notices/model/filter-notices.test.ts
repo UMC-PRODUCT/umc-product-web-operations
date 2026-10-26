@@ -8,8 +8,9 @@ describe("filterNotices", () => {
     const result = filterNotices(MOCK_NOTICES, {
       audience: "challenger",
       query: "",
-      range: "all",
-      target: "all",
+      scopeStage: null,
+      scope: null,
+      part: null,
     })
 
     expect(result).toHaveLength(7)
@@ -22,8 +23,9 @@ describe("filterNotices", () => {
     const result = filterNotices(MOCK_NOTICES, {
       audience: "challenger",
       query: "없는제목",
-      range: "all",
-      target: "all",
+      scopeStage: null,
+      scope: null,
+      part: null,
     })
 
     expect(result).toHaveLength(0)

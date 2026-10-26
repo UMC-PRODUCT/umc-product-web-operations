@@ -1,9 +1,19 @@
-/** TODO: API 연동 시 로그인 운영자 프로필로 대체 */
+import type { NoticeOperatorSession } from "./notice-session"
+
+/** QA: `?viewerAuthor=` 로 mock 작성자 비교 */
 export const MOCK_NOTICE_VIEWER_AUTHOR = "중앙 운영국"
 
 export function isNoticeAuthor(
-  noticeAuthor: string,
+  notice: {
+    author: string
+    authorMemberId?: number
+  },
+  session: Pick<NoticeOperatorSession, "id"> | null,
   viewerAuthor: string = MOCK_NOTICE_VIEWER_AUTHOR,
 ): boolean {
-  return noticeAuthor === viewerAuthor
+  if (notice.authorMemberId != null && session) {
+    return notice.authorMemberId === session.id
+  }
+
+  return notice.author === viewerAuthor
 }

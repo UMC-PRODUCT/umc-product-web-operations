@@ -1,8 +1,14 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Button, Dialog, Tag, useToast } from "@umc-product/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
-import { mockDeleteNotice } from "../model/mock-delete-notice"
+import { getServerErrorMessage } from "@/shared/api/server-error"
+
+import { deleteNoticeById } from "../model/delete-notice"
+import { isNoticeNetworkError } from "../model/notice-api-error"
+import { syncNoticeViewCountInListCaches } from "../model/notice-list-query"
+import { parseNoticeListAudience } from "../model/notice-list-route-search"
 import { NOTICE_DELETE_FAILURE_TOAST_MESSAGE } from "../model/notice-outcomes"
 import { NoticeDetailBody } from "./notice-detail-body"
 import { NoticeDetailImageGallery } from "./notice-detail-image-gallery"
@@ -20,11 +26,23 @@ import type {
   NoticeDetail,
   NoticeImageLoadState,
 } from "../model/notice-detail.types"
+import type { NoticeAudience } from "../model/types"
+
+function buildNoticeListReturnSearch(input: {
+  audience: NoticeAudience
+  deleteOutcome?: "success"
+}) {
+  return {
+    audience: input.audience,
+    ...(input.deleteOutcome ? { deleteOutcome: input.deleteOutcome } : {}),
+  }
+}
 
 type NoticeDetailPageProps = {
   canManageNotice?: boolean
   /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
   deleteOutcome?: DeleteNoticeOutcome
+  listAudience?: NoticeAudience
   notice: NoticeDetail
   /** TODO: API 연동 시 제거. mock loading → success 자동 전환 끔 */
   imageLoadPause?: boolean
@@ -40,11 +58,18 @@ export function NoticeDetailPage({
   canManageNotice = false,
   deleteOutcome,
   imageLoadPause,
+  listAudience,
   notice,
   imageLoadState,
 }: NoticeDetailPageProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const toast = useToast()
+  const returnAudience = parseNoticeListAudience(listAudience)
+
+  useEffect(() => {
+    syncNoticeViewCountInListCaches(queryClient, notice.id, notice.views)
+  }, [notice.id, notice.views, queryClient])
   const { startLoadImages } = useNoticeDetailImageLoadFlow({
     imageLoadPause,
     imageLoadState,
@@ -150,6 +175,7 @@ export function NoticeDetailPage({
             {notice.poll ? (
               <NoticeDetailVoteCard
                 canManagePoll={canManageNotice}
+                noticeId={notice.id}
                 poll={notice.poll}
               />
             ) : null}
@@ -161,7 +187,10 @@ export function NoticeDetailPage({
         className="w-fit shrink-0"
         color="white"
         onClick={() => {
-          void navigate({ to: "/notices" })
+          void navigate({
+            search: buildNoticeListReturnSearch({ audience: returnAudience }),
+            to: "/notices",
+          })
         }}
         size="xs"
         type="button"
@@ -178,26 +207,41 @@ export function NoticeDetailPage({
         onOpenChange={setIsDeleteDialogOpen}
         confirmLabel="삭제하기"
         cancelLabel="돌아가기"
-        color="primary"
+        color="brand"
         onConfirm={async () => {
           if (isDeleting) {
             return
           }
 
           setIsDeleting(true)
-          const outcome = await mockDeleteNotice(deleteOutcome ?? "success")
-          setIsDeleting(false)
-          setIsDeleteDialogOpen(false)
+          try {
+            if (deleteOutcome === "network_error") {
+              showNoticeErrorToast(toast, NOTICE_DELETE_FAILURE_TOAST_MESSAGE)
+              return
+            }
 
-          if (outcome === "success") {
+            await deleteNoticeById(Number(notice.id))
+            setIsDeleteDialogOpen(false)
             void navigate({
+              search: buildNoticeListReturnSearch({
+                audience: returnAudience,
+                deleteOutcome: "success",
+              }),
               to: "/notices",
-              search: { deleteOutcome: "success" },
             })
-            return
+          } catch (error) {
+            if (isNoticeNetworkError(error)) {
+              showNoticeErrorToast(toast, NOTICE_DELETE_FAILURE_TOAST_MESSAGE)
+              return
+            }
+            showNoticeErrorToast(
+              toast,
+              getServerErrorMessage(error) ??
+                NOTICE_DELETE_FAILURE_TOAST_MESSAGE,
+            )
+          } finally {
+            setIsDeleting(false)
           }
-
-          showNoticeErrorToast(toast, NOTICE_DELETE_FAILURE_TOAST_MESSAGE)
         }}
       />
     </div>

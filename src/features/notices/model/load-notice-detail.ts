@@ -1,4 +1,9 @@
-import { getNoticeDetail } from "./get-notice-detail"
+import { getNoticeDetail } from "../api/notices-query.api"
+import { mapNoticeDetailResponse } from "./map-notice-from-api"
+import {
+  isNoticeForbiddenError,
+  isNoticeNotFoundError,
+} from "./notice-api-error"
 
 import type { NoticeDetail } from "./notice-detail.types"
 
@@ -10,19 +15,35 @@ export type NoticeDetailLoaderData =
   | { kind: "forbidden" }
   | { kind: "deleted" }
 
-export function loadNoticeDetail(noticeId: string): NoticeDetailLoaderData {
+export async function loadNoticeDetail(
+  noticeId: string,
+): Promise<NoticeDetailLoaderData> {
   if (noticeId === NOTICE_DETAIL_FORBIDDEN_MOCK_ID) {
     return { kind: "forbidden" }
   }
 
-  const notice = getNoticeDetail(noticeId)
-  if (!notice) {
+  const parsedId = Number(noticeId)
+  if (!Number.isFinite(parsedId)) {
     return { kind: "deleted" }
   }
 
-  return { kind: "success", notice }
+  try {
+    const detail = await getNoticeDetail(parsedId)
+    return {
+      kind: "success",
+      notice: mapNoticeDetailResponse(detail),
+    }
+  } catch (error) {
+    if (isNoticeForbiddenError(error)) {
+      return { kind: "forbidden" }
+    }
+    if (isNoticeNotFoundError(error)) {
+      return { kind: "deleted" }
+    }
+    throw error
+  }
 }
 
 export function shouldHideNoticeDetailPageHeader(noticeId: string): boolean {
-  return loadNoticeDetail(noticeId).kind !== "success"
+  return noticeId === NOTICE_DETAIL_FORBIDDEN_MOCK_ID
 }

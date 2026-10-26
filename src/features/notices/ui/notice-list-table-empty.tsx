@@ -1,16 +1,8 @@
 import { MegaphoneIcon, WarningIcon } from "@umc-product/icons"
 
-type NoticeListRegisteredEmptyProps = {
-  variant: "registered"
-}
+import type { NoticeListTableEmptyState } from "../model/resolve-notice-list-ui-state"
 
-type NoticeListSearchEmptyProps = {
-  query: string
-  variant: "search"
-}
-
-export type NoticeListTableEmptyProps =
-  NoticeListRegisteredEmptyProps | NoticeListSearchEmptyProps
+export type NoticeListTableEmptyProps = NoticeListTableEmptyState
 
 function NoticeListRegisteredEmpty() {
   return (

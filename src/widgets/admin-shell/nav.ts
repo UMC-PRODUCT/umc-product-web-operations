@@ -13,12 +13,6 @@ export const HEADER_NAV_ITEMS: NavItem[] = [
   { label: "리크루팅", href: "/recruiting" },
 ]
 
-export const GENERATION_OPTIONS = [
-  { value: "11", label: "11기" },
-  { value: "10", label: "10기" },
-  { value: "9", label: "9기" },
-] as const
-
 export function resolveAdminSection(pathname: string): AdminSection {
   if (pathname === "/notices" || pathname.startsWith("/notices/")) {
     return "notices"

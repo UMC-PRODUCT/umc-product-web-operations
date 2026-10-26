@@ -1,11 +1,24 @@
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { AddIcon } from "@umc-product/icons"
-import { Button, Tab, TabList, Tabs } from "@umc-product/react"
-import { useMemo, useState } from "react"
+import { Button, Pagination, Tab, TabList, Tabs } from "@umc-product/react"
+import { useEffect, useMemo, useState } from "react"
 
-import { filterNotices } from "../model/filter-notices"
-import { MOCK_NOTICES } from "../model/mock-notices"
-import { isNoticeListFilterForbidden } from "../model/notice-list-scope"
+import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
+import {
+  noticeListQueryOptions,
+  type NoticeListQueryResult,
+} from "../model/notice-list-query"
+import { parseNoticeListAudience } from "../model/notice-list-route-search"
+import {
+  canCreateNotice,
+  type NoticeOperatorSession,
+} from "../model/notice-session"
+import {
+  isNoticeListClientFilterForbidden,
+  isNoticeListScopeOutOfOrganization,
+  resolveNoticeListTableEmptyState,
+} from "../model/resolve-notice-list-ui-state"
 import { NoticeListFiltersBar } from "./notice-list-filters"
 import { NoticeListTable } from "./notice-list-table"
 import { useNoticeListOutcomeToasts } from "./use-notice-list-outcome-toasts"
@@ -16,9 +29,11 @@ import type {
   NoticeListLoadOutcome,
   NoticePublishOutcome,
 } from "../model/notice-outcomes"
-import type { NoticeAudience, NoticeListFilters } from "../model/types"
+import type { Notice, NoticeAudience, NoticeListFilters } from "../model/types"
 
 type NoticeListPageProps = {
+  audience?: NoticeAudience
+  session: NoticeOperatorSession
   /** TODO: API 연동 시 제거. 삭제 성공 Toast 시뮬레이션용 */
   deleteOutcome?: NoticeDeleteOutcome
   /** TODO: API 연동 시 제거. 이미지 등록 성공 Toast 시뮬레이션용 */
@@ -31,11 +46,84 @@ type NoticeListPageProps = {
 
 const DEFAULT_FILTERS: Omit<NoticeListFilters, "audience"> = {
   query: "",
-  range: "all",
-  target: "all",
+  scopeStage: null,
+  scope: null,
+  part: null,
+}
+
+function resolveListLoadState(
+  mockOutcome: NoticeListLoadOutcome | undefined,
+  queryResult: NoticeListQueryResult | undefined,
+  isFetching: boolean,
+): {
+  isError: boolean
+  isForbidden: boolean
+  isLoading: boolean
+  notices: Notice[]
+  registeredTotal: number
+} {
+  if (mockOutcome === "network_error") {
+    return {
+      isError: true,
+      isForbidden: false,
+      isLoading: false,
+      notices: [],
+      registeredTotal: 0,
+    }
+  }
+
+  if (mockOutcome === "forbidden") {
+    return {
+      isError: false,
+      isForbidden: true,
+      isLoading: false,
+      notices: [],
+      registeredTotal: 0,
+    }
+  }
+
+  if (!queryResult) {
+    return {
+      isError: false,
+      isForbidden: false,
+      isLoading: isFetching,
+      notices: [],
+      registeredTotal: 0,
+    }
+  }
+
+  if (queryResult.kind === "network_error") {
+    return {
+      isError: true,
+      isForbidden: false,
+      isLoading: false,
+      notices: [],
+      registeredTotal: 0,
+    }
+  }
+
+  if (queryResult.kind === "forbidden" || queryResult.kind === "missing_gisu") {
+    return {
+      isError: false,
+      isForbidden: true,
+      isLoading: false,
+      notices: [],
+      registeredTotal: 0,
+    }
+  }
+
+  return {
+    isError: false,
+    isForbidden: false,
+    isLoading: false,
+    notices: queryResult.notices,
+    registeredTotal: queryResult.totalElements,
+  }
 }
 
 export function NoticeListPage({
+  audience: audienceFromRoute,
+  session,
   deleteOutcome,
   imageRegisterOutcome,
   listOutcome,
@@ -47,59 +135,93 @@ export function NoticeListPage({
     imageRegisterOutcome,
     publishOutcome,
   })
-  const [audience, setAudience] = useState<NoticeAudience>("challenger")
+  const audience = parseNoticeListAudience(audienceFromRoute)
+  const showCreateNoticeButton = canCreateNotice(session)
   const [filters, setFilters] =
     useState<Omit<NoticeListFilters, "audience">>(DEFAULT_FILTERS)
+  const [page, setPage] = useState(1)
 
-  const notices = useMemo(
-    () =>
-      filterNotices(MOCK_NOTICES, {
-        ...filters,
-        audience,
-      }),
-    [audience, filters],
+  useEffect(() => {
+    setFilters(DEFAULT_FILTERS)
+    setPage(1)
+  }, [audience, session.gisuId])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters.part, filters.query, filters.scope, filters.scopeStage])
+
+  const organizationQuery = useQuery(
+    noticeListOrganizationQueryOptions(session.gisuId),
   )
 
-  const registeredNotices = useMemo(
-    () =>
-      filterNotices(MOCK_NOTICES, {
-        audience,
-        query: "",
-        range: "all",
-        target: "all",
-      }),
-    [audience],
+  const listQuery = useQuery(
+    noticeListQueryOptions({
+      audience,
+      filters,
+      page: page - 1,
+      session,
+    }),
   )
 
-  const isListError = listOutcome === "network_error"
-  const isFilterScopeForbidden = isNoticeListFilterForbidden(filters)
-  const isListForbidden = listOutcome === "forbidden" || isFilterScopeForbidden
+  const registeredQuery = useQuery(
+    noticeListQueryOptions({
+      audience,
+      filters: DEFAULT_FILTERS,
+      page: 0,
+      session,
+    }),
+  )
+
+  const listState = resolveListLoadState(
+    listOutcome,
+    listQuery.data,
+    listQuery.isFetching && !listQuery.data,
+  )
+
+  const registeredTotal =
+    registeredQuery.data?.kind === "success"
+      ? registeredQuery.data.totalElements
+      : listState.registeredTotal
+
+  const hasLoadedList = listQuery.data?.kind === "success"
+
+  const isClientFilterForbidden =
+    isNoticeListClientFilterForbidden({
+      audience,
+      filters,
+    }) ||
+    isNoticeListScopeOutOfOrganization({
+      filters,
+      organization: organizationQuery.data ?? null,
+    })
+
+  const isForbidden = listState.isForbidden || isClientFilterForbidden
+
+  const totalPages =
+    listQuery.data?.kind === "success" ? listQuery.data.totalPages : 0
+
+  const showPagination =
+    !listState.isLoading && !listState.isError && !isForbidden && totalPages > 1
 
   const tableEmptyState = useMemo(() => {
-    if (isListError || isListForbidden) {
+    if (listState.isError || isForbidden || listState.isLoading) {
       return null
     }
 
-    if (notices.length > 0) {
-      return null
-    }
-
-    if (registeredNotices.length === 0) {
-      return { variant: "registered" as const }
-    }
-
-    const trimmedQuery = filters.query.trim()
-    if (trimmedQuery.length > 0) {
-      return { variant: "search" as const, query: trimmedQuery }
-    }
-
-    return null
+    return resolveNoticeListTableEmptyState({
+      filters,
+      hasLoadedList,
+      noticeCount: listState.notices.length,
+      registeredTotal,
+    })
   }, [
-    filters.query,
-    isListError,
-    isListForbidden,
-    notices.length,
-    registeredNotices.length,
+    filters,
+    hasLoadedList,
+    isForbidden,
+    listState.isError,
+    listState.isLoading,
+    listState.notices.length,
+    registeredTotal,
   ])
 
   return (
@@ -113,17 +235,19 @@ export function NoticeListPage({
             게시된 공지를 확인하고 관리해요
           </p>
         </div>
-        <Button
-          className="shrink-0"
-          leadingIcon={<AddIcon aria-hidden size={14} />}
-          onClick={() => {
-            void navigate({ to: "/notices/new" })
-          }}
-          size="sm"
-          type="button"
-        >
-          공지 작성
-        </Button>
+        {showCreateNoticeButton ? (
+          <Button
+            className="shrink-0"
+            leadingIcon={<AddIcon aria-hidden size={14} />}
+            onClick={() => {
+              void navigate({ to: "/notices/new" })
+            }}
+            size="sm"
+            type="button"
+          >
+            공지 작성
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-(--umc-spacing-gap-20) pl-(--umc-spacing-padding-12)">
@@ -131,7 +255,10 @@ export function NoticeListPage({
           <Tabs
             className="w-auto shrink-0"
             onValueChange={(value) => {
-              setAudience(value as NoticeAudience)
+              void navigate({
+                search: { audience: value as NoticeAudience },
+                to: "/notices",
+              })
             }}
             value={audience}
           >
@@ -147,37 +274,57 @@ export function NoticeListPage({
         </div>
 
         <NoticeListFiltersBar
+          key={`${audience}-${session.gisuId ?? "none"}`}
+          chapterOptions={organizationQuery.data?.chapters ?? []}
           filters={{ ...filters, audience }}
+          isOrganizationLoading={organizationQuery.isLoading}
+          onPartChange={(part) => {
+            setFilters((current) => ({ ...current, part }))
+          }}
           onQueryChange={(query) => {
             setFilters((current) => ({ ...current, query }))
           }}
-          onRangeChange={(range) => {
-            setFilters((current) => ({ ...current, range }))
+          onScopeChange={(scope) => {
+            setFilters((current) => ({ ...current, scope }))
           }}
-          onTargetChange={(target) => {
-            setFilters((current) => ({ ...current, target }))
+          onScopeStageChange={(scopeStage) => {
+            setFilters((current) => ({
+              ...current,
+              part: null,
+              scope: null,
+              scopeStage,
+            }))
           }}
+          schoolOptions={organizationQuery.data?.schools ?? []}
         />
 
-        <NoticeListTable
-          emptyState={tableEmptyState}
-          isError={isListError}
-          isForbidden={isListForbidden}
-          notices={notices}
-          onOpenNotice={(noticeId) => {
-            void navigate({
-              to: "/notices/$noticeId",
-              params: { noticeId },
-            })
-          }}
-          onRetry={() => {
-            void navigate({
-              to: "/notices",
-              search: {},
-              replace: true,
-            })
-          }}
-        />
+        <div className="flex w-full flex-col items-center gap-(--umc-spacing-gap-20)">
+          <NoticeListTable
+            emptyState={tableEmptyState}
+            isError={listState.isError}
+            isForbidden={isForbidden}
+            isLoading={listState.isLoading}
+            notices={listState.notices}
+            onOpenNotice={(noticeId) => {
+              void navigate({
+                params: { noticeId },
+                search: { listAudience: audience },
+                to: "/notices/$noticeId",
+              })
+            }}
+            onRetry={() => {
+              void listQuery.refetch()
+              void registeredQuery.refetch()
+            }}
+          />
+          {showPagination ? (
+            <Pagination
+              onPageChange={setPage}
+              page={page}
+              totalPages={totalPages}
+            />
+          ) : null}
+        </div>
       </div>
     </section>
   )

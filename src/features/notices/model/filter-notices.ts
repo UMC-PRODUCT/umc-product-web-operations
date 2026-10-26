@@ -1,10 +1,6 @@
-import type { Notice, NoticeListFilters, NoticeTargetFilter } from "./types"
+import { NOTICE_PART_LABELS } from "./notice-part-options"
 
-const TARGET_KEYWORDS: Record<Exclude<NoticeTargetFilter, "all">, string> = {
-  design: "Design",
-  server: "Server",
-  web: "Web",
-}
+import type { Notice, NoticeListFilters } from "./types"
 
 export function filterNotices(
   notices: Notice[],
@@ -17,8 +13,8 @@ export function filterNotices(
       return false
     }
 
-    if (filters.target !== "all") {
-      const keyword = TARGET_KEYWORDS[filters.target]
+    if (filters.part != null) {
+      const keyword = NOTICE_PART_LABELS[filters.part]
       if (!notice.target.includes(keyword)) {
         return false
       }

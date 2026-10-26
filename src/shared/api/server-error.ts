@@ -21,3 +21,8 @@ export function getServerErrorMessage(error: unknown): string | undefined {
   const message = getErrorBody(error)?.message
   return message && message.trim() !== "" ? message : undefined
 }
+
+export function getServerErrorCode(error: unknown): string | undefined {
+  const code = getErrorBody(error)?.code
+  return code && code.trim() !== "" ? code : undefined
+}

@@ -21,14 +21,14 @@ importers:
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@umc-product/design-tokens':
-        specifier: ^0.5.0
-        version: 0.5.0(tailwindcss@4.3.3)
+        specifier: ^0.10.0
+        version: 0.10.0(tailwindcss@4.3.3)
       '@umc-product/icons':
-        specifier: ^0.5.0
-        version: 0.5.0(react@19.3.0)
+        specifier: ^0.10.0
+        version: 0.10.0(react@19.3.0)
       '@umc-product/react':
-        specifier: ^0.6.0
-        version: 0.6.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
+        specifier: ^0.10.0
+        version: 0.10.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
       axios:
         specifier: 1.13.5
         version: 1.13.5
@@ -237,8 +237,8 @@ packages:
     resolution: {integrity: sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/runtime@8.0.7':
-    resolution: {integrity: sha512-k0hagDDq/6w4v+0Sp4wFvIz/yswH5O7Va6aRTnD7N62Tnborp4X+YB+H3XUcWVSR4aE47WPEXiIIZchBs0GmYg==}
+  '@babel/runtime@8.0.8':
+    resolution: {integrity: sha512-dEu8nGlRqjsJsvviUUoSMfcRHpwomCiRlXsc2mPfJ79+ffTpDm+JtfUtTMzUrqCApHQnCsVPD3gT1ZT8RgBRCQ==}
 
   '@babel/template@7.29.7':
     resolution: {integrity: sha512-puq+Gf35oI24FeN11LkoUQFqv9uwNeWpxXZi/Ji3rRIoKAzKnxRaZ+Gkj0vKS9ZCiTESfng1N9LyOyXvo+m+Gg==}
@@ -1412,31 +1412,18 @@ packages:
     resolution: {integrity: sha512-zozlN0UA32bSG2zkKAgQyRYSbEISVoyU6vvkKYo2aSny74D8Jh4e+POkJ6Lk0dlezZi5x7TtD+88Xb06IB8nhg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@umc-product/design-tokens@0.5.0':
-    resolution: {integrity: sha512-UzBE+/GosTErOQovgX0IlAfiicX0sIr6mVCTIkNuIsozqlkzEJLqIkYGQKcucTs9tPnP+nbgm2XWuejC96Fpkw==, tarball: https://npm.pkg.github.com/download/@umc-product/design-tokens/0.5.0/5a861fa4389afd00a1ef15cf20792537b073b2a6}
-    peerDependencies:
-      tailwindcss: ^4.0.0
-    peerDependenciesMeta:
-      tailwindcss:
-        optional: true
-
-  '@umc-product/design-tokens@0.6.0':
-    resolution: {integrity: sha512-9CUkF5V0yVszkVoMGiLTL87dmXLetU3VBxczd5i6NCm9Ym3nntHaUVlZ7/2WvExUPJYH6dTyLyu0lLFYrWMgrw==, tarball: https://npm.pkg.github.com/download/@umc-product/design-tokens/0.6.0/bb1904505072245e47563352d9e83a3acfad2eea}
+  '@umc-product/design-tokens@0.10.0':
+    resolution: {integrity: sha512-gzMbn5tITW71VIKAXr4PkmL9DFD8P9ez1tmywTtpqGzJkU5BMu3lo6uj3MwR+xFQeD7VJjRQhq15LUu4DDQ6tg==, tarball: https://npm.pkg.github.com/download/@umc-product/design-tokens/0.10.0/070a7cd9b68b84f77ad5523e75d3143db54c37ad}
     peerDependencies:
       tailwindcss: ^4.0.0
 
-  '@umc-product/icons@0.5.0':
-    resolution: {integrity: sha512-ZP4n38yf+xWWSoxDAEuQnYopp0PjyTeVKTyzqqhzRk+2N6weg3mLul9kfXi653m19sGmEdSoq9SIdSEUf/H6+g==, tarball: https://npm.pkg.github.com/download/@umc-product/icons/0.5.0/1eb8e08a17553a99e0ab2c042147fb239fbadadc}
+  '@umc-product/icons@0.10.0':
+    resolution: {integrity: sha512-D2LFDMegMvnfHl712YveD/EUxaD0j7fpGpoXbgtl6wSWzqx3rgIRwCKu7LaOfb3+cmQ4V7mcffO3pSh/+ZxVyA==, tarball: https://npm.pkg.github.com/download/@umc-product/icons/0.10.0/fc18abbf23251e9e3f905073700bb8f46c764bbc}
     peerDependencies:
       react: ^19.0.0
 
-  '@umc-product/icons@0.6.0':
-    resolution: {integrity: sha512-Hm7dAYAkM9jt744U1a/POtOvgEKBFrJeqcyJd7Ama/L6+RB44iakO3OHqjr0BGtF0x0QaADXWu6CJPZoGnaTnw==, tarball: https://npm.pkg.github.com/download/@umc-product/icons/0.6.0/e1218e8a5c9ad08dd8f4997d3b34237f68036712}
-    peerDependencies:
-      react: ^19.0.0
-
-  '@umc-product/react@0.6.0':
-    resolution: {integrity: sha512-YGxSQBT3VUZpIuYnya9drkTlL5TUJjcqFZpn0CDSeTyt038aIp1xIash3jNYUnYzVDstR8cza475VeaTtMKhkg==, tarball: https://npm.pkg.github.com/download/@umc-product/react/0.6.0/2425cdd4df649c8c52b8f7ad1208a6378c6b3e58}
+  '@umc-product/react@0.10.0':
+    resolution: {integrity: sha512-ulfUE/0WguroDjcUeW0N0qGGLWZTsW7eB/1R81hEE+2U6V4hUoXa+sguZnta8/r1O3ANCC3DRQD9Jt+EO6GCsQ==, tarball: https://npm.pkg.github.com/download/@umc-product/react/0.10.0/6a85ee22683004f5c40ecbcfca75b00bf542885d}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
@@ -3491,7 +3478,7 @@ snapshots:
 
   '@babel/runtime@7.29.10': {}
 
-  '@babel/runtime@8.0.7': {}
+  '@babel/runtime@8.0.8': {}
 
   '@babel/template@7.29.7':
     dependencies:
@@ -3518,7 +3505,7 @@ snapshots:
 
   '@base-ui/react@1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@babel/runtime': 8.0.7
+      '@babel/runtime': 8.0.8
       '@base-ui/utils': 0.5.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@floating-ui/react-dom': 2.1.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@floating-ui/utils': 0.2.12
@@ -3532,7 +3519,7 @@ snapshots:
 
   '@base-ui/utils@0.5.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@babel/runtime': 8.0.7
+      '@babel/runtime': 8.0.8
       '@floating-ui/utils': 0.2.12
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
@@ -4595,31 +4582,21 @@ snapshots:
       '@typescript-eslint/types': 8.71.2
       eslint-visitor-keys: 5.0.1
 
-  '@umc-product/design-tokens@0.5.0(tailwindcss@4.3.3)':
-    dependencies:
-      pretendard: 1.3.9
-    optionalDependencies:
-      tailwindcss: 4.3.3
-
-  '@umc-product/design-tokens@0.6.0(tailwindcss@4.3.3)':
+  '@umc-product/design-tokens@0.10.0(tailwindcss@4.3.3)':
     dependencies:
       pretendard: 1.3.9
       tailwindcss: 4.3.3
 
-  '@umc-product/icons@0.5.0(react@19.3.0)':
+  '@umc-product/icons@0.10.0(react@19.3.0)':
     dependencies:
       react: 19.3.0
 
-  '@umc-product/icons@0.6.0(react@19.3.0)':
-    dependencies:
-      react: 19.3.0
-
-  '@umc-product/react@0.6.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
+  '@umc-product/react@0.10.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
     dependencies:
       '@base-ui/react': 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@fontsource/orbitron': 5.3.0
-      '@umc-product/design-tokens': 0.6.0(tailwindcss@4.3.3)
-      '@umc-product/icons': 0.6.0(react@19.3.0)
+      '@umc-product/design-tokens': 0.10.0(tailwindcss@4.3.3)
+      '@umc-product/icons': 0.10.0(react@19.3.0)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:
