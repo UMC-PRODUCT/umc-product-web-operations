@@ -76,11 +76,14 @@ export function toChapterOptions(
 
   for (const gisu of gisus) {
     for (const chapter of gisu.chapters ?? []) {
-      if (seen.has(chapter.id) || !chapter.name) {
+      if (seen.has(chapter.chapterId) || !chapter.chapterName) {
         continue
       }
-      seen.add(chapter.id)
-      options.push({ value: String(chapter.id), label: chapter.name })
+      seen.add(chapter.chapterId)
+      options.push({
+        value: String(chapter.chapterId),
+        label: chapter.chapterName,
+      })
     }
   }
 
@@ -89,20 +92,42 @@ export function toChapterOptions(
 
 export function toSchoolOptions(
   gisus: readonly GisuOrganizationItem[],
+  chapterId?: number,
 ): OrganizationFilterOption[] {
   const seen = new Set<number>()
   const options: OrganizationFilterOption[] = []
 
+  const pushSchool = (schoolId: number, schoolName: string) => {
+    if (seen.has(schoolId) || !schoolName) {
+      return
+    }
+    seen.add(schoolId)
+    options.push({
+      value: String(schoolId),
+      label: schoolName,
+    })
+  }
+
   for (const gisu of gisus) {
-    for (const school of gisu.schools ?? []) {
-      if (seen.has(school.schoolId) || !school.schoolName) {
-        continue
+    if (chapterId != null) {
+      for (const chapter of gisu.chapters ?? []) {
+        if (chapter.chapterId !== chapterId) {
+          continue
+        }
+        for (const school of chapter.schools ?? []) {
+          pushSchool(school.schoolId, school.schoolName)
+        }
       }
-      seen.add(school.schoolId)
-      options.push({
-        value: String(school.schoolId),
-        label: school.schoolName,
-      })
+      continue
+    }
+
+    for (const school of gisu.schools ?? []) {
+      pushSchool(school.schoolId, school.schoolName)
+    }
+    for (const chapter of gisu.chapters ?? []) {
+      for (const school of chapter.schools ?? []) {
+        pushSchool(school.schoolId, school.schoolName)
+      }
     }
   }
 

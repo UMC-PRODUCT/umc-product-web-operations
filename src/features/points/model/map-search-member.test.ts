@@ -55,14 +55,28 @@ describe("member search mapping", () => {
       {
         gisuId: 1,
         chapters: [
-          { id: 7, name: "서울" },
-          { id: 7, name: "서울" },
+          {
+            chapterId: 7,
+            chapterName: "서울",
+            schools: [{ schoolId: 3, schoolName: "중앙대학교" }],
+          },
+          {
+            chapterId: 7,
+            chapterName: "서울",
+            schools: [{ schoolId: 3, schoolName: "중앙대학교" }],
+          },
         ],
         schools: [{ schoolId: 3, schoolName: "중앙대학교" }],
       },
       {
         gisuId: 2,
-        chapters: [{ id: 8, name: "경기" }],
+        chapters: [
+          {
+            chapterId: 8,
+            chapterName: "경기",
+            schools: [{ schoolId: 9, schoolName: "성균관대학교" }],
+          },
+        ],
         schools: [{ schoolId: 3, schoolName: "중앙대학교" }],
       },
     ]
@@ -73,6 +87,10 @@ describe("member search mapping", () => {
     ])
     expect(toSchoolOptions(gisus)).toEqual([
       { value: "3", label: "중앙대학교" },
+      { value: "9", label: "성균관대학교" },
+    ])
+    expect(toSchoolOptions(gisus, 8)).toEqual([
+      { value: "9", label: "성균관대학교" },
     ])
     expect(toOrganizationId("7")).toBe(7)
     expect(toOrganizationId(null)).toBeUndefined()

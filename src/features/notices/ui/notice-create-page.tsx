@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router"
 import { CheckCircleIcon, WarningIcon } from "@umc-product/icons"
-import { Button, TextArea, TextField } from "@umc-product/react"
+import { Button, TextArea, TextFieldBox } from "@umc-product/react"
 import { useState } from "react"
 
 import { mockCreateNotice } from "../model/mock-create-notice"
@@ -44,7 +44,7 @@ export function NoticeCreatePage({ createOutcome }: NoticeCreatePageProps) {
   return (
     <section className="flex max-w-[720px] flex-col gap-(--umc-spacing-gap-24)">
       <div className="flex flex-col gap-(--umc-spacing-gap-12)">
-        <TextField label="제목" placeholder="공지 제목을 입력해 주세요" />
+        <TextFieldBox label="제목" placeholder="공지 제목을 입력해 주세요" />
         <TextArea label="본문" placeholder="공지 내용을 입력해 주세요" />
       </div>
 

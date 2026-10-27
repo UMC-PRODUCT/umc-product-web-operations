@@ -56,6 +56,16 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
   }
 
   const lockedSchoolId = lockedSchool?.schoolId ?? null
+  const filtersLocked = lockedSchool != null
+  const selectedChapterId = toOrganizationId(filtersLocked ? null : chapterId)
+  const selectedSchoolId = toOrganizationId(lockedSchool?.schoolId ?? schoolId)
+
+  const organizationQuery = useQuery({
+    queryKey: ["gisu", "organization", selectedGisu.gisuId],
+    queryFn: () => fetchGisuOrganization(selectedGisu.gisuId ?? undefined),
+    enabled: !selectedGisu.isPending,
+    retry: false,
+  })
 
   useEffect(() => {
     setChapterId(null)
@@ -65,19 +75,32 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
     }
   }, [lockedSchoolId, selectedGisu.gisuId])
 
-  const organizationQuery = useQuery({
-    queryKey: ["gisu", "organization", selectedGisu.gisuId],
-    queryFn: () => fetchGisuOrganization(selectedGisu.gisuId ?? undefined),
-    enabled: !selectedGisu.isPending,
-    retry: false,
-  })
+  useEffect(() => {
+    if (
+      lockedSchoolId != null ||
+      schoolId == null ||
+      selectedChapterId == null
+    ) {
+      return
+    }
+    const allowed = toSchoolOptions(
+      organizationQuery.data ?? [],
+      selectedChapterId,
+    ).some((option) => option.value === schoolId)
+    if (!allowed) {
+      setSchoolId(null)
+    }
+  }, [lockedSchoolId, organizationQuery.data, schoolId, selectedChapterId])
 
   const chapterOptions = useMemo(
     () => toChapterOptions(organizationQuery.data ?? []),
     [organizationQuery.data],
   )
   const schoolOptions = useMemo(() => {
-    const options = toSchoolOptions(organizationQuery.data ?? [])
+    const options = toSchoolOptions(
+      organizationQuery.data ?? [],
+      selectedChapterId,
+    )
     if (
       lockedSchool == null ||
       options.some((option) => option.value === lockedSchool.schoolId) ||
@@ -89,10 +112,7 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
       { value: lockedSchool.schoolId, label: lockedSchool.schoolName },
       ...options,
     ]
-  }, [lockedSchool, organizationQuery.data])
-  const filtersLocked = lockedSchool != null
-  const selectedChapterId = toOrganizationId(filtersLocked ? null : chapterId)
-  const selectedSchoolId = toOrganizationId(lockedSchool?.schoolId ?? schoolId)
+  }, [lockedSchool, organizationQuery.data, selectedChapterId])
 
   const membersQuery = useQuery({
     queryKey: [
