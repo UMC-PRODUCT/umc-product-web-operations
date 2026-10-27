@@ -1,17 +1,6 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react"
+import { useQuery } from "@tanstack/react-query"
+import { createContext, useContext, useMemo, useState } from "react"
 
-import {
-  activateActiveGisu,
-  adminSessionQueryKey,
-  adminSessionQueryOptions,
-} from "@/features/auth"
 import { fetchGisuList } from "@/shared/api/gisu-list"
 
 import type { ReactNode } from "react"
@@ -29,51 +18,18 @@ type SelectedGisuContextValue = {
   setGisuId: (gisuId: string) => void
   isPending: boolean
   isError: boolean
-  isSwitching: boolean
 }
 
 const SelectedGisuContext = createContext<SelectedGisuContextValue | null>(null)
 
 export function SelectedGisuProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient()
   const gisuQuery = useQuery({
     queryKey: ["gisu", "list"],
     queryFn: fetchGisuList,
     retry: false,
     staleTime: 60_000,
   })
-  const sessionQuery = useQuery(adminSessionQueryOptions())
   const [overrideId, setOverrideId] = useState<string | null>(null)
-  const [isSwitching, setIsSwitching] = useState(false)
-
-  const setGisuId = useCallback(
-    (gisuId: string) => {
-      const parsed = Number(gisuId)
-      if (!Number.isFinite(parsed)) {
-        return
-      }
-
-      const previousOverrideId = overrideId
-      setOverrideId(gisuId)
-      setIsSwitching(true)
-
-      void (async () => {
-        try {
-          await activateActiveGisu(parsed)
-          await queryClient.invalidateQueries({
-            queryKey: adminSessionQueryKey,
-          })
-          await queryClient.invalidateQueries({ queryKey: ["gisu", "list"] })
-          await queryClient.invalidateQueries({ queryKey: ["notices"] })
-        } catch {
-          setOverrideId(previousOverrideId)
-        } finally {
-          setIsSwitching(false)
-        }
-      })()
-    },
-    [overrideId, queryClient],
-  )
 
   const value = useMemo<SelectedGisuContextValue>(() => {
     const items = gisuQuery.data ?? []
@@ -91,20 +47,11 @@ export function SelectedGisuProvider({ children }: { children: ReactNode }) {
         label: `${item.generation}기`,
       })),
       selectedValue: selected == null ? null : String(selected.gisuId),
-      setGisuId,
-      isPending: gisuQuery.isPending || sessionQuery.isPending,
+      setGisuId: setOverrideId,
+      isPending: gisuQuery.isPending,
       isError: gisuQuery.isError,
-      isSwitching,
     }
-  }, [
-    gisuQuery.data,
-    gisuQuery.isError,
-    gisuQuery.isPending,
-    isSwitching,
-    overrideId,
-    sessionQuery.isPending,
-    setGisuId,
-  ])
+  }, [gisuQuery.data, gisuQuery.isError, gisuQuery.isPending, overrideId])
 
   return (
     <SelectedGisuContext.Provider value={value}>
@@ -120,3 +67,5 @@ export function useSelectedGisu() {
   }
   return value
 }
+
+export type { SelectedGisuContextValue }
