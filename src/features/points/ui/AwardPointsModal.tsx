@@ -638,7 +638,7 @@ export function AwardPointsModal({
               </Button>
               <Button
                 className="col-span-2"
-                color="primary"
+                color="brand"
                 disabled={!canSubmit || submitting}
                 onClick={() => {
                   void handleSubmit()
@@ -690,7 +690,7 @@ export function AwardPointsModal({
                 계속 작성
               </Button>
               <Button
-                color="primary"
+                color="brand"
                 onClick={confirmDiscard}
                 size="xs"
                 type="button"

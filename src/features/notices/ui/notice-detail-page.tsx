@@ -177,7 +177,7 @@ export function NoticeDetailPage({
         onOpenChange={setIsDeleteDialogOpen}
         confirmLabel="삭제하기"
         cancelLabel="돌아가기"
-        color="primary"
+        color="brand"
         onConfirm={async () => {
           if (isDeleting) {
             return

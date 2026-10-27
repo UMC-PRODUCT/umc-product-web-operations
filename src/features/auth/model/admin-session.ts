@@ -89,6 +89,35 @@ export function isOperator(
   return session.isSuperAdmin || session.isAdmin
 }
 
+const SCHOOL_EXECUTIVE_ROLES = new Set<RoleType>([
+  "SCHOOL_PRESIDENT",
+  "SCHOOL_VICE_PRESIDENT",
+])
+
+export type SchoolExecutiveLock = {
+  schoolId: string
+  schoolName: string
+}
+
+/** 학교 회장단만 해당하고 학교 id가 있을 때 지부·학교 필터를 고정한다. */
+export function schoolExecutiveLock(
+  session: Pick<
+    AdminSession,
+    "scope" | "roleTypes" | "schoolId" | "schoolName"
+  >,
+): SchoolExecutiveLock | null {
+  if (session.scope !== "SCHOOL" || session.schoolId == null) {
+    return null
+  }
+  if (!session.roleTypes.some((role) => SCHOOL_EXECUTIVE_ROLES.has(role))) {
+    return null
+  }
+  return {
+    schoolId: String(session.schoolId),
+    schoolName: session.schoolName ?? "",
+  }
+}
+
 export function toAdminSession(member: MemberSummaryResponse): AdminSession {
   const info = member.currentGisuMemberInfo ?? null
   const roleTypes = (info?.roleTypes ?? []).filter(isRoleType)

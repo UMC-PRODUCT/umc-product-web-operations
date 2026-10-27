@@ -9,7 +9,7 @@ export function showNoticePrimarySuccessToast(
 ): void {
   toast.show({
     message,
-    color: "primary",
+    color: "brand",
     icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
   })
 }

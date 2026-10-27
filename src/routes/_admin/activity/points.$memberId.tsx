@@ -7,10 +7,25 @@ import type { DeletePointHistoryOutcome } from "@/features/points/model/mock-del
 
 type MemberDetailSearch = {
   state?: "error" | "forbidden"
-  /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
+  challengerId?: number
+  /** 쿼리로 삭제 결과를 흉내 낼 때만 사용한다. */
   deleteOutcome?: DeletePointHistoryOutcome
-  /** TODO: API 연동 시 제거. 부여 결과 시뮬레이션용 */
+  /** 쿼리로 부여 결과를 흉내 낼 때만 사용한다. */
   awardOutcome?: AwardPointOutcome
+}
+
+function readChallengerId(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+  if (
+    typeof value === "string" &&
+    value !== "" &&
+    Number.isFinite(Number(value))
+  ) {
+    return Number(value)
+  }
+  return undefined
 }
 
 export const Route = createFileRoute("/_admin/activity/points/$memberId")({
@@ -19,6 +34,7 @@ export const Route = createFileRoute("/_admin/activity/points/$memberId")({
       search.state === "error" || search.state === "forbidden"
         ? search.state
         : undefined,
+    challengerId: readChallengerId(search.challengerId),
     deleteOutcome:
       search.deleteOutcome === "network_error" ||
       search.deleteOutcome === "already_deleted" ||
@@ -37,11 +53,12 @@ export const Route = createFileRoute("/_admin/activity/points/$memberId")({
 
 function MemberDetailRoute() {
   const { memberId } = Route.useParams()
-  const { state, deleteOutcome, awardOutcome } = Route.useSearch()
+  const { state, deleteOutcome, awardOutcome, challengerId } = Route.useSearch()
 
   return (
     <MemberDetailPage
       awardOutcome={awardOutcome}
+      challengerId={challengerId}
       deleteOutcome={deleteOutcome}
       isError={state === "error"}
       isForbidden={state === "forbidden"}

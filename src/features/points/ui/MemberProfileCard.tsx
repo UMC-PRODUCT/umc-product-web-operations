@@ -51,8 +51,8 @@ export function MemberProfileCard({
 }: MemberProfileCardProps) {
   const meta = [
     member.schoolLabel,
-    getRegionLabel(member.region),
-    getPartLabel(member.part),
+    member.regionLabel ?? getRegionLabel(member.region),
+    member.partLabel ?? getPartLabel(member.part),
     member.generation,
   ]
 
@@ -98,7 +98,7 @@ export function MemberProfileCard({
 
         <div className="flex shrink-0 items-center gap-(--umc-spacing-gap-12)">
           <Button
-            color="primary"
+            color="brand"
             leadingIcon={<AddIcon aria-hidden size={14} />}
             onClick={onAwardPoints}
             size="sm"
