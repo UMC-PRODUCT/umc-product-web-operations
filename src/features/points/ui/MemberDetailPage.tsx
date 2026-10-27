@@ -134,7 +134,7 @@ export function MemberDetailPage({
         setAwardOpen(false)
         toast.show({
           message: formatAwardToastMessage(payload.typeLabel, payload.score),
-          color: "primary",
+          color: "brand",
           icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
         })
       }
@@ -159,7 +159,7 @@ export function MemberDetailPage({
       setAwardOpen(false)
       toast.show({
         message: formatAwardToastMessage(payload.typeLabel, payload.score),
-        color: "primary",
+        color: "brand",
         icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
       })
       return "success" as const
@@ -277,7 +277,7 @@ export function MemberDetailPage({
               : previousTotal
             toast.show({
               message: formatDeleteToastMessage(previousTotal, nextTotal),
-              color: "primary",
+              color: "brand",
               icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
             })
             return
@@ -296,7 +296,7 @@ export function MemberDetailPage({
             : previousTotal
           toast.show({
             message: formatDeleteToastMessage(previousTotal, nextTotal),
-            color: "primary",
+            color: "brand",
             icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
           })
         }}

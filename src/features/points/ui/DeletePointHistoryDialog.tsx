@@ -201,7 +201,7 @@ export function DeletePointHistoryDialog({
             취소
           </Button>
           <Button
-            color="primary"
+            color="brand"
             disabled={isLoading || phase === "already_deleted"}
             onClick={() => {
               void handleDelete()

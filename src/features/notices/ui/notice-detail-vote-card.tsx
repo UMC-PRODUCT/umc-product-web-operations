@@ -248,7 +248,7 @@ export function NoticeDetailVoteCard({
           <div className="flex flex-wrap items-start gap-(--umc-spacing-gap-12)">
             {showVoteButton ? (
               <Button
-                color="primary"
+                color="brand"
                 onClick={handleSubmitVote}
                 size="xs"
                 type="button"
@@ -297,7 +297,7 @@ export function NoticeDetailVoteCard({
 
       <Dialog
         cancelLabel="취소"
-        color="primary"
+        color="brand"
         confirmLabel="종료하기"
         description="지금까지 참여한 결과만 집계되어 종료돼요"
         onConfirm={handleEndPoll}

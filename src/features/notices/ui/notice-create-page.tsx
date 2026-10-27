@@ -96,7 +96,7 @@ export function NoticeCreatePage({ createOutcome }: NoticeCreatePageProps) {
           취소
         </Button>
         <Button
-          color="primary"
+          color="brand"
           disabled={isSubmitting}
           onClick={() => {
             void handleSubmit()
