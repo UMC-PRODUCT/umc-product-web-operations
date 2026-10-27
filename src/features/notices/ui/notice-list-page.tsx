@@ -148,7 +148,7 @@ export function NoticeListPage({
 
   useEffect(() => {
     setPage(1)
-  }, [filters.part, filters.query, filters.scope, filters.scopeStage])
+  }, [filters.part, filters.query, filters.scope])
 
   const organizationQuery = useQuery(
     noticeListOrganizationQueryOptions(session.gisuId),
@@ -209,12 +209,14 @@ export function NoticeListPage({
     }
 
     return resolveNoticeListTableEmptyState({
+      audience,
       filters,
       hasLoadedList,
       noticeCount: listState.notices.length,
       registeredTotal,
     })
   }, [
+    audience,
     filters,
     hasLoadedList,
     isForbidden,

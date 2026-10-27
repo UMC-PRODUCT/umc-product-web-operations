@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { buildNoticeListRequest } from "./build-notice-list-params"
+import {
+  buildNoticeListRequest,
+  normalizeNoticeListFiltersForApi,
+} from "./build-notice-list-params"
 import { encodeChapterScope, encodeSchoolScope } from "./notice-scope-filter"
 
 describe("buildNoticeListRequest", () => {
@@ -12,6 +15,25 @@ describe("buildNoticeListRequest", () => {
     roleTypes: ["SCHOOL_PRESIDENT"],
     schoolId: 5,
   }
+
+  it("ignores scope stage until target is selected", () => {
+    expect(
+      normalizeNoticeListFiltersForApi({
+        audience: "challenger",
+        filters: {
+          query: "",
+          scopeStage: "school",
+          scope: null,
+          part: null,
+        },
+      }),
+    ).toEqual({
+      query: "",
+      scopeStage: null,
+      scope: null,
+      part: null,
+    })
+  })
 
   it("builds challenger list params", () => {
     const request = buildNoticeListRequest({

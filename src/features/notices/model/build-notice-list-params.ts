@@ -10,6 +10,56 @@ import type { NoticeAudience, NoticeListFilters } from "./types"
 
 export const NOTICE_LIST_PAGE_SIZE = 10
 
+/** 두 번째 드롭다운(대상)까지 선택됐을 때만 API·캐시 키에 반영 */
+export function normalizeNoticeListFiltersForApi(input: {
+  audience: NoticeAudience
+  filters: Pick<NoticeListFilters, "query" | "scope" | "part" | "scopeStage">
+}): Pick<NoticeListFilters, "query" | "scope" | "part" | "scopeStage"> {
+  const query = input.filters.query.trim()
+  if (input.audience !== "challenger") {
+    return { query, scopeStage: null, scope: null, part: null }
+  }
+
+  switch (input.filters.scopeStage) {
+    case "chapter": {
+      const { chapterId } = parseNoticeScopeFilter(input.filters.scope)
+      if (chapterId == null) {
+        return { query, scopeStage: null, scope: null, part: null }
+      }
+      return {
+        query,
+        scopeStage: "chapter",
+        scope: input.filters.scope,
+        part: null,
+      }
+    }
+    case "school": {
+      const { schoolId } = parseNoticeScopeFilter(input.filters.scope)
+      if (schoolId == null) {
+        return { query, scopeStage: null, scope: null, part: null }
+      }
+      return {
+        query,
+        scopeStage: "school",
+        scope: input.filters.scope,
+        part: null,
+      }
+    }
+    case "part":
+      if (input.filters.part == null) {
+        return { query, scopeStage: null, scope: null, part: null }
+      }
+      return {
+        query,
+        scopeStage: "part",
+        scope: null,
+        part: input.filters.part,
+      }
+    default:
+      return { query, scopeStage: null, scope: null, part: null }
+  }
+}
+
 export type NoticeListRequest =
   | { kind: "list"; params: ListNoticesParams }
   | { kind: "search"; params: SearchNoticesParams }

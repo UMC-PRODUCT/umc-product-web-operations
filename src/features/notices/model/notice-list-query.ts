@@ -3,6 +3,7 @@ import { queryOptions } from "@tanstack/react-query"
 import { listNotices, searchNotices } from "../api/notices-query.api"
 import {
   buildNoticeListRequest,
+  normalizeNoticeListFiltersForApi,
   NOTICE_LIST_PAGE_SIZE,
 } from "./build-notice-list-params"
 import { mapNoticeSummaryToNotice } from "./map-notice-from-api"
@@ -33,6 +34,11 @@ export function noticeListQueryKey(input: {
   page: number
   session: Pick<NoticeOperatorSession, "gisuId" | "id">
 }) {
+  const apiFilters = normalizeNoticeListFiltersForApi({
+    audience: input.audience,
+    filters: input.filters,
+  })
+
   return [
     "notices",
     "list",
@@ -40,10 +46,10 @@ export function noticeListQueryKey(input: {
     input.session.gisuId,
     input.audience,
     input.page,
-    input.filters.query,
-    input.filters.scopeStage,
-    input.filters.scope,
-    input.filters.part,
+    apiFilters.query,
+    apiFilters.scopeStage,
+    apiFilters.scope,
+    apiFilters.part,
   ] as const
 }
 

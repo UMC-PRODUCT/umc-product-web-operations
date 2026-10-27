@@ -10,6 +10,7 @@ describe("resolveNoticeListTableEmptyState", () => {
   it("shows registered empty when there are no notices at all", () => {
     expect(
       resolveNoticeListTableEmptyState({
+        audience: "challenger",
         filters: {
           query: "",
           scopeStage: null,
@@ -23,9 +24,10 @@ describe("resolveNoticeListTableEmptyState", () => {
     ).toEqual({ variant: "registered" })
   })
 
-  it("shows registered empty when part filter matches nothing", () => {
+  it("shows no-match empty when part filter matches nothing", () => {
     expect(
       resolveNoticeListTableEmptyState({
+        audience: "challenger",
         filters: {
           query: "",
           scopeStage: "part",
@@ -36,12 +38,47 @@ describe("resolveNoticeListTableEmptyState", () => {
         noticeCount: 0,
         registeredTotal: 3,
       }),
+    ).toEqual({ variant: "noMatch" })
+  })
+
+  it("shows registered empty when only scope stage is selected", () => {
+    expect(
+      resolveNoticeListTableEmptyState({
+        audience: "challenger",
+        filters: {
+          query: "",
+          scopeStage: "chapter",
+          scope: null,
+          part: null,
+        },
+        hasLoadedList: true,
+        noticeCount: 0,
+        registeredTotal: 0,
+      }),
     ).toEqual({ variant: "registered" })
+  })
+
+  it("shows no-match empty when filter applied but scope has no notices", () => {
+    expect(
+      resolveNoticeListTableEmptyState({
+        audience: "challenger",
+        filters: {
+          query: "",
+          scopeStage: "school",
+          scope: encodeSchoolScope(1),
+          part: null,
+        },
+        hasLoadedList: true,
+        noticeCount: 0,
+        registeredTotal: 0,
+      }),
+    ).toEqual({ variant: "noMatch" })
   })
 
   it("shows search empty when keyword is present, even with other filters", () => {
     expect(
       resolveNoticeListTableEmptyState({
+        audience: "challenger",
         filters: {
           query: "dd",
           scopeStage: "school",
@@ -58,6 +95,7 @@ describe("resolveNoticeListTableEmptyState", () => {
   it("shows search empty when keyword is present without scope filters", () => {
     expect(
       resolveNoticeListTableEmptyState({
+        audience: "challenger",
         filters: {
           query: "없는제목",
           scopeStage: null,

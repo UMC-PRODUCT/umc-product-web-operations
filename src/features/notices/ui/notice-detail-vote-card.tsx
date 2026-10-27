@@ -41,14 +41,12 @@ function isMultipleChoicePoll(poll: NoticePoll) {
 
 type VoteOptionInputRowProps = {
   checked: boolean
-  disabled?: boolean
   label: string
   onCheckedChange: (checked: boolean) => void
 }
 
 function VoteOptionInputRow({
   checked,
-  disabled = false,
   label,
   onCheckedChange,
 }: VoteOptionInputRowProps) {
@@ -56,7 +54,6 @@ function VoteOptionInputRow({
     <Checkbox
       checked={checked}
       color={checked ? "brand" : "neutral"}
-      disabled={disabled}
       labelPlacement="end"
       onCheckedChange={onCheckedChange}
       size="md"
@@ -69,31 +66,78 @@ function VoteOptionInputRow({
 }
 
 type VoteOptionResultRowProps = {
+  anyViewerChoiceIsNonLeading: boolean
   isLeading: boolean
   isViewerChoice: boolean
   option: NoticePollOption
 }
 
+function getResultCheckboxState(
+  isLeading: boolean,
+  isViewerChoice: boolean,
+  anyViewerChoiceIsNonLeading: boolean,
+): { color: "brand" | "neutral"; show: boolean } | null {
+  if (isViewerChoice) {
+    return { color: isLeading ? "brand" : "neutral", show: true }
+  }
+
+  if (isLeading && anyViewerChoiceIsNonLeading) {
+    return { color: "brand", show: true }
+  }
+
+  return null
+}
+
+/**
+ * Figma: 1위 아닌 내 선택 = DS `neutral` + `disabled` + checked
+ * 1위(brand) = Figma에 disabled+brand 없음 → `brand` + checked, readOnly만
+ */
+function VoteResultCheckbox({ color }: { color: "brand" | "neutral" }) {
+  const className = "pointer-events-none shrink-0"
+
+  if (color === "neutral") {
+    return (
+      <Checkbox
+        aria-hidden
+        checked
+        className={className}
+        color="neutral"
+        disabled
+        size="md"
+      />
+    )
+  }
+
+  return (
+    <Checkbox
+      aria-hidden
+      checked
+      className={className}
+      color="brand"
+      readOnly
+      size="md"
+    />
+  )
+}
+
 function VoteOptionResultRow({
+  anyViewerChoiceIsNonLeading,
   isLeading,
   isViewerChoice,
   option,
 }: VoteOptionResultRowProps) {
+  const resultCheckbox = getResultCheckboxState(
+    isLeading,
+    isViewerChoice,
+    anyViewerChoiceIsNonLeading,
+  )
+
   return (
     <li className="flex w-full flex-col gap-(--umc-spacing-gap-6)">
       <div className="flex w-full items-center justify-between gap-(--umc-spacing-gap-8)">
         <div className="flex min-h-6 min-w-0 items-center gap-(--umc-spacing-gap-4)">
-          {isViewerChoice ? (
-            <Checkbox
-              aria-hidden
-              checked
-              className="pointer-events-none shrink-0"
-              color={isLeading ? "brand" : "neutral"}
-              disabled
-              size="md"
-              invalid={false}
-              defaultChecked
-            />
+          {resultCheckbox ? (
+            <VoteResultCheckbox color={resultCheckbox.color} />
           ) : null}
           <span className="text-label-4-medium text-neutral-default-900">
             {option.label}
@@ -181,6 +225,10 @@ export function NoticeDetailVoteCard({
   const leadingOptionIds = useMemo(
     () => getLeadingOptionIds(options),
     [options],
+  )
+  const anyViewerChoiceIsNonLeading = useMemo(
+    () => viewerSelection.some((optionId) => !leadingOptionIds.has(optionId)),
+    [leadingOptionIds, viewerSelection],
   )
 
   const toggleDraftOption = (optionId: string, checked: boolean) => {
@@ -332,6 +380,7 @@ export function NoticeDetailVoteCard({
           <ul className="flex w-full list-none flex-col gap-(--umc-spacing-gap-16) p-0">
             {options.map((option) => (
               <VoteOptionResultRow
+                anyViewerChoiceIsNonLeading={anyViewerChoiceIsNonLeading}
                 isLeading={leadingOptionIds.has(option.id)}
                 isViewerChoice={viewerSelection.includes(option.id)}
                 key={option.id}
@@ -346,7 +395,7 @@ export function NoticeDetailVoteCard({
           <div className="flex flex-wrap items-start gap-(--umc-spacing-gap-12)">
             {showVoteButton ? (
               <Button
-                color="primary"
+                color="brand"
                 disabled={isSubmittingVote}
                 isLoading={isSubmittingVote}
                 onClick={() => {

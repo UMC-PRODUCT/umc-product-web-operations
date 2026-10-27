@@ -5,7 +5,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
-import { Button, TextField } from "@umc-product/react"
+import { Button, TextFieldBox } from "@umc-product/react"
 import { type FormEvent, useState } from "react"
 
 import {
@@ -106,7 +106,7 @@ function LoginPage() {
         }}
       >
         <h1 className="text-2xl font-semibold">로그인</h1>
-        <TextField
+        <TextFieldBox
           autoComplete="email"
           label="이메일"
           onChange={(event) => {
@@ -117,7 +117,7 @@ function LoginPage() {
           type="email"
           value={email}
         />
-        <TextField
+        <TextFieldBox
           autoComplete="current-password"
           label="비밀번호"
           onChange={(event) => {

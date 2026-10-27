@@ -1,12 +1,24 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { CheckCircleIcon } from "@umc-product/icons"
 import { useToast } from "@umc-product/react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 
-import { mockAwardPoint } from "../model/mock-award-point"
-import { MOCK_MEMBERS } from "../model/mock-members"
-import { getMockPointHistory } from "../model/mock-point-history"
 import {
+  deleteChallengerPoint,
+  fetchChallenger,
+  grantChallengerPoint,
+} from "../api/challenger-points"
+import { getHttpStatus, isForbiddenError } from "../model/http-status"
+import {
+  challengerPointList,
+  toDetailMember,
+  toGrantPointBody,
+  toPointHistoryItem,
+} from "../model/map-point-history"
+import { mockAwardPoint } from "../model/mock-award-point"
+import {
+  buildSummary,
   formatAwardToastMessage,
   formatDeleteToastMessage,
 } from "../model/point-history"
@@ -20,20 +32,18 @@ import { PointHistoryTable } from "./PointHistoryTable"
 
 import type { AwardPointOutcome } from "../model/mock-award-point"
 import type { DeletePointHistoryOutcome } from "../model/mock-delete-point-history"
-import type {
-  MemberPointSummary,
-  PointHistoryItem,
-} from "../model/point-history"
+import type { PointHistoryItem } from "../model/point-history"
 import type { PointAwardTab } from "../model/point-types"
 
 type MemberDetailPageProps = {
   memberId: string
-  /** TODO: API 연동 시 실제 에러/권한 상태로 교체 */
+  challengerId?: number
+  /** 쿼리로 에러/권한 화면을 열 때 사용한다. */
   isError?: boolean
   isForbidden?: boolean
-  /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
+  /** 쿼리로 삭제 결과를 흉내 낼 때만 전달한다. */
   deleteOutcome?: DeletePointHistoryOutcome
-  /** TODO: API 연동 시 제거. 부여 결과 시뮬레이션용 */
+  /** 쿼리로 부여 결과를 흉내 낼 때만 전달한다. */
   awardOutcome?: AwardPointOutcome
   onRetry?: () => void
 }
@@ -45,92 +55,123 @@ type PendingAward = {
   reason: string
 }
 
-function buildSummary(history: PointHistoryItem[]): MemberPointSummary {
-  return history.reduce<MemberPointSummary>(
-    (acc, item) => {
-      if (item.kind === "reward") {
-        acc.rewardTotal += item.score
-      } else {
-        acc.penaltyTotal += item.score
-      }
-      acc.total += item.score
-      return acc
-    },
-    { total: 0, rewardTotal: 0, penaltyTotal: 0 },
-  )
+function challengerQueryKey(challengerId: number) {
+  return ["challenger", challengerId] as const
 }
 
 export function MemberDetailPage({
   memberId,
+  challengerId,
   isError = false,
   isForbidden = false,
-  deleteOutcome = "success",
-  awardOutcome = "success",
+  deleteOutcome,
+  awardOutcome,
   onRetry,
 }: MemberDetailPageProps) {
   const navigate = useNavigate()
   const toast = useToast()
-  const member = useMemo(
-    () => MOCK_MEMBERS.find((item) => item.id === memberId),
-    [memberId],
-  )
-  const [history, setHistory] = useState<PointHistoryItem[]>(() =>
-    getMockPointHistory(memberId),
-  )
+  const queryClient = useQueryClient()
   const [awardOpen, setAwardOpen] = useState(false)
   const [awardTab, setAwardTab] = useState<PointAwardTab>("reward")
   const [deleteTarget, setDeleteTarget] = useState<PointHistoryItem | null>(
     null,
   )
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [requestForbidden, setRequestForbidden] = useState(false)
 
-  useEffect(() => {
-    setHistory(getMockPointHistory(memberId))
-  }, [memberId])
+  const challengerQuery = useQuery({
+    queryKey:
+      challengerId != null
+        ? challengerQueryKey(challengerId)
+        : ["challenger", "missing"],
+    queryFn: () => fetchChallenger(challengerId as number),
+    enabled: challengerId != null && !isError && !isForbidden,
+    retry: false,
+  })
 
+  const history = useMemo(
+    () =>
+      challengerQuery.data
+        ? challengerPointList(challengerQuery.data).map(toPointHistoryItem)
+        : [],
+    [challengerQuery.data],
+  )
   const summary = useMemo(() => buildSummary(history), [history])
+  const member = useMemo(
+    () =>
+      challengerQuery.data
+        ? toDetailMember(challengerQuery.data, memberId)
+        : undefined,
+    [challengerQuery.data, memberId],
+  )
+
+  const forbidden =
+    isForbidden || requestForbidden || isForbiddenError(challengerQuery.error)
+  const loadFailed =
+    isError ||
+    (challengerQuery.isError && !isForbiddenError(challengerQuery.error))
+
+  const refreshHistory = async () => {
+    if (challengerId == null) {
+      return
+    }
+    await queryClient.fetchQuery({
+      queryKey: challengerQueryKey(challengerId),
+      queryFn: () => fetchChallenger(challengerId),
+      staleTime: 0,
+    })
+  }
 
   const openAwardModal = (tab: PointAwardTab) => {
     setAwardTab(tab)
     setAwardOpen(true)
   }
 
-  const applyAward = (payload: PendingAward) => {
-    const kind = payload.score < 0 ? "penalty" : "reward"
-    const nextItem: PointHistoryItem = {
-      id: `local-${Date.now()}`,
-      kind,
-      typeLabel: payload.typeLabel,
-      reason: payload.reason,
-      score: payload.score,
-      occurredAt: formatNow(),
-    }
-    setHistory((prev) => [nextItem, ...prev])
-    setAwardOpen(false)
-    toast.show({
-      message: formatAwardToastMessage(payload.typeLabel, payload.score),
-      color: "primary",
-      icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
-    })
-  }
-
-  const removeHistoryItem = (historyId: string) => {
-    const previousTotal = summary.total
-    const target = history.find((item) => item.id === historyId)
-    const nextTotal = target ? previousTotal - target.score : previousTotal
-    setHistory((prev) => prev.filter((item) => item.id !== historyId))
-    return { previousTotal, nextTotal }
-  }
-
   const handleAwardSubmit = async (payload: PendingAward) => {
-    const outcome = await mockAwardPoint(awardOutcome)
-    if (outcome === "success") {
-      applyAward(payload)
+    if (awardOutcome) {
+      const outcome = await mockAwardPoint(awardOutcome)
+      if (outcome === "success") {
+        setAwardOpen(false)
+        toast.show({
+          message: formatAwardToastMessage(payload.typeLabel, payload.score),
+          color: "brand",
+          icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
+        })
+      }
+      return outcome
     }
-    return outcome
+
+    if (challengerId == null) {
+      return "network_error" as const
+    }
+
+    try {
+      const updated = await grantChallengerPoint(
+        challengerId,
+        toGrantPointBody(payload),
+      )
+      queryClient.setQueryData(challengerQueryKey(challengerId), updated)
+      try {
+        await refreshHistory()
+      } catch {
+        // 부여 응답으로 이력을 이미 반영했다.
+      }
+      setAwardOpen(false)
+      toast.show({
+        message: formatAwardToastMessage(payload.typeLabel, payload.score),
+        color: "brand",
+        icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
+      })
+      return "success" as const
+    } catch (error) {
+      if (isForbiddenError(error)) {
+        return "forbidden" as const
+      }
+      return "network_error" as const
+    }
   }
 
-  if (isForbidden) {
+  if (forbidden) {
     return (
       <MemberDetailPermissionDenied
         onGoToList={() => {
@@ -140,18 +181,28 @@ export function MemberDetailPage({
     )
   }
 
-  if (isError) {
-    return <MemberDetailNetworkError onRetry={onRetry} />
+  if (loadFailed) {
+    return (
+      <MemberDetailNetworkError
+        onRetry={() => {
+          if (onRetry) {
+            onRetry()
+            return
+          }
+          void challengerQuery.refetch()
+        }}
+      />
+    )
   }
 
-  if (!member) {
-    return (
+  if (challengerQuery.isPending || !member) {
+    return challengerId == null ? (
       <section className="flex flex-col gap-(--umc-spacing-gap-20)">
         <p className="text-body-3-regular text-neutral-medium-600">
           구성원을 찾을 수 없어요
         </p>
       </section>
-    )
+    ) : null
   }
 
   return (
@@ -195,16 +246,62 @@ export function MemberDetailPage({
       <DeletePointHistoryDialog
         item={deleteTarget}
         member={member}
-        onAlreadyDeleted={(historyId) => {
-          removeHistoryItem(historyId)
+        onAlreadyDeleted={() => {
+          void refreshHistory()
         }}
-        onDeleted={(historyId) => {
-          const { previousTotal, nextTotal } = removeHistoryItem(historyId)
+        onConfirm={
+          deleteOutcome
+            ? undefined
+            : async (historyId) => {
+                try {
+                  await deleteChallengerPoint(Number(historyId))
+                  return "success"
+                } catch (error) {
+                  const status = getHttpStatus(error)
+                  if (status === 404) {
+                    return "already_deleted"
+                  }
+                  if (status === 403) {
+                    return "forbidden"
+                  }
+                  return "network_error"
+                }
+              }
+        }
+        onDeleted={async (historyId) => {
+          const previousTotal = summary.total
+          if (deleteOutcome) {
+            const target = history.find((item) => item.id === historyId)
+            const nextTotal = target
+              ? previousTotal - target.score
+              : previousTotal
+            toast.show({
+              message: formatDeleteToastMessage(previousTotal, nextTotal),
+              color: "brand",
+              icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
+            })
+            return
+          }
+          await refreshHistory()
+          const next = queryClient.getQueryData<
+            Awaited<ReturnType<typeof fetchChallenger>>
+          >(
+            challengerId != null
+              ? challengerQueryKey(challengerId)
+              : ["challenger", "missing"],
+          )
+          const nextTotal = next
+            ? buildSummary(challengerPointList(next).map(toPointHistoryItem))
+                .total
+            : previousTotal
           toast.show({
             message: formatDeleteToastMessage(previousTotal, nextTotal),
-            color: "primary",
+            color: "brand",
             icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
           })
+        }}
+        onForbidden={() => {
+          setRequestForbidden(true)
         }}
         onOpenChange={(open) => {
           setDeleteOpen(open)
@@ -217,14 +314,4 @@ export function MemberDetailPage({
       />
     </section>
   )
-}
-
-function formatNow(): string {
-  const now = new Date()
-  const yyyy = now.getFullYear()
-  const mm = String(now.getMonth() + 1).padStart(2, "0")
-  const dd = String(now.getDate()).padStart(2, "0")
-  const hh = String(now.getHours()).padStart(2, "0")
-  const mi = String(now.getMinutes()).padStart(2, "0")
-  return `${yyyy}.${mm}.${dd} ${hh}:${mi}`
 }

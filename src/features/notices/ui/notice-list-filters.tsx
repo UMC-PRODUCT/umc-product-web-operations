@@ -1,5 +1,5 @@
 import { SearchField, Select } from "@umc-product/react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 
 import { NOTICE_PART_SELECT_OPTIONS } from "../model/notice-part-options"
 import {
@@ -40,12 +40,6 @@ export function NoticeListFiltersBar({
   onScopeChange,
   onScopeStageChange,
 }: NoticeListFiltersProps) {
-  const [draftQuery, setDraftQuery] = useState(filters.query)
-
-  useEffect(() => {
-    setDraftQuery(filters.query)
-  }, [filters.query])
-
   const chapterSelectOptions = useMemo(
     () =>
       chapterOptions.map((chapter) => ({
@@ -143,28 +137,16 @@ export function NoticeListFiltersBar({
         value={targetSelectValue}
         variant={filterSelectVariant(targetSelectValue)}
       />
-      <form
+      <SearchField
+        aria-label="공지 검색"
         className="w-[300px] shrink-0"
-        onSubmit={(event) => {
-          event.preventDefault()
-          onQueryChange(draftQuery)
+        clearable
+        onChange={(event) => {
+          onQueryChange(event.target.value)
         }}
-      >
-        <SearchField
-          aria-label="공지 검색"
-          className="w-full"
-          clearable
-          onChange={(event) => {
-            const value = event.target.value
-            setDraftQuery(value)
-            if (value === "") {
-              onQueryChange("")
-            }
-          }}
-          placeholder="제목 · 본문 등으로 검색할 수 있어요"
-          value={draftQuery}
-        />
-      </form>
+        placeholder="제목 · 본문 등으로 검색할 수 있어요"
+        value={filters.query}
+      />
     </div>
   )
 }

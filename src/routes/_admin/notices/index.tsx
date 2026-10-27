@@ -1,8 +1,8 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router"
 
-import { useOperatorGisu } from "@/features/auth"
 import { NoticeListPage } from "@/features/notices"
 import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
+import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 
@@ -57,7 +57,7 @@ function NoticesPage() {
     publishOutcome,
   } = Route.useSearch()
   const { session } = adminRouteApi.useRouteContext()
-  const { selectedGisuId } = useOperatorGisu()
+  const { gisuId: selectedGisuId } = useSelectedGisu()
 
   return (
     <NoticeListPage

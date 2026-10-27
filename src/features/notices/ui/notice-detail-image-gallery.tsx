@@ -54,7 +54,13 @@ export function NoticeDetailImageGallery({
 
   return (
     <div className="relative w-full min-w-0 overflow-hidden">
-      <div className="flex gap-(--umc-spacing-gap-12) overflow-x-auto">
+      <div
+        className={cn(
+          "flex w-max max-w-none gap-(--umc-spacing-gap-12)",
+          "overflow-x-auto overscroll-x-contain",
+          "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+        )}
+      >
         {images.map((image) => (
           <ImageTile image={image} key={image.id} />
         ))}

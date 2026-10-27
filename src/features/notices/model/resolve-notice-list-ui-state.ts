@@ -1,10 +1,27 @@
+import { normalizeNoticeListFiltersForApi } from "./build-notice-list-params"
 import { parseNoticeScopeFilter } from "./notice-scope-filter"
 
 import type { NoticeListOrganizationOptions } from "./notice-list-organization-query"
 import type { NoticeAudience, NoticeListFilters } from "./types"
 
 export type NoticeListTableEmptyState =
-  { variant: "registered" } | { variant: "search"; query: string }
+  | { variant: "registered" }
+  | { variant: "search"; query: string }
+  | { variant: "noMatch" }
+
+/** UI 1단계(범위 단계)만 고른 상태는 목록 API에 반영되지 않음 */
+export function hasAppliedNoticeListApiFilters(input: {
+  audience: NoticeAudience
+  filters: Pick<NoticeListFilters, "query" | "scope" | "part" | "scopeStage">
+}): boolean {
+  const apiFilters = normalizeNoticeListFiltersForApi(input)
+
+  if (apiFilters.query.length > 0) {
+    return true
+  }
+
+  return apiFilters.scopeStage != null
+}
 
 /** 운영진 탭 등에서 챌린저 전용 범위·파트 필터 (NT-L01 403) */
 export function isNoticeListClientFilterForbidden(input: {
@@ -54,6 +71,7 @@ export function isNoticeListScopeOutOfOrganization(input: {
 }
 
 export function resolveNoticeListTableEmptyState(input: {
+  audience: NoticeAudience
   filters: Pick<NoticeListFilters, "query" | "scope" | "part" | "scopeStage">
   hasLoadedList: boolean
   noticeCount: number
@@ -63,14 +81,23 @@ export function resolveNoticeListTableEmptyState(input: {
     return null
   }
 
-  if (input.registeredTotal === 0) {
+  if (
+    !hasAppliedNoticeListApiFilters({
+      audience: input.audience,
+      filters: input.filters,
+    }) &&
+    input.registeredTotal === 0
+  ) {
     return { variant: "registered" }
   }
 
-  const trimmedQuery = input.filters.query.trim()
+  const trimmedQuery = normalizeNoticeListFiltersForApi({
+    audience: input.audience,
+    filters: input.filters,
+  }).query
   if (trimmedQuery.length > 0) {
     return { variant: "search", query: trimmedQuery }
   }
 
-  return { variant: "registered" }
+  return { variant: "noMatch" }
 }

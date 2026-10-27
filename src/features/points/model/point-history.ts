@@ -15,6 +15,25 @@ export type MemberPointSummary = {
   penaltyTotal: number
 }
 
+export function buildSummary(history: PointHistoryItem[]): MemberPointSummary {
+  return history.reduce<MemberPointSummary>(
+    (acc, item) => {
+      const score = Number(item.score)
+      if (!Number.isFinite(score)) {
+        return acc
+      }
+      if (score < 0) {
+        acc.penaltyTotal += score
+      } else {
+        acc.rewardTotal += score
+      }
+      acc.total += score
+      return acc
+    },
+    { total: 0, rewardTotal: 0, penaltyTotal: 0 },
+  )
+}
+
 export function formatPointScore(score: number): string {
   if (score > 0) {
     return `+${score}`

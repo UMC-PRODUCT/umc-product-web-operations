@@ -12,15 +12,19 @@ import type { DeletePointHistoryOutcome } from "../model/mock-delete-point-histo
 import type { PointHistoryItem } from "../model/point-history"
 import type { PointsMember } from "../model/types"
 
+type DeleteRequestOutcome = DeletePointHistoryOutcome | "forbidden"
+
 type DeletePointHistoryDialogProps = {
   open: boolean
   member: PointsMember
   item: PointHistoryItem | null
-  /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
+  /** 쿼리로 결과를 흉내 낼 때만 사용한다. 없으면 onConfirm으로 삭제한다. */
   simulateOutcome?: DeletePointHistoryOutcome
+  onConfirm?: (historyId: string) => Promise<DeleteRequestOutcome>
   onOpenChange: (open: boolean) => void
-  onDeleted: (historyId: string) => void
+  onDeleted: (historyId: string) => void | Promise<void>
   onAlreadyDeleted: (historyId: string) => void
+  onForbidden?: () => void
 }
 
 type DialogPhase = "idle" | "loading" | "network_error" | "already_deleted"
@@ -29,10 +33,12 @@ export function DeletePointHistoryDialog({
   open,
   member,
   item,
-  simulateOutcome = "success",
+  simulateOutcome,
+  onConfirm,
   onOpenChange,
   onDeleted,
   onAlreadyDeleted,
+  onForbidden,
 }: DeletePointHistoryDialogProps) {
   const titleId = useId()
   const [phase, setPhase] = useState<DialogPhase>("idle")
@@ -66,15 +72,22 @@ export function DeletePointHistoryDialog({
       return
     }
     setPhase("loading")
-    const outcome = await mockDeletePointHistory(item.id, simulateOutcome)
+    const outcome = onConfirm
+      ? await onConfirm(item.id)
+      : await mockDeletePointHistory(item.id, simulateOutcome ?? "success")
     if (outcome === "success") {
-      onDeleted(item.id)
+      await onDeleted(item.id)
       onOpenChange(false)
       return
     }
     if (outcome === "already_deleted") {
       onAlreadyDeleted(item.id)
       setPhase("already_deleted")
+      return
+    }
+    if (outcome === "forbidden") {
+      onForbidden?.()
+      onOpenChange(false)
       return
     }
     setPhase("network_error")
@@ -188,7 +201,7 @@ export function DeletePointHistoryDialog({
             취소
           </Button>
           <Button
-            color="primary"
+            color="brand"
             disabled={isLoading || phase === "already_deleted"}
             onClick={() => {
               void handleDelete()

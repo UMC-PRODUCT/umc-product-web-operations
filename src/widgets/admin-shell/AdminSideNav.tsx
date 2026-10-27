@@ -3,27 +3,36 @@ import { PeoplePictogram } from "@umc-product/icons"
 import { ContextSwitcher, SideNavigation } from "@umc-product/react"
 import { useMemo, useState } from "react"
 
-import { useOperatorGisu } from "@/features/auth"
 import { canCreateNotice } from "@/features/notices/model/notice-session"
+import { cn } from "@/shared/lib/cn"
 
 import { type AdminSection, getSideNavItems, getSideNavTitle } from "./nav"
 
 const adminRouteApi = getRouteApi("/_admin")
 
+type GenerationOption = {
+  value: string
+  label: string
+}
+
 type AdminSideNavProps = {
   currentPath: string
   section: AdminSection
+  generationOptions: readonly GenerationOption[]
+  generationValue: string | null
+  isGenerationSwitcherDisabled?: boolean
+  onGenerationChange: (gisuId: string) => void
 }
 
-export function AdminSideNav({ currentPath, section }: AdminSideNavProps) {
+export function AdminSideNav({
+  currentPath,
+  section,
+  generationOptions,
+  generationValue,
+  isGenerationSwitcherDisabled = false,
+  onGenerationChange,
+}: AdminSideNavProps) {
   const { session } = adminRouteApi.useRouteContext()
-  const {
-    gisuOptions,
-    isLoading,
-    isSwitching,
-    selectedGisuId,
-    switchActiveGisu,
-  } = useOperatorGisu()
   const [switcherMountKey, setSwitcherMountKey] = useState(0)
 
   const sideNavItems = useMemo(() => {
@@ -34,11 +43,13 @@ export function AdminSideNav({ currentPath, section }: AdminSideNavProps) {
     if (section !== "notices" || canCreateNotice(session)) {
       return items
     }
-    return items.filter((item) => item.href !== "/notices/new")
+    return items.filter((item) => {
+      if ("children" in item) {
+        return true
+      }
+      return item.href !== "/notices/new"
+    })
   }, [section, session])
-
-  const switcherValue =
-    selectedGisuId != null ? String(selectedGisuId) : undefined
 
   return (
     <SideNavigation
@@ -47,23 +58,24 @@ export function AdminSideNav({ currentPath, section }: AdminSideNavProps) {
       currentPath={currentPath}
       items={sideNavItems}
       slot={
-        gisuOptions.length > 0 && switcherValue != null ? (
+        generationValue == null ? undefined : (
           <ContextSwitcher
             key={switcherMountKey}
-            className="w-full"
-            disabled={isLoading || isSwitching}
+            className={cn(
+              "w-full",
+              isGenerationSwitcherDisabled && "pointer-events-none opacity-50",
+            )}
             onValueChange={(value) => {
-              setSwitcherMountKey((key) => key + 1)
-              const gisuId = Number(value)
-              if (!Number.isFinite(gisuId)) {
+              if (isGenerationSwitcherDisabled) {
                 return
               }
-              void switchActiveGisu(gisuId)
+              setSwitcherMountKey((key) => key + 1)
+              onGenerationChange(value)
             }}
-            options={gisuOptions}
-            value={switcherValue}
+            options={[...generationOptions]}
+            value={generationValue}
           />
-        ) : null
+        )
       }
       title={getSideNavTitle(section)}
     />
