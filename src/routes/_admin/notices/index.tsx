@@ -1,6 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, getRouteApi } from "@tanstack/react-router"
 
 import { NoticeListPage } from "@/features/notices"
+import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
+import { useSelectedGisu } from "@/shared/model/selected-gisu"
+
+import { toNoticeOperatorSession } from "./-notice-session"
 
 import type {
   NoticeDeleteOutcome,
@@ -8,8 +12,10 @@ import type {
   NoticeListLoadOutcome,
   NoticePublishOutcome,
 } from "@/features/notices/model/notice-outcomes"
+import type { NoticeAudience } from "@/features/notices/model/types"
 
 type NoticesSearch = {
+  audience?: NoticeAudience
   /** TODO: API 연동 시 제거. 삭제 성공 Toast 시뮬레이션용 */
   deleteOutcome?: NoticeDeleteOutcome
   /** TODO: API 연동 시 제거. 이미지 등록 성공 Toast 시뮬레이션용 */
@@ -22,6 +28,7 @@ type NoticesSearch = {
 
 export const Route = createFileRoute("/_admin/notices/")({
   validateSearch: (search: Record<string, unknown>): NoticesSearch => ({
+    audience: parseNoticeListAudienceOptional(search.audience),
     deleteOutcome:
       search.deleteOutcome === "success" ? search.deleteOutcome : undefined,
     imageRegisterOutcome:
@@ -39,16 +46,27 @@ export const Route = createFileRoute("/_admin/notices/")({
   component: NoticesPage,
 })
 
+const adminRouteApi = getRouteApi("/_admin")
+
 function NoticesPage() {
-  const { deleteOutcome, imageRegisterOutcome, listOutcome, publishOutcome } =
-    Route.useSearch()
+  const {
+    audience,
+    deleteOutcome,
+    imageRegisterOutcome,
+    listOutcome,
+    publishOutcome,
+  } = Route.useSearch()
+  const { session } = adminRouteApi.useRouteContext()
+  const { gisuId: selectedGisuId } = useSelectedGisu()
 
   return (
     <NoticeListPage
+      audience={audience}
       deleteOutcome={deleteOutcome}
       imageRegisterOutcome={imageRegisterOutcome}
       listOutcome={listOutcome}
       publishOutcome={publishOutcome}
+      session={toNoticeOperatorSession(session, { gisuId: selectedGisuId })}
     />
   )
 }

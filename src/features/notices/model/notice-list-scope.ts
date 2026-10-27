@@ -1,10 +1,6 @@
-import type {
-  NoticeListFilters,
-  NoticeRangeFilter,
-  NoticeTargetFilter,
-} from "./types"
+import type { NoticeRangeFilter, NoticeTargetFilter } from "./types"
 
-/** TODO: API 연동 시 세션·역할 기반 조회 가능 범위로 교체 */
+/** @deprecated API 403으로 대체. mock QA용 */
 export type NoticeViewerScope = {
   allowedRanges: NoticeRangeFilter[]
   allowedTargets: NoticeTargetFilter[]
@@ -15,8 +11,14 @@ export const MOCK_NOTICE_VIEWER_SCOPE: NoticeViewerScope = {
   allowedTargets: ["all", "web"],
 }
 
+type LegacyMockListFilters = {
+  range: NoticeRangeFilter
+  target: NoticeTargetFilter
+}
+
+/** @deprecated mock NT-L01 403 시뮬레이션 */
 export function isNoticeListFilterForbidden(
-  filters: Pick<NoticeListFilters, "range" | "target">,
+  filters: LegacyMockListFilters,
   scope: NoticeViewerScope = MOCK_NOTICE_VIEWER_SCOPE,
 ): boolean {
   if (filters.range !== "all" && !scope.allowedRanges.includes(filters.range)) {

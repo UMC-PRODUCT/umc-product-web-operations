@@ -1,27 +1,29 @@
 import { SearchField, Select } from "@umc-product/react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo } from "react"
 
+import { NOTICE_PART_SELECT_OPTIONS } from "../model/notice-part-options"
 import {
-  NOTICE_FILTER_SELECT_TYPO_CLASS,
-  NOTICE_RANGE_SELECT_OPTIONS,
-  NOTICE_TARGET_SELECT_OPTIONS,
-} from "./constants"
+  encodeChapterScope,
+  encodeSchoolScope,
+} from "../model/notice-scope-filter"
+import {
+  NOTICE_SCOPE_STAGE_SELECT_OPTIONS,
+  type NoticeScopeStage,
+} from "../model/notice-scope-stage"
+import { NOTICE_FILTER_SELECT_TYPO_CLASS } from "./constants"
 
-import type {
-  NoticeListFilters,
-  NoticeRangeFilter,
-  NoticeTargetFilter,
-} from "../model/types"
+import type { NoticePart } from "../api/notice-api.types"
+import type { NoticeListFilters } from "../model/types"
 
 type NoticeListFiltersProps = {
   filters: NoticeListFilters
+  isOrganizationLoading?: boolean
+  chapterOptions: { id: number; name: string }[]
+  schoolOptions: { schoolId: number; schoolName: string }[]
   onQueryChange: (query: string) => void
-  onRangeChange: (range: NoticeRangeFilter) => void
-  onTargetChange: (target: NoticeTargetFilter) => void
-}
-
-function toSelectValue<T extends string>(value: T, allValue: T): T | null {
-  return value === allValue ? null : value
+  onPartChange: (part: NoticePart | null) => void
+  onScopeChange: (scope: NoticeListFilters["scope"]) => void
+  onScopeStageChange: (scopeStage: NoticeScopeStage | null) => void
 }
 
 function filterSelectVariant(value: string | null): "default" | "filter" {
@@ -30,71 +32,121 @@ function filterSelectVariant(value: string | null): "default" | "filter" {
 
 export function NoticeListFiltersBar({
   filters,
+  isOrganizationLoading = false,
+  chapterOptions,
+  schoolOptions,
   onQueryChange,
-  onRangeChange,
-  onTargetChange,
+  onPartChange,
+  onScopeChange,
+  onScopeStageChange,
 }: NoticeListFiltersProps) {
-  const [draftQuery, setDraftQuery] = useState(filters.query)
+  const chapterSelectOptions = useMemo(
+    () =>
+      chapterOptions.map((chapter) => ({
+        label: chapter.name,
+        value: encodeChapterScope(chapter.id) as string,
+      })),
+    [chapterOptions],
+  )
+
+  const schoolSelectOptions = useMemo(
+    () =>
+      schoolOptions.map((school) => ({
+        label: school.schoolName,
+        value: encodeSchoolScope(school.schoolId) as string,
+      })),
+    [schoolOptions],
+  )
+
+  const targetSelectOptions = useMemo(() => {
+    switch (filters.scopeStage) {
+      case "chapter":
+        return chapterSelectOptions
+      case "school":
+        return schoolSelectOptions
+      case "part":
+        return NOTICE_PART_SELECT_OPTIONS
+      default:
+        return []
+    }
+  }, [chapterSelectOptions, filters.scopeStage, schoolSelectOptions])
+
+  const targetSelectValue =
+    filters.scopeStage === "part" ? filters.part : filters.scope
 
   useEffect(() => {
-    setDraftQuery(filters.query)
-  }, [filters.query])
+    if (!filters.scopeStage || filters.scopeStage === "part") {
+      return
+    }
 
-  const commitQuery = (query: string) => {
-    onQueryChange(query)
-  }
+    const isValidScope = targetSelectOptions.some(
+      (option) => option.value === filters.scope,
+    )
+    if (filters.scope != null && !isValidScope) {
+      onScopeChange(null)
+    }
+  }, [filters.scope, filters.scopeStage, onScopeChange, targetSelectOptions])
 
-  const rangeSelectValue = toSelectValue(filters.range, "all")
-  const targetSelectValue = toSelectValue(filters.target, "all")
+  useEffect(() => {
+    if (filters.scopeStage !== "part" || filters.part == null) {
+      return
+    }
+
+    const isValidPart = NOTICE_PART_SELECT_OPTIONS.some(
+      (option) => option.value === filters.part,
+    )
+    if (!isValidPart) {
+      onPartChange(null)
+    }
+  }, [filters.part, filters.scopeStage, onPartChange])
 
   return (
     <div className="flex flex-nowrap items-center gap-(--umc-spacing-gap-16)">
       <Select
-        aria-label="공지 범위"
+        aria-label="공지 범위 단계"
         className={NOTICE_FILTER_SELECT_TYPO_CLASS}
+        disabled={isOrganizationLoading}
         onValueChange={(value) => {
-          onRangeChange(value ?? "all")
+          onScopeStageChange(value ? (value as NoticeScopeStage) : null)
         }}
-        options={NOTICE_RANGE_SELECT_OPTIONS}
+        options={NOTICE_SCOPE_STAGE_SELECT_OPTIONS}
         placeholder="범위 전체"
         size="md"
-        value={rangeSelectValue}
-        variant={filterSelectVariant(rangeSelectValue)}
+        value={filters.scopeStage}
+        variant={filterSelectVariant(filters.scopeStage)}
       />
       <Select
         aria-label="공지 대상"
         className={NOTICE_FILTER_SELECT_TYPO_CLASS}
+        disabled={!filters.scopeStage || isOrganizationLoading}
         onValueChange={(value) => {
-          onTargetChange(value ?? "all")
+          if (!filters.scopeStage) {
+            return
+          }
+
+          if (filters.scopeStage === "part") {
+            onPartChange(value as NoticePart)
+            return
+          }
+
+          onScopeChange(value)
         }}
-        options={NOTICE_TARGET_SELECT_OPTIONS}
+        options={targetSelectOptions}
         placeholder="대상 전체"
         size="md"
         value={targetSelectValue}
         variant={filterSelectVariant(targetSelectValue)}
       />
-      <form
+      <SearchField
+        aria-label="공지 검색"
         className="w-[300px] shrink-0"
-        onSubmit={(event) => {
-          event.preventDefault()
-          commitQuery(draftQuery)
+        clearable
+        onChange={(event) => {
+          onQueryChange(event.target.value)
         }}
-      >
-        <SearchField
-          aria-label="공지 검색"
-          className="w-full"
-          clearable
-          onChange={(event) => {
-            const value = event.target.value
-            setDraftQuery(value)
-            if (value === "") {
-              commitQuery("")
-            }
-          }}
-          placeholder="제목 · 본문 등으로 검색할 수 있어요"
-          value={draftQuery}
-        />
-      </form>
+        placeholder="제목 · 본문 등으로 검색할 수 있어요"
+        value={filters.query}
+      />
     </div>
   )
 }

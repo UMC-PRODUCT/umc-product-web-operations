@@ -1,16 +1,8 @@
 import { MegaphoneIcon, WarningIcon } from "@umc-product/icons"
 
-type NoticeListRegisteredEmptyProps = {
-  variant: "registered"
-}
+import type { NoticeListTableEmptyState } from "../model/resolve-notice-list-ui-state"
 
-type NoticeListSearchEmptyProps = {
-  query: string
-  variant: "search"
-}
-
-export type NoticeListTableEmptyProps =
-  NoticeListRegisteredEmptyProps | NoticeListSearchEmptyProps
+export type NoticeListTableEmptyProps = NoticeListTableEmptyState
 
 function NoticeListRegisteredEmpty() {
   return (
@@ -36,7 +28,7 @@ function NoticeListRegisteredEmpty() {
   )
 }
 
-/** Figma NT-L01 검색 결과 없음(472:9299) — 검색어가 있을 때만 사용 */
+/** Figma NT-L01 검색 결과 없음(472:9299) */
 function NoticeListSearchEmpty({ query }: { query: string }) {
   const trimmedQuery = query.trim()
 
@@ -63,10 +55,39 @@ function NoticeListSearchEmpty({ query }: { query: string }) {
   )
 }
 
+/** Figma NT-L01 필터 결과 없음 — 범위·파트 등 (검색어 없음) */
+function NoticeListNoMatchEmpty() {
+  return (
+    <div
+      className="flex w-full flex-col items-center gap-(--umc-spacing-gap-16) py-[40px] pr-(--umc-spacing-padding-20)"
+      role="status"
+    >
+      <WarningIcon
+        aria-hidden
+        className="text-icon-disabled"
+        size={48}
+        weight="fill"
+      />
+      <div className="flex w-full flex-col items-center gap-(--umc-spacing-gap-8) text-center">
+        <p className="text-title-4-semibold text-neutral-strong-800 w-full">
+          해당하는 공지가 없어요
+        </p>
+        <p className="text-body-3-regular text-neutral-medium-600 w-full">
+          검색어를 다르게 입력하거나 필터를 변경해 보세요
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export function NoticeListTableEmpty(props: NoticeListTableEmptyProps) {
   if (props.variant === "registered") {
     return <NoticeListRegisteredEmpty />
   }
 
-  return <NoticeListSearchEmpty query={props.query} />
+  if (props.variant === "search") {
+    return <NoticeListSearchEmpty query={props.query} />
+  }
+
+  return <NoticeListNoMatchEmpty />
 }

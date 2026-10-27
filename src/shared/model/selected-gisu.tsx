@@ -67,3 +67,5 @@ export function useSelectedGisu() {
   }
   return value
 }
+
+export type { SelectedGisuContextValue }

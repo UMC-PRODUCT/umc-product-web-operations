@@ -1,7 +1,9 @@
-import { useNavigate } from "@tanstack/react-router"
+import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
 
 import type { NoticeImageLoadState } from "../model/notice-detail.types"
+
+const noticeDetailRouteApi = getRouteApi("/_admin/notices/$noticeId")
 
 const LOADING_MOCK_MS = 1500
 const SUCCESS_AUTO_DISMISS_MS = 3000
@@ -18,22 +20,28 @@ export function useNoticeDetailImageLoadFlow({
   noticeId,
 }: UseNoticeDetailImageLoadFlowOptions) {
   const navigate = useNavigate()
+  const { listAudience } = noticeDetailRouteApi.useSearch()
 
-  const clearImageLoadSearch = () => {
-    void navigate({
-      to: "/notices/$noticeId",
-      params: { noticeId },
-      search: {},
-      replace: true,
-    })
-  }
+  const baseDetailSearch = (extra: Record<string, unknown> = {}) => ({
+    ...(listAudience ? { listAudience } : {}),
+    ...extra,
+  })
 
   const startLoadImages = () => {
     void navigate({
-      to: "/notices/$noticeId",
       params: { noticeId },
-      search: { imageLoadState: "loading" },
       replace: true,
+      search: baseDetailSearch({ imageLoadState: "loading" }),
+      to: "/notices/$noticeId",
+    })
+  }
+
+  const clearImageLoadSearch = () => {
+    void navigate({
+      params: { noticeId },
+      replace: true,
+      search: baseDetailSearch(),
+      to: "/notices/$noticeId",
     })
   }
 
@@ -44,10 +52,10 @@ export function useNoticeDetailImageLoadFlow({
 
     const timer = window.setTimeout(() => {
       void navigate({
-        to: "/notices/$noticeId",
         params: { noticeId },
-        search: { imageLoadState: "success" },
         replace: true,
+        search: baseDetailSearch({ imageLoadState: "success" }),
+        to: "/notices/$noticeId",
       })
     }, LOADING_MOCK_MS)
 
@@ -63,10 +71,10 @@ export function useNoticeDetailImageLoadFlow({
 
     const timer = window.setTimeout(() => {
       void navigate({
-        to: "/notices/$noticeId",
         params: { noticeId },
-        search: {},
         replace: true,
+        search: baseDetailSearch(),
+        to: "/notices/$noticeId",
       })
     }, SUCCESS_AUTO_DISMISS_MS)
 

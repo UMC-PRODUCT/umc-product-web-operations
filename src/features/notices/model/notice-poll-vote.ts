@@ -83,3 +83,38 @@ export function getInitialViewerSelection(
     .filter((option) => option.isSelected)
     .map((option) => option.id)
 }
+
+export function applyPollVoteCancel(input: {
+  options: NoticePollOption[]
+  participantCount: number
+  previousSelection: string[]
+}) {
+  const adjusted = applyPollVote({
+    isFirstVote: false,
+    newSelection: [],
+    options: input.options,
+    participantCount: input.participantCount,
+    previousSelection: input.previousSelection,
+  })
+
+  return {
+    ...adjusted,
+    participantCount: Math.max(0, input.participantCount - 1),
+    viewerSelection: [] as string[],
+  }
+}
+
+/** 다시 투표하기 중 전부 해제한 뒤 페이지를 떠날 때 서버에 취소 요청 */
+export function shouldCancelNoticeVoteOnLeave(input: {
+  draftSelection: string[]
+  hasEverVoted: boolean
+  isRevoting: boolean
+  viewerSelection: string[]
+}): boolean {
+  return (
+    input.isRevoting &&
+    input.hasEverVoted &&
+    input.viewerSelection.length > 0 &&
+    input.draftSelection.length === 0
+  )
+}

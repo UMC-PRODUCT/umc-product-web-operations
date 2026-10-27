@@ -41,8 +41,7 @@ const COLUMNS: NoticeColumn[] = [
     id: "title",
     header: "제목",
     headerClass: "min-w-[110px] flex-1 px-(--umc-spacing-padding-20) text-left",
-    bodyClass:
-      "text-neutral-default-900 min-w-[110px] flex-1 px-(--umc-spacing-padding-20)",
+    bodyClass: "min-w-[110px] flex-1 px-(--umc-spacing-padding-20)",
   },
   {
     id: "target",
@@ -78,7 +77,14 @@ const COLUMNS: NoticeColumn[] = [
   },
 ]
 
+const TITLE_TEXT_CLASS =
+  "text-body-2-regular text-(--color-text-default) truncate"
 const BODY_TEXT_CLASS = "text-body-2-regular text-neutral-medium-600 truncate"
+
+const TABLE_HEADER_ROW_CLASS =
+  "box-border flex h-[40px] items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
+const TABLE_BODY_ROW_CLASS =
+  "box-border flex h-[58px] items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12)"
 
 function Bone({ className }: { className?: string }) {
   return (
@@ -95,10 +101,13 @@ function Bone({ className }: { className?: string }) {
 function TableHeader() {
   return (
     <div
-      className="bg-fill-primary-weaker-hover-pressed text-body-3-medium text-neutral-default-900 border-neutral-disabled flex items-center rounded-t-(--umc-radius-12) border px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
+      className={cn(
+        "bg-fill-primary-weaker-hover-pressed text-body-3-medium text-neutral-default-900",
+        TABLE_HEADER_ROW_CLASS,
+      )}
       role="row"
     >
-      <div className="flex h-7 w-full items-center">
+      <div className="flex h-full w-full items-center">
         {COLUMNS.map((column) => (
           <div
             className={column.headerClass}
@@ -117,27 +126,27 @@ function SkeletonRow({ isLast }: { isLast: boolean }) {
   return (
     <div
       className={cn(
-        "flex items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-16)",
+        TABLE_BODY_ROW_CLASS,
         isLast && "rounded-b-(--umc-radius-12)",
       )}
       role="row"
     >
-      <div className="flex w-[140px] shrink-0 items-center px-(--umc-spacing-padding-24)">
+      <div className="flex h-full w-[140px] shrink-0 items-center px-(--umc-spacing-padding-24)">
         <Bone className="h-6 w-[41px] shrink-0 shadow-(--umc-shadow-drop-neutral-3)" />
       </div>
-      <div className="flex min-w-[110px] flex-1 items-center px-(--umc-spacing-padding-20)">
+      <div className="flex h-full min-w-[110px] flex-1 items-center px-(--umc-spacing-padding-20)">
         <Bone className="h-[23px] min-w-0 flex-1" />
       </div>
-      <div className="flex w-[160px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
+      <div className="flex h-full w-[160px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
         <Bone className="h-[23px] min-w-0 flex-1" />
       </div>
-      <div className="flex w-[120px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
+      <div className="flex h-full w-[120px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
         <Bone className="h-[23px] min-w-0 flex-1" />
       </div>
-      <div className="flex w-[100px] shrink-0 items-center justify-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
+      <div className="flex h-full w-[100px] shrink-0 items-center justify-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
         <Bone className="h-[23px] w-[61px] shrink-0" />
       </div>
-      <div className="flex w-[80px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
+      <div className="flex h-full w-[80px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
         <Bone className="h-[23px] min-w-0 flex-1" />
       </div>
     </div>
@@ -161,7 +170,7 @@ function renderCell(
     case "title":
       return onOpenNotice ? (
         <TextButton
-          className="max-w-full truncate"
+          className={cn("max-w-full", TITLE_TEXT_CLASS)}
           color="neutral"
           onClick={() => {
             onOpenNotice(notice.id)
@@ -173,7 +182,7 @@ function renderCell(
           {notice.title}
         </TextButton>
       ) : (
-        notice.title
+        <span className={TITLE_TEXT_CLASS}>{notice.title}</span>
       )
     case "target":
       return notice.target
@@ -249,7 +258,7 @@ export function NoticeListTable({
           return (
             <div
               className={cn(
-                "flex items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-16)",
+                TABLE_BODY_ROW_CLASS,
                 isLast && "rounded-b-(--umc-radius-12)",
               )}
               key={notice.id}
@@ -258,9 +267,12 @@ export function NoticeListTable({
               {COLUMNS.map((column) => (
                 <div
                   className={cn(
-                    "flex items-center",
+                    "flex h-full items-center",
                     column.bodyClass,
-                    column.id !== "required" && BODY_TEXT_CLASS,
+                    column.id !== "required" &&
+                      column.id !== "title" &&
+                      BODY_TEXT_CLASS,
+                    column.id === "title" && TITLE_TEXT_CLASS,
                   )}
                   key={column.id}
                   role="cell"

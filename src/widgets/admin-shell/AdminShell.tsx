@@ -12,6 +12,7 @@ import { AdminContentsArea } from "./AdminContentsArea"
 import { AdminHeader } from "./AdminHeader"
 import { AdminSideNav } from "./AdminSideNav"
 import { getPageBreadcrumbs, resolveAdminSection } from "./nav"
+import { useActiveGisuSwitch } from "./use-active-gisu-switch"
 
 function getNoticeDetailIdFromPath(pathname: string): string | null {
   const match = pathname.match(/^\/notices\/([^/]+)$/)
@@ -33,6 +34,8 @@ export function AdminShell() {
 function AdminShellFrame() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const selectedGisu = useSelectedGisu()
+  const { changeGeneration, isGenerationSwitcherDisabled } =
+    useActiveGisuSwitch(selectedGisu)
   const section = resolveAdminSection(pathname)
   const { breadcrumbs, title } = getPageBreadcrumbs(pathname, section)
   const isPointsSurface =
@@ -58,7 +61,8 @@ function AdminShellFrame() {
           currentPath={pathname}
           generationOptions={selectedGisu.options}
           generationValue={selectedGisu.selectedValue}
-          onGenerationChange={selectedGisu.setGisuId}
+          isGenerationSwitcherDisabled={isGenerationSwitcherDisabled}
+          onGenerationChange={changeGeneration}
           section={section}
         />
         {isNoticeDetailPage ? (

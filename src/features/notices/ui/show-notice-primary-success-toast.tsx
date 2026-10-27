@@ -2,7 +2,7 @@ import { CheckCircleIcon } from "@umc-product/icons"
 
 import type { ToastApi } from "@umc-product/react"
 
-/** Figma Toast Bottom primary — 등록·삭제 성공·이미지 등록 성공 공통 */
+/** Figma Toast Bottom brand — 등록·삭제 성공·이미지 등록 성공 공통 */
 export function showNoticePrimarySuccessToast(
   toast: ToastApi,
   message: string,
