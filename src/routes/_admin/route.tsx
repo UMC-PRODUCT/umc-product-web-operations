@@ -1,10 +1,6 @@
 import { createFileRoute, isRedirect, redirect } from "@tanstack/react-router"
 
-import {
-  adminSessionQueryOptions,
-  clearAdminSession,
-  isOperator,
-} from "@/features/auth"
+import { adminSessionQueryOptions, clearAdminSession } from "@/features/auth"
 import { getAccessToken, getRefreshToken } from "@/shared/api/access-token"
 import { AdminShell } from "@/widgets/admin-shell/AdminShell"
 
@@ -18,10 +14,6 @@ export const Route = createFileRoute("/_admin")({
       const session = await context.queryClient.ensureQueryData(
         adminSessionQueryOptions(),
       )
-      if (!isOperator(session)) {
-        clearAdminSession(context.queryClient)
-        throw redirect({ to: "/login", search: { forbidden: true } })
-      }
       return { session }
     } catch (error) {
       if (isRedirect(error)) {

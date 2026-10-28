@@ -12,41 +12,18 @@ import {
   adminSessionQueryKey,
   adminSessionQueryOptions,
   clearAdminSession,
-  isOperator,
   loginByEmail,
 } from "@/features/auth"
 import { getAccessToken, getRefreshToken } from "@/shared/api/access-token"
 import { getServerErrorMessage } from "@/shared/api/server-error"
 
-const PERMISSION_DENIED_MESSAGE = "운영진 권한이 없어요"
-
-type LoginSearch = {
-  forbidden?: boolean
-}
-
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): LoginSearch => {
-    const forbidden =
-      search.forbidden === true ||
-      search.forbidden === "true" ||
-      search.forbidden === "1"
-    return forbidden ? { forbidden: true } : {}
-  },
-  beforeLoad: async ({ context, search }) => {
-    if (search.forbidden) {
-      return
-    }
+  beforeLoad: async ({ context }) => {
     if (!getAccessToken() && !getRefreshToken()) {
       return
     }
     try {
-      const session = await context.queryClient.ensureQueryData(
-        adminSessionQueryOptions(),
-      )
-      if (!isOperator(session)) {
-        clearAdminSession(context.queryClient)
-        throw redirect({ to: "/login", search: { forbidden: true } })
-      }
+      await context.queryClient.ensureQueryData(adminSessionQueryOptions())
       throw redirect({ to: "/notices" })
     } catch (error) {
       if (isRedirect(error)) {
@@ -61,15 +38,12 @@ export const Route = createFileRoute("/login")({
 })
 
 function LoginPage() {
-  const { forbidden } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-  const alertMessage =
-    errorMessage ?? (forbidden ? PERMISSION_DENIED_MESSAGE : null)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -80,11 +54,10 @@ function LoginPage() {
       await loginByEmail({ email, password })
       signedIn = true
       queryClient.removeQueries({ queryKey: adminSessionQueryKey })
-      const session = await queryClient.fetchQuery(adminSessionQueryOptions())
-      if (!isOperator(session)) {
-        clearAdminSession(queryClient)
-        setErrorMessage(PERMISSION_DENIED_MESSAGE)
-        return
+      try {
+        await queryClient.fetchQuery(adminSessionQueryOptions())
+      } catch {
+        // 로그인 토큰은 유효하므로 세션 조회 실패해도 입장시킨다.
       }
       await navigate({ to: "/notices" })
     } catch (error) {
@@ -128,9 +101,9 @@ function LoginPage() {
           type="password"
           value={password}
         />
-        {alertMessage ? (
+        {errorMessage ? (
           <p className="text-body-3-regular text-error" role="alert">
-            {alertMessage}
+            {errorMessage}
           </p>
         ) : null}
         <Button disabled={pending} size="md" type="submit">
