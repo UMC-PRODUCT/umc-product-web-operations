@@ -100,13 +100,16 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
           >
             문의사항
           </HeaderActionButton>
-          <div className="relative" ref={rootRef}>
+          <div
+            className="relative flex items-center justify-center"
+            ref={rootRef}
+          >
             <button
               aria-controls={open ? menuId : undefined}
               aria-expanded={open}
               aria-haspopup="menu"
               aria-label="프로필"
-              className="cursor-pointer rounded-full border border-transparent transition-[box-shadow,border-color] duration-200 hover:border-[#b3e5e1] hover:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:border-[#b3e5e1] focus-visible:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:outline-none"
+              className="flex cursor-pointer items-center justify-center rounded-full border border-transparent transition-[box-shadow,border-color] duration-200 hover:border-[#b3e5e1] hover:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:border-[#b3e5e1] focus-visible:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:outline-none"
               onClick={() => {
                 setOpen((current) => !current)
               }}
