@@ -1,6 +1,11 @@
+import { RoleTag } from "@umc-product/react"
+
 import { cn } from "@/shared/lib/cn"
 
+import GisuCheckIcon from "./assets/gisu-check.svg?react"
 import { ProfileAvatar } from "./ProfileAvatar"
+
+import type { RoleTagColor } from "@umc-product/react"
 
 export type ProfileDropdownGisuOption = {
   value: string
@@ -10,96 +15,132 @@ export type ProfileDropdownGisuOption = {
 
 export type ProfileDropdownProps = {
   id?: string
+  /** 실명 */
   name: string
+  /** 닉네임. 없으면 이름만 표시 */
+  nickname?: string | null
   schoolName: string
   roleLabel: string
+  roleColor?: RoleTagColor
   profileImageUrl?: string | null
   gisuOptions: readonly ProfileDropdownGisuOption[]
   selectedGisuId: string | null
   onSelectGisu: (gisuId: string) => void
   onLogout: () => void
+  onAccountSettings?: () => void
   className?: string
 }
 
 /**
- * Figma `프로필 드롭다운` (4958:40801)
- * 하단 액션은 로그아웃만 노출한다.
+ * Figma `Web/Header/Profile Menu` (5641:88469 외 변형)
+ *
+ * 뼈대:
+ * [padding 12/16, radius 10, Neutral Neutral_1]
+ *   column gap-12
+ *     profile: avatar → (닉네임/이름 + 학교) + RoleTag
+ *     gisu: Divider → label → menu list
+ *     Divider
+ *     actions: 계정 설정 / 로그아웃
  */
 export function ProfileDropdown({
   id,
   name,
+  nickname = null,
   schoolName,
   roleLabel,
+  roleColor = "challenger-super-admin",
   profileImageUrl = null,
   gisuOptions,
   selectedGisuId,
   onSelectGisu,
   onLogout,
+  onAccountSettings,
   className,
 }: ProfileDropdownProps) {
+  const trimmedNickname = nickname?.trim() || null
+  const hasGisuOptions = gisuOptions.length > 0
+  const gisuSectionLabel = gisuOptions.length <= 1 ? "기수" : "기수 변경"
+
   return (
     <div
       className={cn(
-        "relative flex w-[202px] items-start rounded-[6px] bg-white px-[12px] pt-[18px] pb-[14px]",
-        "shadow-[0_4px_16px_rgba(64,68,67,0.16)]",
+        "relative flex w-max min-w-[191px] items-start rounded-[10px] bg-white px-3 py-4",
+        "shadow-[0_4px_16px_0_#40444329]",
         className,
       )}
       id={id}
       role="menu"
     >
-      <div className="relative flex w-[178px] shrink-0 flex-col items-start gap-[12px]">
-        <div className="relative flex shrink-0 flex-col items-start gap-[10px]">
-          <div className="relative flex shrink-0 items-center px-[10px]">
+      <div className="relative flex w-full min-w-[167px] shrink-0 flex-col items-start gap-3">
+        <div className="relative flex w-full shrink-0 flex-col items-start gap-2.5">
+          <div className="relative flex shrink-0 items-center px-2.5">
             <ProfileAvatar alt="" imageUrl={profileImageUrl} size={46} />
           </div>
 
-          <div className="relative flex shrink-0 items-start gap-[16px] px-[10px]">
-            <div className="relative flex shrink-0 flex-col items-start gap-[4px] leading-[1.5] whitespace-nowrap">
-              <p className="relative shrink-0 text-[16px] font-semibold tracking-[-0.16px] text-[#161919]">
-                {name}
-              </p>
-              <p className="relative shrink-0 text-[12px] font-medium text-[#6f7878]">
+          <div className="relative flex w-full shrink-0 items-start gap-4 px-2.5">
+            <div className="relative flex min-w-0 shrink-0 flex-col items-start gap-0.5 whitespace-nowrap">
+              <div className="relative flex shrink-0 items-start gap-px text-[16px] leading-[1.45] tracking-[-0.16px] text-[#0f1010]">
+                {trimmedNickname ? (
+                  <>
+                    <span className="font-semibold">{trimmedNickname}</span>
+                    <span className="font-medium">/</span>
+                    <span className="font-semibold">{name}</span>
+                  </>
+                ) : (
+                  <span className="font-semibold">{name}</span>
+                )}
+              </div>
+              <p className="relative shrink-0 text-[12px] leading-[1.3] font-medium text-[#7e7f7f]">
                 {schoolName}
               </p>
             </div>
-            <span className="relative flex shrink-0 items-center justify-center rounded-[6px] bg-[#e1f4f1] px-[8px] py-[3px] shadow-[0_4px_16px_rgba(236,238,238,0.52)]">
-              <span className="relative shrink-0 text-center text-[14px] leading-[1.45] font-medium whitespace-nowrap text-[#0b6b64]">
-                {roleLabel}
-              </span>
-            </span>
+
+            <RoleTag className="shrink-0" color={roleColor} size="md">
+              {roleLabel}
+            </RoleTag>
           </div>
         </div>
 
-        <div className="relative flex w-full shrink-0 flex-col items-start gap-[8px]">
-          <Divider />
-          <div className="relative flex w-full shrink-0 flex-col items-start gap-[2px] px-[10px]">
-            <div className="relative flex shrink-0 items-center justify-center px-[6px] py-[2px]">
-              <span className="relative shrink-0 text-[11px] leading-[1.6] font-medium tracking-[-0.22px] whitespace-nowrap text-[#9ca3a3]">
-                기수 변경
-              </span>
-            </div>
+        {hasGisuOptions ? (
+          <div className="relative flex w-full shrink-0 flex-col items-start gap-2">
+            <Divider />
+            <div className="relative flex w-full shrink-0 flex-col items-start gap-0.5">
+              <div className="relative flex shrink-0 items-center justify-center px-1 py-0.5">
+                <span className="relative shrink-0 text-[12px] leading-[1.5] font-medium tracking-[-0.24px] whitespace-nowrap text-[#adadad]">
+                  {gisuSectionLabel}
+                </span>
+              </div>
 
-            <div className="relative flex w-full shrink-0 flex-col items-start gap-[2px] overflow-hidden rounded-[10px] border border-solid border-[#f6f7f7] bg-white p-[2px]">
-              {gisuOptions.map((option) => (
-                <GisuListItem
-                  key={option.value}
-                  label={option.label}
-                  onSelect={() => {
-                    onSelectGisu(option.value)
-                  }}
-                  selected={option.value === selectedGisuId}
-                  year={option.year}
-                />
-              ))}
+              <div className="relative flex w-full shrink-0 flex-col items-start rounded-[10px] border border-solid border-[#fbfcfc] bg-white p-0.5">
+                {gisuOptions.map((option) => (
+                  <GisuListItem
+                    key={option.value}
+                    label={option.label}
+                    onSelect={() => {
+                      onSelectGisu(option.value)
+                    }}
+                    selected={option.value === selectedGisuId}
+                    year={option.year}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         <Divider />
 
-        <div className="relative flex shrink-0 flex-col items-start px-[6px]">
+        <div className="relative flex shrink-0 flex-col items-start gap-2.5 px-1.5">
           <button
-            className="relative flex shrink-0 cursor-pointer items-center justify-center rounded-[6px] px-[4px] py-[2px] text-[14px] leading-[1.5] font-medium tracking-[-0.14px] whitespace-nowrap text-[#db3939] transition-colors hover:bg-[#fef2f1] active:bg-[#fee2e2]"
+            className="relative flex h-[18px] w-16 shrink-0 cursor-pointer items-center text-[14px] leading-[1.35] font-medium whitespace-nowrap text-[#3f4141] transition-colors hover:text-[#0f1010]"
+            onClick={onAccountSettings}
+            role="menuitem"
+            type="button"
+          >
+            계정 설정
+          </button>
+          <button
+            className="relative flex h-[18px] w-16 shrink-0 cursor-pointer items-center text-[14px] leading-[1.35] font-medium whitespace-nowrap text-[#dc3d3d] transition-colors hover:text-[#a60303]"
             onClick={onLogout}
             role="menuitem"
             type="button"
@@ -116,8 +157,10 @@ function Divider() {
   return (
     <div
       aria-hidden
-      className="relative h-0 w-[177px] shrink-0 border-t border-[#f6f7f7]"
-    />
+      className="relative flex h-[0.5px] w-full shrink-0 flex-col items-start"
+    >
+      <div className="h-full min-h-[0.5px] w-full rounded-full bg-[#f7f8f8]" />
+    </div>
   )
 }
 
@@ -136,26 +179,22 @@ function GisuListItem({
     return (
       <button
         aria-checked
-        className="relative flex h-[26px] w-full shrink-0 flex-col items-start justify-center rounded-[8px] bg-[#f4fbfa] py-[4px] pr-[8px] pl-[6px]"
+        className="relative flex w-full shrink-0 items-center justify-between rounded-lg bg-[#f4fbfa] px-2 py-1 shadow-[inset_1px_1px_2px_0_rgba(211,216,216,0.1)]"
         onClick={onSelect}
         role="menuitemradio"
         type="button"
       >
-        <span className="relative flex w-full shrink-0 items-center justify-between">
-          <span className="relative flex size-[16px] shrink-0 items-center justify-center">
-            <GisuCheckIcon />
-          </span>
-          <span className="relative flex min-w-0 flex-1 items-center justify-between pl-[2px] leading-[0] whitespace-nowrap">
-            <span className="relative shrink-0 text-[12px] leading-[1.5] font-medium text-[#0b6b64]">
-              {label}
-            </span>
-            {year ? (
-              <span className="relative shrink-0 text-right text-[9px] leading-[1.6] font-medium tracking-[-0.18px] text-[#0e8179]">
-                {year}
-              </span>
-            ) : null}
+        <span className="relative flex shrink-0 items-center gap-[3px]">
+          <GisuCheckIcon aria-hidden className="size-4 shrink-0" />
+          <span className="relative shrink-0 text-[14px] leading-[1.5] font-medium whitespace-nowrap text-[#02746c]">
+            {label}
           </span>
         </span>
+        {year ? (
+          <span className="relative shrink-0 text-right text-[10px] leading-[1.5] font-medium whitespace-nowrap text-[#008a80]">
+            {year}
+          </span>
+        ) : null}
       </button>
     )
   }
@@ -163,42 +202,19 @@ function GisuListItem({
   return (
     <button
       aria-checked={false}
-      className="relative flex h-[26px] w-full shrink-0 flex-col items-start justify-center rounded-[8px] bg-white py-[4px] pr-[8px] pl-[12px]"
+      className="relative flex w-full shrink-0 items-center justify-between rounded-lg bg-white py-1 pr-2 pl-3 transition-colors hover:bg-[#fbfcfc] hover:shadow-[inset_-1px_-1px_1px_0_rgba(255,255,255,0.25),inset_1px_1px_2px_0_rgba(211,216,216,0.15)]"
       onClick={onSelect}
       role="menuitemradio"
       type="button"
     >
-      <span className="relative flex w-full shrink-0 items-center justify-between leading-[0] whitespace-nowrap">
-        <span className="relative shrink-0 text-[12px] leading-[1.5] font-normal text-[#656b6b]">
-          {label}
-        </span>
-        {year ? (
-          <span className="relative shrink-0 text-right text-[9px] leading-[1.6] font-medium tracking-[-0.18px] text-[#d3d8d8]">
-            {year}
-          </span>
-        ) : null}
+      <span className="relative shrink-0 text-left text-[14px] leading-[1.5] font-normal whitespace-nowrap text-[#0f1010]">
+        {label}
       </span>
+      {year ? (
+        <span className="relative shrink-0 text-right text-[10px] leading-[1.5] font-medium whitespace-nowrap text-[#adadad]">
+          {year}
+        </span>
+      ) : null}
     </button>
-  )
-}
-
-function GisuCheckIcon() {
-  return (
-    <svg
-      aria-hidden
-      fill="none"
-      height={7.5}
-      viewBox="0 0 9.5 7.5"
-      width={9.5}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M0.75 3.51924L3.55 6.75001L8.75 0.750012"
-        stroke="#0E8179"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-    </svg>
   )
 }

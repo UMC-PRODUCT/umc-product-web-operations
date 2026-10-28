@@ -49,7 +49,7 @@ function SkeletonRow({ isLast }: { isLast: boolean }) {
   return (
     <div
       className={cn(
-        "flex items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-16)",
+        "flex items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12)",
         isLast && "rounded-b-(--umc-radius-12)",
       )}
       role="row"

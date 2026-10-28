@@ -215,7 +215,7 @@ export function MemberTable({
             const isLast = index === rows.length - 1
             return (
               <div
-                className={`flex items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-16) ${isLast ? "rounded-b-(--umc-radius-12)" : ""}`}
+                className={`flex items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12) ${isLast ? "rounded-b-(--umc-radius-12)" : ""}`}
                 key={row.id}
                 role="row"
               >

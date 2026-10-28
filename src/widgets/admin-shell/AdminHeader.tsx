@@ -12,7 +12,9 @@ import { HEADER_NAV_ITEMS } from "./nav"
 import { ProfileAvatar } from "./ProfileAvatar"
 import { ProfileDropdown } from "./ProfileDropdown"
 
-import type { AdminSession } from "@/features/auth"
+import type { RoleTagColor } from "@umc-product/react"
+
+import type { AdminSession, RoleType } from "@/features/auth"
 
 const adminRouteApi = getRouteApi("/_admin")
 
@@ -21,9 +23,28 @@ type AdminHeaderProps = {
   generation: number
 }
 
+const ROLE_TAG_LABELS: Partial<Record<RoleType, string>> = {
+  CENTRAL_PRESIDENT: "중앙 운영진",
+  CENTRAL_VICE_PRESIDENT: "중앙 운영진",
+  CENTRAL_OPERATING_TEAM_MEMBER: "중앙 운영진",
+  CENTRAL_EDUCATION_TEAM_MEMBER: "중앙 운영진",
+  CHAPTER_PRESIDENT: "지부 회장",
+  SCHOOL_PRESIDENT: "교내 회장",
+  SCHOOL_VICE_PRESIDENT: "교내 부회장",
+  SCHOOL_PART_LEADER: "교내 운영진",
+  SCHOOL_ETC_ADMIN: "교내 운영진",
+}
+
 function resolveRoleLabel(session: AdminSession): string {
   if (session.isSuperAdmin) {
     return "슈퍼 어드민"
+  }
+
+  for (const role of session.roleTypes) {
+    const label = ROLE_TAG_LABELS[role]
+    if (label) {
+      return label
+    }
   }
 
   switch (session.scope) {
@@ -36,6 +57,24 @@ function resolveRoleLabel(session: AdminSession): string {
       return "교내 운영진"
     default:
       return "챌린저"
+  }
+}
+
+function resolveRoleColor(session: AdminSession): RoleTagColor {
+  if (session.isSuperAdmin) {
+    return "challenger-super-admin"
+  }
+
+  switch (session.scope) {
+    case "CENTRAL":
+      return "central"
+    case "CHAPTER":
+      return "chapter"
+    case "SCHOOL":
+    case "SCHOOL_PART":
+      return "campus"
+    default:
+      return "challenger-super-admin"
   }
 }
 
@@ -130,8 +169,10 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
                 onLogout={handleLogout}
                 onSelectGisu={(gisuId) => {
                   selectedGisu.setGisuId(gisuId)
+                  setOpen(false)
                 }}
                 profileImageUrl={session.profileImageUrl}
+                roleColor={resolveRoleColor(session)}
                 roleLabel={resolveRoleLabel(session)}
                 schoolName={session.schoolName || "학교 정보 없음"}
                 selectedGisuId={selectedGisu.selectedValue}

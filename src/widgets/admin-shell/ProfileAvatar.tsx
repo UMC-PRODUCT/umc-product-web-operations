@@ -11,8 +11,8 @@ type ProfileAvatarProps = {
 
 /**
  * Figma `profile` — 원형 teal-grey-200 + 실루엣.
- * - 헤더 40: 실루엣 36 / top 7 (`.primitive/Web/Header/Profile`)
- * - 드롭다운 46: 실루엣 40 / top 8 (`profile`)
+ * - 헤더 40: 실루엣 36 / top 7
+ * - 드롭다운 46: 실루엣 41 / top 8 (Web/Header/Profile Menu)
  * 이미지가 있으면 cover로 채운다.
  */
 export function ProfileAvatar({
@@ -22,8 +22,9 @@ export function ProfileAvatar({
   alt = "",
 }: ProfileAvatarProps) {
   const trimmed = imageUrl?.trim() || null
-  const silhouetteSize = size === 40 ? 36 : Math.round((40 / 46) * size)
-  const silhouetteTop = size === 40 ? 7 : Math.round((8 / 46) * size)
+  const silhouetteSize =
+    size === 40 ? 36 : size === 46 ? 41 : Math.round((40 / 46) * size)
+  const silhouetteTop = size === 40 ? 7 : 8
 
   return (
     <div
