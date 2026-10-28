@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { CheckCircleIcon } from "@umc-product/icons"
 import { useToast } from "@umc-product/react"
 import { useMemo, useState } from "react"
@@ -9,6 +9,7 @@ import {
   fetchChallenger,
   grantChallengerPoint,
 } from "../api/challenger-points"
+import { canDeletePointHistory } from "../model/can-delete-point-history"
 import { getHttpStatus, isForbiddenError } from "../model/http-status"
 import {
   challengerPointList,
@@ -55,6 +56,8 @@ type PendingAward = {
   reason: string
 }
 
+const adminRouteApi = getRouteApi("/_admin")
+
 function challengerQueryKey(challengerId: number) {
   return ["challenger", challengerId] as const
 }
@@ -68,16 +71,17 @@ export function MemberDetailPage({
   awardOutcome,
   onRetry,
 }: MemberDetailPageProps) {
+  const { session } = adminRouteApi.useRouteContext()
   const navigate = useNavigate()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const canDelete = canDeletePointHistory(session)
   const [awardOpen, setAwardOpen] = useState(false)
   const [awardTab, setAwardTab] = useState<PointAwardTab>("reward")
   const [deleteTarget, setDeleteTarget] = useState<PointHistoryItem | null>(
     null,
   )
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [requestForbidden, setRequestForbidden] = useState(false)
 
   const challengerQuery = useQuery({
     queryKey:
@@ -105,8 +109,7 @@ export function MemberDetailPage({
     [challengerQuery.data, memberId],
   )
 
-  const forbidden =
-    isForbidden || requestForbidden || isForbiddenError(challengerQuery.error)
+  const forbidden = isForbidden || isForbiddenError(challengerQuery.error)
   const loadFailed =
     isError ||
     (challengerQuery.isError && !isForbiddenError(challengerQuery.error))
@@ -221,16 +224,20 @@ export function MemberDetailPage({
           <PointHistoryEmpty />
         ) : (
           <PointHistoryTable
-            canDelete
+            canDelete={canDelete}
             items={history}
-            onDelete={(historyId) => {
-              const target = history.find((item) => item.id === historyId)
-              if (!target) {
-                return
-              }
-              setDeleteTarget(target)
-              setDeleteOpen(true)
-            }}
+            onDelete={
+              canDelete
+                ? (historyId) => {
+                    const target = history.find((item) => item.id === historyId)
+                    if (!target) {
+                      return
+                    }
+                    setDeleteTarget(target)
+                    setDeleteOpen(true)
+                  }
+                : undefined
+            }
           />
         )}
       </div>
@@ -299,9 +306,6 @@ export function MemberDetailPage({
             color: "brand",
             icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
           })
-        }}
-        onForbidden={() => {
-          setRequestForbidden(true)
         }}
         onOpenChange={(open) => {
           setDeleteOpen(open)

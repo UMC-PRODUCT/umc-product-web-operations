@@ -24,7 +24,6 @@ type DeletePointHistoryDialogProps = {
   onOpenChange: (open: boolean) => void
   onDeleted: (historyId: string) => void | Promise<void>
   onAlreadyDeleted: (historyId: string) => void
-  onForbidden?: () => void
 }
 
 type DialogPhase = "idle" | "loading" | "network_error" | "already_deleted"
@@ -38,7 +37,6 @@ export function DeletePointHistoryDialog({
   onOpenChange,
   onDeleted,
   onAlreadyDeleted,
-  onForbidden,
 }: DeletePointHistoryDialogProps) {
   const titleId = useId()
   const [phase, setPhase] = useState<DialogPhase>("idle")
@@ -85,11 +83,7 @@ export function DeletePointHistoryDialog({
       setPhase("already_deleted")
       return
     }
-    if (outcome === "forbidden") {
-      onForbidden?.()
-      onOpenChange(false)
-      return
-    }
+    // 403·네트워크 실패 모두 Figma PT-M03 V2 — 모달 내 InlineAlert 유지
     setPhase("network_error")
   }
 
