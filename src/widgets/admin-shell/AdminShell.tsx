@@ -1,5 +1,6 @@
-import { Outlet, useRouterState } from "@tanstack/react-router"
+import { getRouteApi, Outlet, useRouterState } from "@tanstack/react-router"
 import { PageHeader } from "@umc-product/react"
+import { useEffect, useMemo, useState } from "react"
 
 import { shouldHideNoticeDetailPageHeader } from "@/features/notices/model/load-notice-detail"
 import { cn } from "@/shared/lib/cn"
@@ -12,7 +13,9 @@ import { AdminContentsArea } from "./AdminContentsArea"
 import { AdminHeader } from "./AdminHeader"
 import { AdminSideNav } from "./AdminSideNav"
 import { getPageBreadcrumbs, resolveAdminSection } from "./nav"
-import { useActiveGisuSwitch } from "./use-active-gisu-switch"
+import { resolveDefaultRoleView, toRoleViewOptions } from "./role-view"
+
+const adminRouteApi = getRouteApi("/_admin")
 
 function getNoticeDetailIdFromPath(pathname: string): string | null {
   const match = pathname.match(/^\/notices\/([^/]+)$/)
@@ -33,9 +36,25 @@ export function AdminShell() {
 
 function AdminShellFrame() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const { session } = adminRouteApi.useRouteContext()
   const selectedGisu = useSelectedGisu()
-  const { changeGeneration, isGenerationSwitcherDisabled } =
-    useActiveGisuSwitch(selectedGisu)
+  const viewOptions = useMemo(() => toRoleViewOptions(session), [session])
+  const [selectedView, setSelectedView] = useState<string | null>(() =>
+    resolveDefaultRoleView(viewOptions),
+  )
+
+  useEffect(() => {
+    setSelectedView((current) => {
+      if (
+        current != null &&
+        viewOptions.some((option) => option.value === current)
+      ) {
+        return current
+      }
+      return resolveDefaultRoleView(viewOptions)
+    })
+  }, [viewOptions])
+
   const section = resolveAdminSection(pathname)
   const { breadcrumbs, title } = getPageBreadcrumbs(pathname, section)
   const isPointsSurface =
@@ -56,14 +75,13 @@ function AdminShellFrame() {
         currentPath={pathname}
         generation={selectedGisu.generation ?? 11}
       />
-      <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="relative z-0 flex min-h-0 min-w-0 flex-1">
         <AdminSideNav
           currentPath={pathname}
-          generationOptions={selectedGisu.options}
-          generationValue={selectedGisu.selectedValue}
-          isGenerationSwitcherDisabled={isGenerationSwitcherDisabled}
-          onGenerationChange={changeGeneration}
+          onViewChange={setSelectedView}
           section={section}
+          viewOptions={viewOptions}
+          viewValue={selectedView}
         />
         {isNoticeDetailPage ? (
           <AdminContentsArea

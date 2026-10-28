@@ -4,33 +4,27 @@ import { ContextSwitcher, SideNavigation } from "@umc-product/react"
 import { useMemo, useState } from "react"
 
 import { canCreateNotice } from "@/features/notices/model/notice-session"
-import { cn } from "@/shared/lib/cn"
 
 import { type AdminSection, getSideNavItems, getSideNavTitle } from "./nav"
 
-const adminRouteApi = getRouteApi("/_admin")
+import type { RoleViewOption } from "./role-view"
 
-type GenerationOption = {
-  value: string
-  label: string
-}
+const adminRouteApi = getRouteApi("/_admin")
 
 type AdminSideNavProps = {
   currentPath: string
   section: AdminSection
-  generationOptions: readonly GenerationOption[]
-  generationValue: string | null
-  isGenerationSwitcherDisabled?: boolean
-  onGenerationChange: (gisuId: string) => void
+  viewOptions: readonly RoleViewOption[]
+  viewValue: string | null
+  onViewChange: (view: string) => void
 }
 
 export function AdminSideNav({
   currentPath,
   section,
-  generationOptions,
-  generationValue,
-  isGenerationSwitcherDisabled = false,
-  onGenerationChange,
+  viewOptions,
+  viewValue,
+  onViewChange,
 }: AdminSideNavProps) {
   const { session } = adminRouteApi.useRouteContext()
   const [switcherMountKey, setSwitcherMountKey] = useState(0)
@@ -58,22 +52,16 @@ export function AdminSideNav({
       currentPath={currentPath}
       items={sideNavItems}
       slot={
-        generationValue == null ? undefined : (
+        viewValue == null || viewOptions.length === 0 ? undefined : (
           <ContextSwitcher
             key={switcherMountKey}
-            className={cn(
-              "w-full",
-              isGenerationSwitcherDisabled && "pointer-events-none opacity-50",
-            )}
+            className="w-full"
             onValueChange={(value) => {
-              if (isGenerationSwitcherDisabled) {
-                return
-              }
               setSwitcherMountKey((key) => key + 1)
-              onGenerationChange(value)
+              onViewChange(value)
             }}
-            options={[...generationOptions]}
-            value={generationValue}
+            options={[...viewOptions]}
+            value={viewValue}
           />
         )
       }
