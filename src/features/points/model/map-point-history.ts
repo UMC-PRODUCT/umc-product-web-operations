@@ -5,6 +5,7 @@ import type {
   ChallengerPointInfo,
   PointType,
 } from "../api/challenger-points"
+import type { SearchMemberItem } from "../api/member-search"
 import type { PointHistoryItem } from "./point-history"
 import type { PointAwardTab } from "./point-types"
 import type { PointsMember } from "./types"
@@ -173,21 +174,34 @@ export function toDetailMember(
     name: info.name,
     nickname: info.nickname,
     schoolName: info.schoolName,
-    currentChallenger: {
-      challengerId: info.challengerId,
-      generation: info.gisu,
-      part: info.part,
-    },
+    challengerId: info.challengerId,
+    generation: info.gisu,
+    part: info.part,
     isAdminInActiveGisu: (info.roles?.length ?? 0) > 0,
-    challengerRecords: [
-      {
-        part: info.part,
-        gisu: info.gisu,
-        chapterName: info.chapterName,
-        schoolName: info.schoolName,
-        challengerRoleType: info.roles?.[0]?.roleType,
-      },
-    ],
+    roleTypes: info.roles
+      ?.map((role) => role.roleType)
+      .filter((role): role is NonNullable<typeof role> => Boolean(role)) as
+      SearchMemberItem["roleTypes"] | undefined,
   })
-  return { ...mapped, id: memberId }
+  return {
+    ...mapped,
+    id: memberId,
+    region: guessRegionFromChapter(info.chapterName),
+    regionLabel: info.chapterName ?? undefined,
+  }
+}
+
+function guessRegionFromChapter(
+  chapterName: string | null | undefined,
+): PointsMember["region"] {
+  if (!chapterName) {
+    return "seoul"
+  }
+  if (chapterName.includes("경기")) {
+    return "gyeonggi"
+  }
+  if (chapterName.includes("충청")) {
+    return "chungcheong"
+  }
+  return "seoul"
 }

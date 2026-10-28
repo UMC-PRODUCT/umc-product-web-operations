@@ -14,26 +14,19 @@ import {
 } from "./map-search-member"
 import { buildSummary } from "./point-history"
 
-describe("member search mapping", () => {
-  it("maps a search item onto the table fields", () => {
+describe("challenger search mapping", () => {
+  it("maps a challenger search row onto the table fields", () => {
     const member = toPointsMember({
       memberId: 12,
       name: "김운영",
       nickname: "하늘",
       schoolName: "중앙대학교",
+      challengerId: 34,
+      generation: 11,
+      part: "WEB",
       isAdminInActiveGisu: true,
-      currentChallenger: {
-        challengerId: 34,
-        generation: 11,
-        part: "WEB_PRODUCT_ENGINEER",
-      },
-      challengerRecords: [
-        {
-          gisu: 11,
-          chapterName: "서울",
-          challengerRoleType: "SCHOOL_PART_LEADER",
-        },
-      ],
+      roleTypes: ["SCHOOL_PART_LEADER"],
+      challengerStatus: "ACTIVE",
     })
 
     expect(member).toMatchObject({
@@ -46,7 +39,6 @@ describe("member search mapping", () => {
       role: "campus",
       roleLabel: "교내 운영진",
       challengerId: 34,
-      regionLabel: "서울",
     })
   })
 
@@ -95,6 +87,7 @@ describe("member search mapping", () => {
     expect(toOrganizationId("7")).toBe(7)
     expect(toOrganizationId(null)).toBeUndefined()
     expect(toMemberSearchPart("design")).toBe("DESIGN")
+    expect(toMemberSearchPart("web-pe")).toBe("WEB")
     expect(toMemberSearchPart(null)).toBeUndefined()
   })
 })

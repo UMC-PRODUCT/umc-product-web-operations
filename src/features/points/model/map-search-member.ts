@@ -2,18 +2,7 @@ import type { RoleTagColor } from "@umc-product/react"
 
 import type { GisuOrganizationItem } from "../api/gisu-organization"
 import type { MemberSearchPart, SearchMemberItem } from "../api/member-search"
-import type {
-  MemberPartFilter,
-  MemberRegion,
-  MemberSchool,
-  PointsMember,
-} from "./types"
-
-const REGION_KEYWORD: Record<MemberRegion, string> = {
-  seoul: "서울",
-  gyeonggi: "경기",
-  chungcheong: "충청",
-}
+import type { MemberPartFilter, MemberSchool, PointsMember } from "./types"
 
 const SCHOOL_KEYWORDS: Record<MemberSchool, readonly string[]> = {
   cau: ["중앙대학교", "중앙대"],
@@ -24,18 +13,16 @@ const SCHOOL_KEYWORDS: Record<MemberSchool, readonly string[]> = {
 const PART_QUERY: Partial<Record<string, MemberSearchPart>> = {
   pm: "PLAN",
   design: "DESIGN",
-  "web-pe": "WEB_PRODUCT_ENGINEER",
-  "mobile-pe": "MOBILE_PRODUCT_ENGINEER",
+  "web-pe": "WEB",
+  "mobile-pe": "ANDROID",
 }
 
 const PART_TAG: Record<MemberSearchPart, MemberPartFilter> = {
   PLAN: "pm",
   DESIGN: "design",
   WEB: "web-pe",
-  WEB_PRODUCT_ENGINEER: "web-pe",
   ANDROID: "mobile-pe",
   IOS: "mobile-pe",
-  MOBILE_PRODUCT_ENGINEER: "mobile-pe",
   NODEJS: "web-pe",
   SPRINGBOOT: "web-pe",
   ADMIN: "pm",
@@ -45,10 +32,8 @@ const PART_LABEL: Record<MemberSearchPart, string> = {
   PLAN: "PM",
   DESIGN: "Design",
   WEB: "Web",
-  WEB_PRODUCT_ENGINEER: "Web PE",
   ANDROID: "Android",
   IOS: "iOS",
-  MOBILE_PRODUCT_ENGINEER: "Mobile PE",
   NODEJS: "Node.js",
   SPRINGBOOT: "Spring",
   ADMIN: "Admin",
@@ -155,27 +140,11 @@ function guessSchool(schoolName: string | null | undefined): MemberSchool {
   return "cau"
 }
 
-function guessRegion(chapterName: string | null | undefined): MemberRegion {
-  if (!chapterName) {
-    return "seoul"
-  }
-  if (chapterName.includes(REGION_KEYWORD.gyeonggi)) {
-    return "gyeonggi"
-  }
-  if (chapterName.includes(REGION_KEYWORD.chungcheong)) {
-    return "chungcheong"
-  }
-  return "seoul"
-}
-
 function mapRole(item: SearchMemberItem): {
   role: RoleTagColor
   roleLabel: string
 } {
-  const roleType = item.isAdminInActiveGisu
-    ? item.challengerRecords?.find((record) => record.challengerRoleType)
-        ?.challengerRoleType
-    : undefined
+  const roleType = item.isAdminInActiveGisu ? item.roleTypes?.[0] : undefined
 
   switch (roleType) {
     case "CHAPTER_PRESIDENT":
@@ -197,26 +166,24 @@ function mapRole(item: SearchMemberItem): {
 }
 
 export function toPointsMember(item: SearchMemberItem): PointsMember {
-  const current = item.currentChallenger
-  const record = item.challengerRecords?.[0]
-  const apiPart = current?.part ?? record?.part ?? null
-  const generationNumber = current?.generation ?? record?.gisu
+  const apiPart = item.part ?? null
+  const generationNumber = item.generation
   const role = mapRole(item)
 
   return {
-    id: String(item.memberId),
+    id: String(item.memberId ?? item.challengerId ?? ""),
     name: item.name ?? "",
     nickname: item.nickname ?? "",
-    school: guessSchool(item.schoolName ?? record?.schoolName),
-    schoolLabel: item.schoolName ?? record?.schoolName ?? "",
-    region: guessRegion(record?.chapterName),
-    regionLabel: record?.chapterName ?? undefined,
+    school: guessSchool(item.schoolName),
+    schoolLabel: item.schoolName ?? "",
+    region: "seoul",
+    regionLabel: undefined,
     part: apiPart ? PART_TAG[apiPart] : "pm",
     partLabel: apiPart ? PART_LABEL[apiPart] : undefined,
     generation: generationNumber != null ? `${generationNumber}기` : "",
     role: role.role,
     roleLabel: role.roleLabel,
     status: "active",
-    challengerId: current?.challengerId ?? null,
+    challengerId: item.challengerId ?? null,
   }
 }

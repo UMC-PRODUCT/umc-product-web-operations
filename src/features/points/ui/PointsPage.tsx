@@ -116,7 +116,7 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
 
   const membersQuery = useQuery({
     queryKey: [
-      "members",
+      "challengers",
       "search",
       {
         keyword,
