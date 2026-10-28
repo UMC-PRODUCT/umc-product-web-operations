@@ -49,7 +49,24 @@ describe("toAdminSession", () => {
     expect(session.roleTypes).toEqual(["SCHOOL_PRESIDENT"])
     expect(session.scope).toBe("SCHOOL")
     expect(session.gisuId).toBe(11)
+    expect(session.profileImageUrl).toBeNull()
     expect(isOperator(session)).toBe(true)
+  })
+
+  it("keeps a trimmed profile image url", () => {
+    const session = toAdminSession({
+      id: 3,
+      name: "하늘",
+      profileImageUrl: " https://cdn.example/avatar.png ",
+      currentGisuMemberInfo: {
+        gisuId: 11,
+        generation: 8,
+        isAdmin: true,
+        roleTypes: ["SCHOOL_PRESIDENT"],
+      },
+    })
+
+    expect(session.profileImageUrl).toBe("https://cdn.example/avatar.png")
   })
 
   it("allows only a super admin when the active gisu is missing", () => {

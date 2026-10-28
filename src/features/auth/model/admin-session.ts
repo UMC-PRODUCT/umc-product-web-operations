@@ -28,6 +28,7 @@ export type MemberSummaryResponse = {
   isSuperAdmin?: boolean
   schoolId?: number | null
   schoolName?: string | null
+  profileImageUrl?: string | null
   currentGisuMemberInfo?: CurrentGisuMemberInfo | null
 }
 
@@ -41,6 +42,7 @@ export type AdminSession = {
   generation: number | null
   schoolId: number | null
   schoolName: string | null
+  profileImageUrl: string | null
   scope: AdminScope | null
 }
 
@@ -124,6 +126,8 @@ export function toAdminSession(member: MemberSummaryResponse): AdminSession {
   const isSuperAdmin = member.isSuperAdmin ?? false
   const isAdmin = info?.isAdmin ?? false
 
+  const profileImageUrl = member.profileImageUrl?.trim() || null
+
   return {
     id: member.id,
     name: member.name ?? "",
@@ -134,6 +138,7 @@ export function toAdminSession(member: MemberSummaryResponse): AdminSession {
     generation: info?.generation ?? null,
     schoolId: member.schoolId ?? null,
     schoolName: member.schoolName ?? null,
+    profileImageUrl,
     scope: widestScope({ isSuperAdmin, roleTypes }),
   }
 }
