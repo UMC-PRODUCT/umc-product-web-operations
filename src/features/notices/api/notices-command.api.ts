@@ -1,6 +1,24 @@
 import { api } from "@/shared/api/client"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
+import type {
+  CreateNoticeRequest,
+  CreateNoticeResponse,
+} from "./notice-api.types"
+
+/** NOTICE-101 — 공지 등록 */
+export async function postNotice(
+  body: CreateNoticeRequest & { gisuId: number },
+): Promise<number> {
+  const { gisuId, ...payload } = body
+  const { data } = await api.post<unknown>("/v1/notices", {
+    ...payload,
+    gisuId,
+  })
+  const result = unwrapApiResult<CreateNoticeResponse | number>(data)
+  return typeof result === "number" ? result : Number(result.id)
+}
+
 export async function deleteNotice(noticeId: number): Promise<void> {
   const { data } = await api.delete<unknown>(`/v1/notices/${noticeId}`)
   if (data !== null && data !== undefined && data !== "") {

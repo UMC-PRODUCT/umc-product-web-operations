@@ -1,3 +1,7 @@
+/** Figma TextBox — 글자 수 카운터 (Label/2-Medium + text-disabled) */
+export const NOTICE_CREATE_LENGTH_COUNTER_CLASS =
+  "text-label-2-medium text-disabled tabular-nums whitespace-nowrap"
+
 /** Figma NT-L01 필터 Select — 110px 고정 (472:9363) */
 export const NOTICE_FILTER_SELECT_WIDTH_CLASS = "w-[110px] shrink-0"
 

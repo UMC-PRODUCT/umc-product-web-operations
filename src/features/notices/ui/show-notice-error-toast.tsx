@@ -10,3 +10,12 @@ export function showNoticeErrorToast(toast: ToastApi, message: string): void {
     icon: <WarningIcon aria-hidden size={24} weight="fill" />,
   })
 }
+
+/** Figma 1288:32869 — Toast Bottom `warning`(neutral dark bg, warning icon) */
+export function showNoticeWarningToast(toast: ToastApi, message: string): void {
+  toast.show({
+    message,
+    color: "warning",
+    icon: <WarningIcon aria-hidden size={24} weight="fill" />,
+  })
+}

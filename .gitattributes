@@ -1,0 +1,11 @@
+# LF in repo; avoids noisy "LF will be replaced by CRLF" on Windows when paired with core.autocrlf=input
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

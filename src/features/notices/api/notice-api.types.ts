@@ -163,3 +163,26 @@ export type GetNoticeReadStatusParams = {
   cursorId?: number | null
   organizationIds?: number[]
 }
+
+export type CreateNoticeLinkRequest = {
+  displayOrder: number
+  url: string
+}
+
+/** NOTICE-101 — 공지 등록 요청 본문 */
+export type CreateNoticeRequest = {
+  title: string
+  content: string
+  mustRead: boolean
+  shouldSendNotification: boolean
+  targetNoticeTab: NoticeTab
+  targetGisuId?: number | null
+  targetChapterId?: number | null
+  targetSchoolId?: number | null
+  targetParts?: NoticePart[]
+  links?: CreateNoticeLinkRequest[]
+}
+
+export type CreateNoticeResponse = {
+  id: number
+}

@@ -1,28 +1,27 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, getRouteApi } from "@tanstack/react-router"
 
 import { NoticeCreatePage } from "@/features/notices"
+import { canCreateNotice } from "@/features/notices/model/notice-session"
+import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
-import type { CreateNoticeOutcome } from "@/features/notices/model/mock-create-notice"
-
-type NoticeCreateSearch = {
-  /** TODO: API 연동 시 제거. 등록 결과 시뮬레이션용 */
-  createOutcome?: CreateNoticeOutcome
-}
+import { toNoticeOperatorSession } from "./-notice-session"
 
 export const Route = createFileRoute("/_admin/notices/new")({
-  validateSearch: (search: Record<string, unknown>): NoticeCreateSearch => ({
-    createOutcome:
-      search.createOutcome === "network_error" ||
-      search.createOutcome === "forbidden" ||
-      search.createOutcome === "success"
-        ? search.createOutcome
-        : undefined,
-  }),
   component: NoticeCreateRoute,
 })
 
-function NoticeCreateRoute() {
-  const { createOutcome } = Route.useSearch()
+const adminRouteApi = getRouteApi("/_admin")
 
-  return <NoticeCreatePage createOutcome={createOutcome} />
+function NoticeCreateRoute() {
+  const { session } = adminRouteApi.useRouteContext()
+  const { gisuId: selectedGisuId } = useSelectedGisu()
+  const noticeSession = toNoticeOperatorSession(session, {
+    gisuId: selectedGisuId,
+  })
+
+  if (!canCreateNotice(noticeSession)) {
+    return null
+  }
+
+  return <NoticeCreatePage session={noticeSession} />
 }

@@ -71,7 +71,7 @@ export function getPageBreadcrumbs(
           title: "공지작성",
           breadcrumbs: [
             { label: "공지", href: "/notices" },
-            { label: "공지작성" },
+            { label: "공지 작성" },
           ],
         }
       }

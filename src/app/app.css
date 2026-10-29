@@ -14,3 +14,11 @@ body {
   background: var(--umc-color-teal-grey-50, #fbfcfc);
   color: var(--umc-color-teal-grey-900, #0f1010);
 }
+
+/* Dialog 뒤 딤은 Dimmed 컴포넌트로 깔고, 기본 backdrop은 클릭·포커스만 담당 */
+@layer components {
+  .umc-dialog__backdrop {
+    --umc-dialog-backdrop-bg: transparent;
+    background-color: transparent !important;
+  }
+}

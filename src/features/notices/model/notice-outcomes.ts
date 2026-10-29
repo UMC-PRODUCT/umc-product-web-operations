@@ -12,6 +12,18 @@ export const NOTICE_DELETE_FAILURE_TOAST_MESSAGE =
   "공지를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요"
 export const NOTICE_IMAGE_REGISTER_TOAST_MESSAGE = "이미지를 등록했어요"
 
+/** Figma 1288:32869 — 공지 작성 forbidden Toast Bottom */
+export const NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE =
+  "공지를 쓸 수 없는 대상이에요. 작성했던 내용은 그대로 남아있어요"
+
+/** Figma 888:30671 — 게시 확인 Dialog slot error Toast */
+export const NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE =
+  "공지를 게시하지 못했어요, 다시 시도해 주세요"
+
+/** Figma 1288:32927 — 이미지 업로드 실패 Toast Bottom */
+export const NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE =
+  "이미지를 올리지 못했어요. 파일 형식이나 용량을 확인해 주세요"
+
 /** Strict Mode·effect 재실행 시 등록 성공 Toast 중복 방지 (TODO: API 연동 시 제거) */
 let publishSuccessToastConsumed = false
 
