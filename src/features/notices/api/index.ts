@@ -10,7 +10,19 @@ export type {
   PageResponseGetNoticeSummaryResponse,
   SearchNoticesParams,
 } from "./notice-api.types"
-export { deleteNotice, deleteNoticeVote } from "./notices-command.api"
+export {
+  uploadNoticeImageFile,
+  uploadNoticeImageFiles,
+} from "./notice-file-upload.api"
+export {
+  addNoticeImages,
+  deleteNotice,
+  deleteNoticeVote,
+  patchNotice,
+  postNotice,
+  replaceNoticeImages,
+  replaceNoticeLinks,
+} from "./notices-command.api"
 export {
   getNoticeDetail,
   getNoticeReadStatics,

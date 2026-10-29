@@ -21,6 +21,11 @@ import {
   cancelNoticeVoteResponse,
   saveNoticeVoteResponse,
 } from "../model/submit-notice-vote"
+import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
+import {
+  captureNoticeDialogFocus,
+  restoreNoticeDialogFocus,
+} from "./notice-dialog-focus"
 import { showNoticeErrorToast } from "./show-notice-error-toast"
 
 import type { NoticePoll, NoticePollOption } from "../model/notice-detail.types"
@@ -182,6 +187,7 @@ export function NoticeDetailVoteCard({
   const [draftSelection, setDraftSelection] =
     useState<string[]>(initialSelection)
   const [endDialogOpen, setEndDialogOpen] = useState(false)
+  const endDialogFocusStore = useRef<HTMLElement | null>(null)
   const [isEndingPoll, setIsEndingPoll] = useState(false)
   const [isSubmittingVote, setIsSubmittingVote] = useState(false)
 
@@ -308,6 +314,7 @@ export function NoticeDetailVoteCard({
       await deleteNoticeVoteByNoticeId(parsedNoticeId)
       setStatus("closed")
       setIsRevoting(false)
+      endDialogFocusStore.current = null
       setEndDialogOpen(false)
     } catch (error) {
       showNoticeErrorToast(
@@ -425,6 +432,7 @@ export function NoticeDetailVoteCard({
               <Button
                 color="white"
                 onClick={() => {
+                  captureNoticeDialogFocus(endDialogFocusStore)
                   setEndDialogOpen(true)
                 }}
                 size="xs"
@@ -444,6 +452,7 @@ export function NoticeDetailVoteCard({
         </p>
       </article>
 
+      {endDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         cancelLabel="취소"
         color="brand"
@@ -453,8 +462,12 @@ export function NoticeDetailVoteCard({
           void handleEndPoll()
         }}
         onOpenChange={(open) => {
-          if (!isEndingPoll) {
-            setEndDialogOpen(open)
+          if (isEndingPoll) {
+            return
+          }
+          setEndDialogOpen(open)
+          if (!open) {
+            restoreNoticeDialogFocus(endDialogFocusStore)
           }
         }}
         open={endDialogOpen}

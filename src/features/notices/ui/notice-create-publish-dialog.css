@@ -1,0 +1,19 @@
+@layer components {
+  /* Figma 1288:32763 — 게시 API 호출 중 액션 버튼 비활성 (문구 유지) */
+  .notice-create-publish-dialog--submitting .umc-dialog__actions {
+    pointer-events: none;
+  }
+
+  .notice-create-publish-dialog--submitting
+    .umc-dialog__actions
+    .umc-button[data-color="brand"] {
+    --umc-button-bg: var(--umc-color-teal-200, #b3e5e1);
+    --umc-button-fg: var(--umc-color-teal-50, #f4fbfa);
+  }
+
+  .notice-create-publish-dialog--submitting
+    .umc-dialog__actions
+    .umc-button[data-color="neutral"] {
+    opacity: 0.5;
+  }
+}

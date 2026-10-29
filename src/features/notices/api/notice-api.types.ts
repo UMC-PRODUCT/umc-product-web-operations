@@ -163,3 +163,43 @@ export type GetNoticeReadStatusParams = {
   cursorId?: number | null
   organizationIds?: number[]
 }
+
+/** NOTICE-203 — 공지 수정 요청 본문 */
+export type UpdateNoticeRequest = {
+  title: string
+  content: string
+  mustRead?: boolean
+}
+
+/** NOTICE-201 — 공지 등록 요청 본문 */
+export type CreateNoticeRequest = {
+  title: string
+  content: string
+  mustRead?: boolean
+  shouldNotify: boolean
+  targetInfo: NoticeTargetInfo
+}
+
+/** NOTICE-201 */
+export type CreateNoticeResponse = {
+  noticeId: number
+}
+
+/** NOTICE-105 */
+export type ReplaceNoticeLinksRequest = {
+  links: string[]
+}
+
+/** NOTICE-104 */
+export type ReplaceNoticeImagesRequest = {
+  imageIds: string[]
+}
+
+/** NOTICE-101 */
+export type AddNoticeImagesRequest = {
+  imageIds: string[]
+}
+
+export type AddNoticeImagesResponse = {
+  imageIds: number[]
+}

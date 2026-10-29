@@ -1,5 +1,5 @@
 import { getRouteApi, useNavigate } from "@tanstack/react-router"
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
 
 import type { NoticeImageLoadState } from "../model/notice-detail.types"
 
@@ -22,10 +22,13 @@ export function useNoticeDetailImageLoadFlow({
   const navigate = useNavigate()
   const { listAudience } = noticeDetailRouteApi.useSearch()
 
-  const baseDetailSearch = (extra: Record<string, unknown> = {}) => ({
-    ...(listAudience ? { listAudience } : {}),
-    ...extra,
-  })
+  const baseDetailSearch = useCallback(
+    (extra: Record<string, unknown> = {}) => ({
+      ...(listAudience ? { listAudience } : {}),
+      ...extra,
+    }),
+    [listAudience],
+  )
 
   const startLoadImages = () => {
     void navigate({
@@ -62,7 +65,7 @@ export function useNoticeDetailImageLoadFlow({
     return () => {
       window.clearTimeout(timer)
     }
-  }, [imageLoadPause, imageLoadState, navigate, noticeId])
+  }, [baseDetailSearch, imageLoadPause, imageLoadState, navigate, noticeId])
 
   useEffect(() => {
     if (imageLoadState !== "success") {
@@ -81,7 +84,7 @@ export function useNoticeDetailImageLoadFlow({
     return () => {
       window.clearTimeout(timer)
     }
-  }, [imageLoadState, noticeId, navigate])
+  }, [baseDetailSearch, imageLoadState, noticeId, navigate])
 
   return {
     clearImageLoadSearch,

@@ -66,8 +66,14 @@ function AdminShellFrame() {
   const hideNoticeDetailPageHeader =
     noticeDetailId !== null && shouldHideNoticeDetailPageHeader(noticeDetailId)
   const isNoticesListPage = pathname === "/notices"
+  const isNoticeCreatePage = pathname === "/notices/new"
+  const isNoticeEditPage = /^\/notices\/[^/]+\/edit$/.test(pathname)
+  const isNoticeComposePage = isNoticeCreatePage || isNoticeEditPage
   const usesFeaturePageHeader =
-    isPointsSurface || isNoticesListPage || isNoticeDetailPage
+    isPointsSurface ||
+    isNoticesListPage ||
+    isNoticeComposePage ||
+    isNoticeDetailPage
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -93,7 +99,12 @@ function AdminShellFrame() {
             <Outlet />
           </AdminContentsArea>
         ) : (
-          <div className="flex min-w-0 flex-1 flex-col overflow-auto px-8 pt-12 pb-20">
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 flex-col overflow-auto px-8 pt-12 pb-20",
+              isNoticeComposePage && "bg-background-neutral-weak",
+            )}
+          >
             <PageHeader
               breadcrumbs={breadcrumbs}
               className={cn(
@@ -103,9 +114,10 @@ function AdminShellFrame() {
               title={<span className="sr-only">{title}</span>}
             />
             <main
-              className={
-                usesFeaturePageHeader ? "mt-[26px] flex-1" : "mt-6 flex-1"
-              }
+              className={cn(
+                usesFeaturePageHeader ? "mt-[26px] flex-1" : "mt-6 flex-1",
+                isNoticeComposePage && "flex min-h-0 flex-col",
+              )}
             >
               <Outlet />
             </main>

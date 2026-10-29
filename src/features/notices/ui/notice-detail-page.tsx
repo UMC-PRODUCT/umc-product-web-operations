@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Button, Dialog, Tag, useToast } from "@umc-product/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { getServerErrorMessage } from "@/shared/api/server-error"
 
@@ -17,6 +17,11 @@ import { NoticeDetailLinkCard } from "./notice-detail-link-card"
 import { NoticeDetailLoadingContents } from "./notice-detail-loading-contents"
 import { NoticeDetailMetaRow } from "./notice-detail-meta-row"
 import { NoticeDetailVoteCard } from "./notice-detail-vote-card"
+import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
+import {
+  captureNoticeDialogFocus,
+  restoreNoticeDialogFocus,
+} from "./notice-dialog-focus"
 import { showNoticeErrorToast } from "./show-notice-error-toast"
 import { useNoticeDetailImageLoadFlow } from "./use-notice-detail-image-load-flow"
 import { useNoticeDetailImageRegisterSuccessToast } from "./use-notice-detail-image-register-success-toast"
@@ -85,6 +90,7 @@ export function NoticeDetailPage({
   const isImageLoading = imageLoadState === "loading"
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const deleteDialogFocusStore = useRef<HTMLElement | null>(null)
 
   return (
     <div className="flex w-full flex-col gap-(--umc-spacing-gap-32)">
@@ -145,6 +151,13 @@ export function NoticeDetailPage({
                     variant="fill"
                     disabled={false}
                     isLoading={false}
+                    onClick={() => {
+                      void navigate({
+                        params: { noticeId: notice.id },
+                        search: { listAudience: returnAudience },
+                        to: "/notices/$noticeId/edit",
+                      })
+                    }}
                   >
                     수정
                   </Button>
@@ -155,7 +168,10 @@ export function NoticeDetailPage({
                     variant="fill"
                     disabled={false}
                     isLoading={false}
-                    onClick={() => setIsDeleteDialogOpen(true)}
+                    onClick={() => {
+                      captureNoticeDialogFocus(deleteDialogFocusStore)
+                      setIsDeleteDialogOpen(true)
+                    }}
                   >
                     삭제
                   </Button>
@@ -199,11 +215,20 @@ export function NoticeDetailPage({
       >
         목록으로
       </Button>
+      {isDeleteDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         title="이 공지를 삭제할까요?"
         description="삭제하면 챌린저 앱에서도 사라지고 되돌릴 수 없어요"
         open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
+        onOpenChange={(open) => {
+          if (isDeleting && !open) {
+            return
+          }
+          setIsDeleteDialogOpen(open)
+          if (!open) {
+            restoreNoticeDialogFocus(deleteDialogFocusStore)
+          }
+        }}
         confirmLabel="삭제하기"
         cancelLabel="돌아가기"
         color="brand"
@@ -220,6 +245,7 @@ export function NoticeDetailPage({
             }
 
             await deleteNoticeById(Number(notice.id))
+            deleteDialogFocusStore.current = null
             setIsDeleteDialogOpen(false)
             void navigate({
               search: buildNoticeListReturnSearch({

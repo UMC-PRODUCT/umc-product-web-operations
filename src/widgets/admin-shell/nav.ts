@@ -71,7 +71,17 @@ export function getPageBreadcrumbs(
           title: "공지작성",
           breadcrumbs: [
             { label: "공지", href: "/notices" },
-            { label: "공지작성" },
+            { label: "공지 작성" },
+          ],
+        }
+      }
+      if (/^\/notices\/[^/]+\/edit$/.test(pathname)) {
+        return {
+          title: "공지 수정",
+          breadcrumbs: [
+            { label: "공지", href: "/notices" },
+            { label: "공지 목록", href: "/notices" },
+            { label: "공지 수정" },
           ],
         }
       }

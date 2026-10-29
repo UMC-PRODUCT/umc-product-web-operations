@@ -55,7 +55,7 @@ export function OperatorGisuProvider({ children }: { children: ReactNode }) {
   const [selectedGisuId, setSelectedGisuIdState] = useState<number | null>(null)
   const [isSwitching, setIsSwitching] = useState(false)
 
-  const gisus = gisuListQuery.data ?? []
+  const gisus = useMemo(() => gisuListQuery.data ?? [], [gisuListQuery.data])
   const sessionGisuId = sessionQuery.data?.gisuId ?? null
 
   useEffect(() => {

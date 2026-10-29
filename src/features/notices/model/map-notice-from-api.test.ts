@@ -4,32 +4,40 @@ import {
   mapNoticeDetailResponse,
   mapNoticeSummaryToNotice,
 } from "./map-notice-from-api"
+import { buildGisuGenerationLookup } from "./notice-gisu-generation"
 
 describe("mapNoticeSummaryToNotice", () => {
   it("maps summary fields for the list table", () => {
-    const notice = mapNoticeSummaryToNotice({
-      id: 12,
-      title: "공지 제목",
-      content: "본문",
-      createdAt: "2026-10-20T05:00:00.000Z",
-      mustRead: true,
-      viewCount: 42,
-      hasImages: true,
-      hasLinks: false,
-      hasVote: true,
-      authorMemberId: 7,
-      author: {
-        memberId: 7,
-        name: "홍길동",
-        roleName: "중앙 운영국",
-        organizationName: "중앙",
+    const notice = mapNoticeSummaryToNotice(
+      {
+        id: 12,
+        title: "공지 제목",
+        content: "본문",
+        createdAt: "2026-10-20T05:00:00.000Z",
+        mustRead: true,
+        viewCount: 42,
+        hasImages: true,
+        hasLinks: false,
+        hasVote: true,
+        authorMemberId: 7,
+        author: {
+          memberId: 7,
+          name: "홍길동",
+          roleName: "중앙 운영국",
+          organizationName: "중앙",
+        },
+        targetInfo: {
+          targetNoticeTab: "CHALLENGER",
+          targetGisuId: 6,
+          targetParts: ["WEB", "ANDROID"],
+        },
       },
-      targetInfo: {
-        targetNoticeTab: "CHALLENGER",
-        targetGisuId: 11,
-        targetParts: ["WEB", "ANDROID"],
+      {
+        gisuGenerationById: buildGisuGenerationLookup([
+          { gisuId: 6, generation: 11 },
+        ]),
       },
-    })
+    )
 
     expect(notice).toMatchObject({
       id: "12",
@@ -42,7 +50,41 @@ describe("mapNoticeSummaryToNotice", () => {
       hasImages: true,
       hasVote: true,
     })
+    expect(notice.target).toContain("11기")
     expect(notice.target).toContain("Web")
+  })
+
+  it("maps school and chapter ids to organization names", () => {
+    const notice = mapNoticeSummaryToNotice(
+      {
+        id: 1,
+        title: "t",
+        content: "c",
+        createdAt: "2026-10-20T05:00:00.000Z",
+        mustRead: false,
+        viewCount: 1,
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        targetInfo: {
+          targetNoticeTab: "CHALLENGER",
+          targetGisuId: 6,
+          targetSchoolId: 19,
+          targetChapterId: 27,
+        },
+      },
+      {
+        gisuGenerationById: buildGisuGenerationLookup([
+          { gisuId: 6, generation: 11 },
+        ]),
+        schoolNameById: new Map([[19, "숙명여자대학교"]]),
+        chapterNameById: new Map([[27, "Neon"]]),
+      },
+    )
+
+    expect(notice.target).toContain("숙명여자대학교")
+    expect(notice.target).toContain("Neon")
+    expect(notice.target).not.toContain("학교 #")
   })
 })
 
