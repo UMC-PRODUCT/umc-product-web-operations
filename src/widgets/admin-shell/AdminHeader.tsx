@@ -1,11 +1,12 @@
 import "./admin-header.css"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { getRouteApi, useNavigate } from "@tanstack/react-router"
+import { getRouteApi } from "@tanstack/react-router"
 import { Header, HeaderActionButton, HeaderHomeLink } from "@umc-product/react"
 import { useEffect, useId, useRef, useState } from "react"
 
-import { clearAdminSession } from "@/features/auth"
+import { adminSessionQueryKey } from "@/features/auth"
+import { getSsoClient } from "@/shared/auth/sso-client"
 import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { HEADER_NAV_ITEMS } from "./nav"
@@ -82,15 +83,17 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
   const { session } = adminRouteApi.useRouteContext()
   const selectedGisu = useSelectedGisu()
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const menuId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = () => {
     setOpen(false)
-    clearAdminSession(queryClient)
-    void navigate({ to: "/login" })
+    void getSsoClient()
+      .logout({ global: true })
+      .finally(() => {
+        queryClient.removeQueries({ queryKey: adminSessionQueryKey })
+      })
   }
 
   useEffect(() => {
