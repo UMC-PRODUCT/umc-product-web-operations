@@ -47,11 +47,7 @@ export function MemberTable({
         id: "member",
         header: "구성원",
         cell: ({ row }) => (
-          <button
-            className="flex min-w-0 cursor-pointer items-center gap-(--umc-spacing-gap-10) text-left"
-            onClick={() => onAssignPoints(row.original.id)}
-            type="button"
-          >
+          <div className="flex min-w-0 items-center gap-(--umc-spacing-gap-10)">
             <span
               aria-hidden
               className="bg-fill-neutral-weak-75 text-icon-neutral-weak-400 flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -61,7 +57,7 @@ export function MemberTable({
             <span className="text-body-2-regular text-neutral-default-900 truncate">
               {row.original.name} / {row.original.nickname}
             </span>
-          </button>
+          </div>
         ),
         meta: {
           headerClass: "w-[240px] shrink-0 px-(--umc-spacing-padding-24)",
@@ -142,7 +138,7 @@ export function MemberTable({
             }
             type="button"
           >
-            상벌점 부여하기
+            상벌점 상세보기
           </TextButton>
         ),
         meta: {
