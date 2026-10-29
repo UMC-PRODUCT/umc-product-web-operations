@@ -1,16 +1,21 @@
 import { queryOptions } from "@tanstack/react-query"
 
+import { fetchGisuList } from "@/shared/api/gisu-list"
+
 import { listNotices, searchNotices } from "../api/notices-query.api"
 import {
   buildNoticeListRequest,
   normalizeNoticeListFiltersForApi,
   NOTICE_LIST_PAGE_SIZE,
 } from "./build-notice-list-params"
+import { buildNoticeOrganizationNameLookup } from "./map-gisu-organization"
 import { mapNoticeSummaryToNotice } from "./map-notice-from-api"
 import {
   isNoticeForbiddenError,
   isNoticeNetworkError,
 } from "./notice-api-error"
+import { buildGisuGenerationLookup } from "./notice-gisu-generation"
+import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
 
 import type { QueryClient } from "@tanstack/react-query"
 
@@ -70,10 +75,23 @@ export async function fetchNoticeListPage(input: {
   }
 
   try {
-    const page =
+    const [page, gisuList, organization] = await Promise.all([
       request.kind === "search"
-        ? await searchNotices(request.params)
-        : await listNotices(request.params)
+        ? searchNotices(request.params)
+        : listNotices(request.params),
+      fetchGisuList().catch(
+        () => [] as Awaited<ReturnType<typeof fetchGisuList>>,
+      ),
+      fetchNoticeListOrganizationOptions(input.session.gisuId),
+    ])
+    const gisuGenerationById = buildGisuGenerationLookup(gisuList)
+    const { chapterNameById, schoolNameById } =
+      buildNoticeOrganizationNameLookup(organization)
+    const targetDisplayContext = {
+      chapterNameById,
+      gisuGenerationById,
+      schoolNameById,
+    }
 
     const totalElements = Number(page.totalElements) || 0
     const totalPages =
@@ -82,7 +100,9 @@ export async function fetchNoticeListPage(input: {
 
     return {
       kind: "success",
-      notices: page.content.map(mapNoticeSummaryToNotice),
+      notices: page.content.map((summary) =>
+        mapNoticeSummaryToNotice(summary, targetDisplayContext),
+      ),
       totalElements,
       totalPages,
     }

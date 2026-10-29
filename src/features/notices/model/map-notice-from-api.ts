@@ -3,6 +3,10 @@ import {
   formatNoticeListDate,
   formatNoticeVotePeriod,
 } from "./format-notice-date"
+import {
+  formatGisuGenerationLabel,
+  type GisuGenerationLookup,
+} from "./notice-gisu-generation"
 import { NOTICE_PART_LABELS } from "./notice-part-options"
 
 import type {
@@ -13,6 +17,21 @@ import type {
 } from "../api/notice-api.types"
 import type { NoticeDetail, NoticePoll } from "./notice-detail.types"
 import type { Notice, NoticeAudience } from "./types"
+
+export type NoticeTargetDisplayContext = {
+  chapterNameById?: ReadonlyMap<number, string> | null
+  gisuGenerationById?: GisuGenerationLookup | null
+  schoolNameById?: ReadonlyMap<number, string> | null
+}
+
+function formatScopedOrganizationLabel(
+  id: number,
+  lookup: ReadonlyMap<number, string> | null | undefined,
+  fallbackLabel: string,
+): string {
+  const name = lookup?.get(id)?.trim()
+  return name ? name : `${fallbackLabel} #${id}`
+}
 
 function formatAuthorLabel(
   author: NoticeAuthorInfo | null | undefined,
@@ -49,8 +68,9 @@ function formatAuthorDisplay(
   return `${baseName} · ${roleParts.join(" · ")}`
 }
 
-function formatTargetDisplay(
+export function formatTargetDisplay(
   targetInfo: NoticeTargetInfo | null | undefined,
+  context?: NoticeTargetDisplayContext,
 ): string {
   if (!targetInfo) {
     return "UMC 전체"
@@ -59,17 +79,40 @@ function formatTargetDisplay(
   const parts: string[] = []
 
   if (targetInfo.targetGisuId != null) {
-    parts.push(`${targetInfo.targetGisuId}기`)
+    const gisuId = Number(targetInfo.targetGisuId)
+    parts.push(
+      Number.isFinite(gisuId)
+        ? formatGisuGenerationLabel(gisuId, context?.gisuGenerationById)
+        : String(targetInfo.targetGisuId),
+    )
   } else {
-    parts.push("UMC 전체")
+    parts.push("전체 기수")
   }
 
   if (targetInfo.targetSchoolId != null) {
-    parts.push(`학교 #${targetInfo.targetSchoolId}`)
+    const schoolId = Number(targetInfo.targetSchoolId)
+    parts.push(
+      Number.isFinite(schoolId)
+        ? formatScopedOrganizationLabel(
+            schoolId,
+            context?.schoolNameById,
+            "학교",
+          )
+        : String(targetInfo.targetSchoolId),
+    )
   }
 
   if (targetInfo.targetChapterId != null) {
-    parts.push(`지부 #${targetInfo.targetChapterId}`)
+    const chapterId = Number(targetInfo.targetChapterId)
+    parts.push(
+      Number.isFinite(chapterId)
+        ? formatScopedOrganizationLabel(
+            chapterId,
+            context?.chapterNameById,
+            "지부",
+          )
+        : String(targetInfo.targetChapterId),
+    )
   }
 
   const targetParts = targetInfo.targetParts ?? []
@@ -131,6 +174,7 @@ function linkTitleFromUrl(url: string): string {
 
 export function mapNoticeSummaryToNotice(
   summary: GetNoticeSummaryResponse,
+  context?: NoticeTargetDisplayContext,
 ): Notice {
   const authorMemberId = summary.authorMemberId ?? summary.author?.memberId
 
@@ -142,7 +186,7 @@ export function mapNoticeSummaryToNotice(
     authorMemberId,
     createdAt: formatNoticeListDate(summary.createdAt),
     required: summary.mustRead,
-    target: formatTargetDisplay(summary.targetInfo),
+    target: formatTargetDisplay(summary.targetInfo, context),
     title: summary.title,
     views: Number(summary.viewCount) || 0,
     hasImages: summary.hasImages,
@@ -153,21 +197,25 @@ export function mapNoticeSummaryToNotice(
 
 export function mapNoticeDetailResponse(
   detail: GetNoticeDetailResponse,
+  context?: NoticeTargetDisplayContext,
 ): NoticeDetail {
-  const summary = mapNoticeSummaryToNotice({
-    author: detail.author,
-    authorMemberId: detail.authorMemberId,
-    authorName: detail.author?.name,
-    createdAt: detail.createdAt,
-    hasImages: detail.images.length > 0,
-    hasLinks: detail.links.length > 0,
-    hasVote: detail.vote != null,
-    id: detail.id,
-    mustRead: detail.mustRead,
-    targetInfo: detail.targetInfo,
-    title: detail.title,
-    viewCount: detail.viewCount,
-  })
+  const summary = mapNoticeSummaryToNotice(
+    {
+      author: detail.author,
+      authorMemberId: detail.authorMemberId,
+      authorName: detail.author?.name,
+      createdAt: detail.createdAt,
+      hasImages: detail.images.length > 0,
+      hasLinks: detail.links.length > 0,
+      hasVote: detail.vote != null,
+      id: detail.id,
+      mustRead: detail.mustRead,
+      targetInfo: detail.targetInfo,
+      title: detail.title,
+      viewCount: detail.viewCount,
+    },
+    context,
+  )
 
   const sortedImages = [...detail.images].sort(
     (left, right) => left.displayOrder - right.displayOrder,
@@ -198,7 +246,7 @@ export function mapNoticeDetailResponse(
         }
       : undefined,
     poll: detail.vote ? mapVotePoll(detail.vote) : undefined,
-    targetDisplay: formatTargetDisplay(detail.targetInfo),
+    targetDisplay: formatTargetDisplay(detail.targetInfo, context),
     updatedAt: formatNoticeDetailDateTime(detail.updatedAt),
   }
 }

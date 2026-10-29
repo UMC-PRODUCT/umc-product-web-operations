@@ -10,6 +10,8 @@ import {
 
 import { cn } from "@/shared/lib/cn"
 
+import type { NoticeCreateExistingImage } from "../../model/notice-create-form"
+
 const MAX_NOTICE_IMAGES = 10
 const IMAGE_TILE_SIZE_PX = 160
 const IMAGE_TILE_GAP_PX = 12
@@ -41,10 +43,13 @@ const IMAGE_ADD_DESCRIPTION = (
 )
 
 type NoticeCreateImageGalleryProps = {
+  existingImages?: NoticeCreateExistingImage[]
   imageFiles: File[]
   onAdd: (file: File) => void
   onRemove: (index: number) => void
+  onRemoveExisting?: (index: number) => void
   onUploadReject?: () => void
+  showEmptyPlaceholders?: boolean
 }
 
 function estimateGalleryScrollWidth(tileCount: number) {
@@ -66,6 +71,38 @@ function NoticeCreateImageCheckerboard({ className }: { className?: string }) {
         background: `lightgray url("${NOTICE_CREATE_GALLERY_CHECKERBOARD_SRC}") 50% / cover no-repeat`,
       }}
     />
+  )
+}
+
+function NoticeCreateExistingImagePreview({
+  image,
+  onRemove,
+}: {
+  image: NoticeCreateExistingImage
+  onRemove: () => void
+}) {
+  return (
+    <div className="relative size-[160px] shrink-0 overflow-hidden rounded-(--umc-radius-14)">
+      <NoticeCreateImageCheckerboard className="absolute inset-0 size-full" />
+      <img
+        alt=""
+        className="absolute inset-0 size-full object-cover"
+        src={image.src}
+      />
+      <button
+        aria-label="이미지 삭제"
+        className="absolute top-2 right-2 flex size-8 items-center justify-center"
+        onClick={onRemove}
+        type="button"
+      >
+        <RemoveCircleIcon
+          aria-hidden
+          className="text-icon-neutral-weak-400"
+          size={32}
+          weight="fill"
+        />
+      </button>
+    </div>
   )
 }
 
@@ -114,18 +151,24 @@ function NoticeCreateImagePreview({
 }
 
 export function NoticeCreateImageGallery({
+  existingImages = [],
   imageFiles,
   onAdd,
   onRemove,
+  onRemoveExisting,
   onUploadReject,
+  showEmptyPlaceholders = true,
 }: NoticeCreateImageGalleryProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
-  const showAddSlot = imageFiles.length < MAX_NOTICE_IMAGES
-  const placeholderCount =
-    MAX_NOTICE_IMAGES - imageFiles.length - (showAddSlot ? 1 : 0)
-  const tileCount = (showAddSlot ? 1 : 0) + imageFiles.length + placeholderCount
+  const persistedCount = existingImages.length
+  const totalImageCount = persistedCount + imageFiles.length
+  const showAddSlot = totalImageCount < MAX_NOTICE_IMAGES
+  const placeholderCount = showEmptyPlaceholders
+    ? MAX_NOTICE_IMAGES - totalImageCount - (showAddSlot ? 1 : 0)
+    : 0
+  const tileCount = (showAddSlot ? 1 : 0) + totalImageCount + placeholderCount
 
   const updateScrollState = useCallback(() => {
     const element = scrollRef.current
@@ -141,7 +184,13 @@ export function NoticeCreateImageGallery({
 
   useLayoutEffect(() => {
     updateScrollState()
-  }, [imageFiles.length, placeholderCount, showAddSlot, updateScrollState])
+  }, [
+    imageFiles.length,
+    persistedCount,
+    placeholderCount,
+    showAddSlot,
+    updateScrollState,
+  ])
 
   useEffect(() => {
     const element = scrollRef.current
@@ -197,6 +246,15 @@ export function NoticeCreateImageGallery({
             value={null}
           />
         ) : null}
+        {existingImages.map((image, index) => (
+          <NoticeCreateExistingImagePreview
+            image={image}
+            key={`${image.fileId}-${index}`}
+            onRemove={() => {
+              onRemoveExisting?.(index)
+            }}
+          />
+        ))}
         {imageFiles.map((file, index) => (
           <NoticeCreateImagePreview
             file={file}

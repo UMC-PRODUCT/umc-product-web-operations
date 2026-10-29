@@ -169,6 +169,7 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
                 onLogout={handleLogout}
                 onSelectGisu={(gisuId) => {
                   selectedGisu.setGisuId(gisuId)
+                  void queryClient.invalidateQueries({ queryKey: ["notices"] })
                   setOpen(false)
                 }}
                 profileImageUrl={session.profileImageUrl}

@@ -11,7 +11,6 @@ import { type ReactNode, useMemo } from "react"
 import { cn } from "@/shared/lib/cn"
 
 import {
-  NOTICE_CREATE_PART_OPTIONS,
   NOTICE_CREATE_STAFF_SCOPE_OPTIONS,
   NOTICE_CREATE_TITLE_MAX_LENGTH,
   type NoticeCreateFormState,
@@ -20,11 +19,12 @@ import {
   type NoticeCreateStaffScope,
 } from "../../model/notice-create-form"
 import { getNoticeCreateLinkDraftValidation } from "../../model/notice-create-link"
-import { NOTICE_PART_LABELS } from "../../model/notice-part-options"
 import { NOTICE_CREATE_LENGTH_COUNTER_CLASS } from "../constants"
 import { NoticeCreateBodyField } from "./notice-create-body-field"
 import { NoticeCreateImageGallery } from "./notice-create-image-gallery"
 import { NoticeCreateSection } from "./notice-create-section"
+
+import type { NoticeCreatePartOption } from "../../model/notice-create-part-options"
 
 /** Figma link row — accessory inset 8px (top / bottom / right) */
 const NOTICE_CREATE_LINK_FIELD_CLASS = cn(
@@ -81,12 +81,16 @@ type OrganizationOptions = {
   schools: { schoolId: number; schoolName: string }[]
 }
 
+type NoticeFormMode = "create" | "edit"
+
 type NoticeCreateFormFieldsProps = {
   form: NoticeCreateFormState
   isOrganizationLoading: boolean
+  mode?: NoticeFormMode
   onChange: (patch: Partial<NoticeCreateFormState>) => void
   onImageUploadReject?: () => void
   organization: OrganizationOptions
+  partOptions: NoticeCreatePartOption[]
   showRequiredFieldErrors: boolean
   targetSummaryLine: string
 }
@@ -115,12 +119,16 @@ function FormRow({
 export function NoticeCreateFormFields({
   form,
   isOrganizationLoading,
+  mode = "create",
   onChange,
   onImageUploadReject,
   organization,
+  partOptions,
   showRequiredFieldErrors,
   targetSummaryLine,
 }: NoticeCreateFormFieldsProps) {
+  const isEditMode = mode === "edit"
+  const lockAudienceAndTarget = isEditMode
   const titleInvalid = showRequiredFieldErrors && !form.title.trim()
   const titleLength = form.title.length
   const titleAtMax = titleLength >= NOTICE_CREATE_TITLE_MAX_LENGTH
@@ -134,7 +142,18 @@ export function NoticeCreateFormFields({
     value: String(school.schoolId),
   }))
 
-  const togglePart = (part: (typeof NOTICE_CREATE_PART_OPTIONS)[number]) => {
+  const orgModeOptions = useMemo(() => {
+    const disableChapterAndSchool = form.gisuMode === "all"
+
+    return NOTICE_CREATE_ORG_MODE_OPTIONS.map((option) => ({
+      ...option,
+      disabled:
+        disableChapterAndSchool &&
+        (option.value === "chapter" || option.value === "school"),
+    }))
+  }, [form.gisuMode])
+
+  const togglePart = (part: NoticeCreatePartOption["value"]) => {
     onChange({
       parts: form.parts.includes(part)
         ? form.parts.filter((item) => item !== part)
@@ -181,7 +200,7 @@ export function NoticeCreateFormFields({
 
   return (
     <div className="flex flex-col gap-(--umc-spacing-gap-24)">
-      <NoticeCreateSection title="공지 종류">
+      <NoticeCreateSection locked={lockAudienceAndTarget} title="공지 종류">
         <div className="flex flex-col gap-(--umc-spacing-gap-16)">
           <div className="flex items-center gap-(--umc-spacing-gap-8)">
             <Checkbox
@@ -189,7 +208,21 @@ export function NoticeCreateFormFields({
               color={form.challengerEnabled ? "brand" : "neutral"}
               labelPlacement="end"
               onCheckedChange={(checked) => {
-                onChange({ challengerEnabled: checked === true })
+                const challengerEnabled = checked === true
+                if (
+                  challengerEnabled &&
+                  form.gisuMode === "all" &&
+                  form.orgMode !== "umc"
+                ) {
+                  onChange({
+                    chapterId: null,
+                    challengerEnabled,
+                    orgMode: "umc",
+                    schoolId: null,
+                  })
+                  return
+                }
+                onChange({ challengerEnabled })
               }}
               size="lg"
             >
@@ -240,7 +273,7 @@ export function NoticeCreateFormFields({
         ) : null}
       </NoticeCreateSection>
 
-      <NoticeCreateSection title="대상">
+      <NoticeCreateSection locked={lockAudienceAndTarget} title="대상">
         <div className="flex flex-col gap-(--umc-spacing-gap-24)">
           <div className="flex items-center gap-(--umc-spacing-gap-20)">
             <p className="text-body-1-regular text-neutral-strong-800 w-[40px] shrink-0">
@@ -249,7 +282,17 @@ export function NoticeCreateFormFields({
             <OptionButtonGroup
               aria-label="기수 범위"
               onValueChange={(value) => {
-                onChange({ gisuMode: value as NoticeCreateGisuMode })
+                const gisuMode = value as NoticeCreateGisuMode
+                if (gisuMode === "all") {
+                  onChange({
+                    chapterId: null,
+                    gisuMode,
+                    orgMode: "umc",
+                    schoolId: null,
+                  })
+                  return
+                }
+                onChange({ gisuMode })
               }}
               options={NOTICE_CREATE_GISU_MODE_OPTIONS}
               size="sm"
@@ -293,7 +336,7 @@ export function NoticeCreateFormFields({
                   schoolId: null,
                 })
               }}
-              options={NOTICE_CREATE_ORG_MODE_OPTIONS}
+              options={orgModeOptions}
               size="sm"
               type="single"
               value={form.orgMode}
@@ -344,18 +387,18 @@ export function NoticeCreateFormFields({
               파트
             </p>
             <div className="flex flex-wrap gap-x-(--umc-spacing-gap-20) gap-y-(--umc-spacing-gap-12)">
-              {NOTICE_CREATE_PART_OPTIONS.map((part) => (
+              {partOptions.map((part) => (
                 <Checkbox
-                  checked={form.parts.includes(part)}
-                  color={form.parts.includes(part) ? "brand" : "neutral"}
-                  key={part}
+                  checked={form.parts.includes(part.value)}
+                  color={form.parts.includes(part.value) ? "brand" : "neutral"}
+                  key={part.value}
                   labelPlacement="end"
                   onCheckedChange={() => {
-                    togglePart(part)
+                    togglePart(part.value)
                   }}
                   size="lg"
                 >
-                  {NOTICE_PART_LABELS[part]}
+                  {part.label}
                 </Checkbox>
               ))}
             </div>
@@ -430,10 +473,19 @@ export function NoticeCreateFormFields({
           <div className="flex flex-col gap-(--umc-spacing-gap-20)">
             <FormRow label="이미지">
               <NoticeCreateImageGallery
+                existingImages={form.existingImages}
                 imageFiles={form.imageFiles}
                 onAdd={addImage}
                 onRemove={removeImage}
+                onRemoveExisting={(index) => {
+                  onChange({
+                    existingImages: form.existingImages.filter(
+                      (_, imageIndex) => imageIndex !== index,
+                    ),
+                  })
+                }}
                 onUploadReject={onImageUploadReject}
+                showEmptyPlaceholders={!isEditMode}
               />
             </FormRow>
 
@@ -531,11 +583,17 @@ export function NoticeCreateFormFields({
           >
             필독
           </Checkbox>
-          <div className="flex items-center gap-(--umc-spacing-gap-8)">
+          <div
+            className={cn(
+              "flex items-center gap-(--umc-spacing-gap-8)",
+              isEditMode && "pointer-events-none opacity-60 select-none",
+            )}
+          >
             <Checkbox
               checked={form.sendNotification}
               color={form.sendNotification ? "brand" : "neutral"}
               labelPlacement="end"
+              readOnly={isEditMode}
               onCheckedChange={(checked) => {
                 onChange({ sendNotification: checked === true })
               }}

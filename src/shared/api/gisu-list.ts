@@ -57,7 +57,11 @@ export async function fetchGisuList() {
 
   while (hasNext && page < MAX_GISU_PAGES) {
     const { data } = await api.get<unknown>("/v1/gisu", {
-      params: { page, size: GISU_PAGE_SIZE },
+      params: {
+        page,
+        size: GISU_PAGE_SIZE,
+        sort: "generation,desc",
+      },
     })
     const result = unwrapApiResult<GisuListPage>(data)
     items.push(...toGisuListItems(result.content))

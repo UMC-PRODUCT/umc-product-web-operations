@@ -5,13 +5,18 @@ import { useBlocker, useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { fetchActiveGisuOrganization } from "../api/gisu-organization.api"
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
 import { isNoticeCreateFormDirty } from "../model/notice-create-dirty"
 import {
   INITIAL_NOTICE_CREATE_FORM,
   type NoticeCreateFormState,
 } from "../model/notice-create-form"
+import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
+import {
+  filterNoticeCreateParts,
+  resolveNoticeCreateContextGisuId,
+  resolveNoticeCreatePartOptions,
+} from "../model/notice-create-part-options"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
 import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
@@ -74,19 +79,31 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
     }
   }, [blocker.status])
 
-  const organizationQuery = useQuery(
-    noticeListOrganizationQueryOptions(session.gisuId),
+  const gisuListQuery = useQuery(noticeCreateGisuListQueryOptions())
+
+  const contextGisuId = useMemo(
+    () => resolveNoticeCreateContextGisuId(form, session.gisuId),
+    [form, session.gisuId],
   )
 
-  const activeGisuQuery = useQuery({
-    queryKey: ["notices", "create", "gisu", session.gisuId],
-    queryFn: () =>
-      session.gisuId == null
-        ? Promise.resolve(null)
-        : fetchActiveGisuOrganization(session.gisuId),
-    enabled: session.gisuId != null,
-    staleTime: 60_000,
-  })
+  const organizationQuery = useQuery(
+    noticeListOrganizationQueryOptions(contextGisuId),
+  )
+
+  const contextGeneration = useMemo(() => {
+    if (contextGisuId == null) {
+      return null
+    }
+    const gisu = gisuListQuery.data?.find(
+      (item) => item.gisuId === contextGisuId,
+    )
+    return gisu?.generation ?? null
+  }, [contextGisuId, gisuListQuery.data])
+
+  const partOptions = useMemo(
+    () => resolveNoticeCreatePartOptions(contextGeneration),
+    [contextGeneration],
+  )
 
   useEffect(() => {
     if (session.gisuId == null) {
@@ -100,26 +117,43 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
     })
   }, [session.gisuId])
 
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      chapterId: null,
+      schoolId: null,
+    }))
+  }, [contextGisuId])
+
+  useEffect(() => {
+    setForm((current) => {
+      const nextParts = filterNoticeCreateParts(
+        current.parts,
+        contextGeneration,
+      )
+      if (
+        nextParts.length === current.parts.length &&
+        nextParts.every((part, index) => part === current.parts[index])
+      ) {
+        return current
+      }
+      return { ...current, parts: nextParts }
+    })
+  }, [contextGeneration])
+
   const organization = useMemo(() => {
     const chapters = organizationQuery.data?.chapters ?? []
     const schools = organizationQuery.data?.schools ?? []
-    const generation = activeGisuQuery.data?.generation
-    const gisuOptions =
-      session.gisuId != null && generation != null
-        ? [
-            {
-              value: String(session.gisuId),
-              label: `${generation}기`,
-            },
-          ]
-        : []
+    const gisuOptions = (gisuListQuery.data ?? []).map((gisu) => ({
+      value: String(gisu.gisuId),
+      label: `${gisu.generation}기`,
+    }))
 
     return { chapters, gisuOptions, schools }
   }, [
-    activeGisuQuery.data?.generation,
+    gisuListQuery.data,
     organizationQuery.data?.chapters,
     organizationQuery.data?.schools,
-    session.gisuId,
   ])
 
   const summaryLabels = useMemo(() => {
@@ -212,38 +246,52 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
     setPublishNetworkError(false)
     setShowRequiredFieldErrors(true)
 
-    const outcome = await submitNoticeCreate({ form, session })
-    setIsSubmitting(false)
-
-    if (outcome.kind === "success") {
-      publishDialogFocusStore.current = null
-      setPublishDialogOpen(false)
-      allowLeaveRef.current = true
-      void navigate({
-        to: "/notices",
-        search: { publishOutcome: "success" },
+    try {
+      const outcome = await submitNoticeCreate({
+        form,
+        session,
+        operationGisuId: contextGisuId,
+        targetGeneration: contextGeneration,
       })
-      return
-    }
 
-    if (outcome.kind === "validation_error") {
-      setPublishDialogOpen(false)
-      restoreNoticeDialogFocus(publishDialogFocusStore)
-      const hasTitleOrContentError = !form.title.trim() || !form.content.trim()
-      if (!hasTitleOrContentError) {
-        showNoticeErrorToast(toast, outcome.message)
+      if (outcome.kind === "success") {
+        restoreNoticeDialogFocus(publishDialogFocusStore)
+        publishDialogFocusStore.current = null
+        setPublishDialogOpen(false)
+        allowLeaveRef.current = true
+        await navigate({
+          to: "/notices",
+          search: { publishOutcome: "success" },
+        })
+        return
       }
-      return
-    }
 
-    if (outcome.kind === "forbidden") {
+      if (outcome.kind === "validation_error") {
+        setPublishDialogOpen(false)
+        restoreNoticeDialogFocus(publishDialogFocusStore)
+        const hasTitleOrContentError =
+          !form.title.trim() || !form.content.trim()
+        if (!hasTitleOrContentError) {
+          showNoticeErrorToast(toast, outcome.message)
+        }
+        return
+      }
+
+      if (outcome.kind === "forbidden") {
+        setPublishDialogOpen(false)
+        restoreNoticeDialogFocus(publishDialogFocusStore)
+        showNoticeWarningToast(toast, NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE)
+        return
+      }
+
+      setPublishNetworkError(true)
+    } catch {
       setPublishDialogOpen(false)
       restoreNoticeDialogFocus(publishDialogFocusStore)
-      showNoticeWarningToast(toast, NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE)
-      return
+      setPublishNetworkError(true)
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setPublishNetworkError(true)
   }
 
   return (
@@ -261,9 +309,10 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
         <NoticeCreateFormFields
           form={form}
           isOrganizationLoading={
-            organizationQuery.isLoading || activeGisuQuery.isLoading
+            organizationQuery.isLoading || gisuListQuery.isLoading
           }
           onChange={patchForm}
+          partOptions={partOptions}
           onImageUploadReject={() => {
             showNoticeErrorToast(
               toast,

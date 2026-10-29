@@ -4,6 +4,8 @@ import { AddIcon } from "@umc-product/icons"
 import { Button, Pagination, Tab, TabList, Tabs } from "@umc-product/react"
 import { useEffect, useMemo, useState } from "react"
 
+import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
+import { resolveNoticeCreatePartOptions } from "../model/notice-create-part-options"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
 import {
   noticeListQueryOptions,
@@ -150,6 +152,23 @@ export function NoticeListPage({
     setPage(1)
   }, [filters.part, filters.query, filters.scope])
 
+  const gisuListQuery = useQuery(noticeCreateGisuListQueryOptions())
+
+  const listGisuGeneration = useMemo(() => {
+    if (session.gisuId == null) {
+      return null
+    }
+    return (
+      gisuListQuery.data?.find((gisu) => gisu.gisuId === session.gisuId)
+        ?.generation ?? null
+    )
+  }, [gisuListQuery.data, session.gisuId])
+
+  const partFilterOptions = useMemo(
+    () => resolveNoticeCreatePartOptions(listGisuGeneration),
+    [listGisuGeneration],
+  )
+
   const organizationQuery = useQuery(
     noticeListOrganizationQueryOptions(session.gisuId),
   )
@@ -279,7 +298,10 @@ export function NoticeListPage({
           key={`${audience}-${session.gisuId ?? "none"}`}
           chapterOptions={organizationQuery.data?.chapters ?? []}
           filters={{ ...filters, audience }}
-          isOrganizationLoading={organizationQuery.isLoading}
+          isOrganizationLoading={
+            organizationQuery.isLoading || gisuListQuery.isLoading
+          }
+          partOptions={partFilterOptions}
           onPartChange={(part) => {
             setFilters((current) => ({ ...current, part }))
           }}

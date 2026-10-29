@@ -11,9 +11,17 @@ export type {
   SearchNoticesParams,
 } from "./notice-api.types"
 export {
+  uploadNoticeImageFile,
+  uploadNoticeImageFiles,
+} from "./notice-file-upload.api"
+export {
+  addNoticeImages,
   deleteNotice,
   deleteNoticeVote,
+  patchNotice,
   postNotice,
+  replaceNoticeImages,
+  replaceNoticeLinks,
 } from "./notices-command.api"
 export {
   getNoticeDetail,

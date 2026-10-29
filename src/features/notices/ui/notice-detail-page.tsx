@@ -151,6 +151,13 @@ export function NoticeDetailPage({
                     variant="fill"
                     disabled={false}
                     isLoading={false}
+                    onClick={() => {
+                      void navigate({
+                        params: { noticeId: notice.id },
+                        search: { listAudience: returnAudience },
+                        to: "/notices/$noticeId/edit",
+                      })
+                    }}
                   >
                     수정
                   </Button>

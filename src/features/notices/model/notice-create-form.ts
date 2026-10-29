@@ -8,6 +8,11 @@ export type NoticeCreateStaffScope = Extract<
 export type NoticeCreateGisuMode = "all" | "specific"
 export type NoticeCreateOrgMode = "umc" | "chapter" | "school"
 
+export type NoticeCreateExistingImage = {
+  fileId: string
+  src: string
+}
+
 export type NoticeCreateFormState = {
   challengerEnabled: boolean
   staffEnabled: boolean
@@ -22,6 +27,8 @@ export type NoticeCreateFormState = {
   content: string
   linkDraft: string
   links: string[]
+  /** 수정 화면: 서버에 이미 등록된 이미지 */
+  existingImages: NoticeCreateExistingImage[]
   imageFiles: File[]
   mustRead: boolean
   sendNotification: boolean
@@ -32,21 +39,22 @@ export const NOTICE_CREATE_CONTENT_MAX_LENGTH = 3000
 
 export const INITIAL_NOTICE_CREATE_FORM: NoticeCreateFormState = {
   challengerEnabled: false,
-  staffEnabled: true,
+  staffEnabled: false,
   staffScope: "CENTRAL_MEMBER",
-  gisuMode: "specific",
+  gisuMode: "all",
   targetGisuId: null,
-  orgMode: "school",
+  orgMode: "umc",
   chapterId: null,
   schoolId: null,
-  parts: ["WEB", "ANDROID"],
+  parts: [],
   title: "",
   content: "",
   linkDraft: "",
   links: [],
+  existingImages: [],
   imageFiles: [],
-  mustRead: true,
-  sendNotification: true,
+  mustRead: false,
+  sendNotification: false,
 }
 
 export const NOTICE_CREATE_STAFF_SCOPE_OPTIONS: {
@@ -56,14 +64,4 @@ export const NOTICE_CREATE_STAFF_SCOPE_OPTIONS: {
   { value: "CENTRAL_MEMBER", label: "중앙 운영진 이상" },
   { value: "SCHOOL_CORE", label: "교내 회장단 이상" },
   { value: "SCHOOL_PART_LEADER", label: "교내 파트장 이상" },
-]
-
-export const NOTICE_CREATE_PART_OPTIONS: NoticePart[] = [
-  "PLAN",
-  "DESIGN",
-  "WEB",
-  "ANDROID",
-  "IOS",
-  "NODEJS",
-  "SPRINGBOOT",
 ]

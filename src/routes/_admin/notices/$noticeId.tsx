@@ -1,4 +1,9 @@
-import { createFileRoute, getRouteApi } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  getRouteApi,
+  Outlet,
+  useRouterState,
+} from "@tanstack/react-router"
 
 import { NoticeDetailPage } from "@/features/notices"
 import { loadNoticeDetail } from "@/features/notices/model/load-notice-detail"
@@ -71,6 +76,9 @@ export const Route = createFileRoute("/_admin/notices/$noticeId")({
 const adminRouteApi = getRouteApi("/_admin")
 
 function NoticeDetailRoute() {
+  const isEditRoute = useRouterState({
+    select: (state) => state.location.pathname.endsWith("/edit"),
+  })
   const loaderData = Route.useLoaderData()
   const { session: adminSession } = adminRouteApi.useRouteContext()
   const { gisuId: selectedGisuId } = useSelectedGisu()
@@ -84,6 +92,10 @@ function NoticeDetailRoute() {
     listAudience,
     viewerAuthor,
   } = Route.useSearch()
+
+  if (isEditRoute) {
+    return <Outlet />
+  }
 
   if (loaderData.kind === "forbidden") {
     return <NoticeDetailStatusView variant="forbidden" />

@@ -67,10 +67,12 @@ function AdminShellFrame() {
     noticeDetailId !== null && shouldHideNoticeDetailPageHeader(noticeDetailId)
   const isNoticesListPage = pathname === "/notices"
   const isNoticeCreatePage = pathname === "/notices/new"
+  const isNoticeEditPage = /^\/notices\/[^/]+\/edit$/.test(pathname)
+  const isNoticeComposePage = isNoticeCreatePage || isNoticeEditPage
   const usesFeaturePageHeader =
     isPointsSurface ||
     isNoticesListPage ||
-    isNoticeCreatePage ||
+    isNoticeComposePage ||
     isNoticeDetailPage
 
   return (
@@ -100,7 +102,7 @@ function AdminShellFrame() {
           <div
             className={cn(
               "flex min-w-0 flex-1 flex-col overflow-auto px-8 pt-12 pb-20",
-              isNoticeCreatePage && "bg-background-neutral-weak",
+              isNoticeComposePage && "bg-background-neutral-weak",
             )}
           >
             <PageHeader
@@ -114,7 +116,7 @@ function AdminShellFrame() {
             <main
               className={cn(
                 usesFeaturePageHeader ? "mt-[26px] flex-1" : "mt-6 flex-1",
-                isNoticeCreatePage && "flex min-h-0 flex-col",
+                isNoticeComposePage && "flex min-h-0 flex-col",
               )}
             >
               <Outlet />

@@ -1,7 +1,6 @@
 import { SearchField, Select } from "@umc-product/react"
 import { useEffect, useMemo } from "react"
 
-import { NOTICE_PART_SELECT_OPTIONS } from "../model/notice-part-options"
 import {
   encodeChapterScope,
   encodeSchoolScope,
@@ -13,6 +12,7 @@ import {
 import { NOTICE_FILTER_SELECT_TYPO_CLASS } from "./constants"
 
 import type { NoticePart } from "../api/notice-api.types"
+import type { NoticeCreatePartOption } from "../model/notice-create-part-options"
 import type { NoticeListFilters } from "../model/types"
 
 type NoticeListFiltersProps = {
@@ -20,6 +20,7 @@ type NoticeListFiltersProps = {
   isOrganizationLoading?: boolean
   chapterOptions: { id: number; name: string }[]
   schoolOptions: { schoolId: number; schoolName: string }[]
+  partOptions: NoticeCreatePartOption[]
   onQueryChange: (query: string) => void
   onPartChange: (part: NoticePart | null) => void
   onScopeChange: (scope: NoticeListFilters["scope"]) => void
@@ -35,6 +36,7 @@ export function NoticeListFiltersBar({
   isOrganizationLoading = false,
   chapterOptions,
   schoolOptions,
+  partOptions,
   onQueryChange,
   onPartChange,
   onScopeChange,
@@ -65,11 +67,16 @@ export function NoticeListFiltersBar({
       case "school":
         return schoolSelectOptions
       case "part":
-        return NOTICE_PART_SELECT_OPTIONS
+        return partOptions
       default:
         return []
     }
-  }, [chapterSelectOptions, filters.scopeStage, schoolSelectOptions])
+  }, [
+    chapterSelectOptions,
+    filters.scopeStage,
+    partOptions,
+    schoolSelectOptions,
+  ])
 
   const targetSelectValue =
     filters.scopeStage === "part" ? filters.part : filters.scope
@@ -92,13 +99,13 @@ export function NoticeListFiltersBar({
       return
     }
 
-    const isValidPart = NOTICE_PART_SELECT_OPTIONS.some(
+    const isValidPart = partOptions.some(
       (option) => option.value === filters.part,
     )
     if (!isValidPart) {
       onPartChange(null)
     }
-  }, [filters.part, filters.scopeStage, onPartChange])
+  }, [filters.part, filters.scopeStage, onPartChange, partOptions])
 
   return (
     <div className="flex flex-nowrap items-center gap-(--umc-spacing-gap-16)">

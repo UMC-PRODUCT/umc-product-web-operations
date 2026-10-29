@@ -116,3 +116,20 @@ export function normalizeGisuOrganizationLists(input: {
     schools: [...uniqueSchools.values()],
   }
 }
+
+export function buildNoticeOrganizationNameLookup(input: {
+  chapters: NoticeListChapterOption[]
+  schools: NoticeListSchoolOption[]
+}): {
+  chapterNameById: ReadonlyMap<number, string>
+  schoolNameById: ReadonlyMap<number, string>
+} {
+  return {
+    chapterNameById: new Map(
+      input.chapters.map((chapter) => [chapter.id, chapter.name]),
+    ),
+    schoolNameById: new Map(
+      input.schools.map((school) => [school.schoolId, school.schoolName]),
+    ),
+  }
+}

@@ -6,6 +6,7 @@ export type NoticeImageRegisterOutcome = "success"
 export type NoticeListLoadOutcome = "network_error" | "forbidden"
 
 export const NOTICE_PUBLISH_TOAST_MESSAGE = "공지를 등록했어요"
+export const NOTICE_EDIT_SUCCESS_TOAST_MESSAGE = "공지를 수정했어요"
 export const NOTICE_DELETE_TOAST_MESSAGE = "공지를 삭제했어요"
 /** Figma 516:12555 — 삭제 실패 Toast */
 export const NOTICE_DELETE_FAILURE_TOAST_MESSAGE =
