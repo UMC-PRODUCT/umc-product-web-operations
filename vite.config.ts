@@ -5,6 +5,7 @@ import path from "node:path"
 import { defineConfig, loadEnv } from "vite"
 import svgr from "vite-plugin-svgr"
 
+// TODO: SSO alpha api 호스트는 미확정이다. 이 값은 기존 개발 프록시 기본값이다.
 const DEFAULT_DEV_API_PROXY_TARGET = "https://api-dev.university.neordinary.com"
 
 export default defineConfig(({ mode }) => {
@@ -38,11 +39,26 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      port: 5173,
+      strictPort: true,
       proxy: {
         "/api": {
           target: apiProxyTarget,
           changeOrigin: true,
           secure: proxyUsesHttps,
+          // 302는 브라우저로 그대로 전달한다. 프록시가 리다이렉트를 따라가지 않는다.
+          configure: (proxy) => {
+            proxy.on("proxyRes", (proxyRes) => {
+              const raw = proxyRes.headers["set-cookie"]
+              if (!raw) {
+                return
+              }
+              const cookies = Array.isArray(raw) ? raw : [raw]
+              proxyRes.headers["set-cookie"] = cookies.map((cookie) =>
+                cookie.replace(/;\s*Domain=[^;]*/gi, ""),
+              )
+            })
+          },
         },
       },
     },
