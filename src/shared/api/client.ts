@@ -1,34 +1,21 @@
 import { isAxiosError } from "axios"
 
-import {
-  clearAuthSession,
-  getAccessToken,
-  getRefreshToken,
-  setAccessToken,
-  setRefreshToken,
-} from "./access-token"
+import { getSsoClient } from "@/shared/auth/sso-client"
+
 import { createApiClient } from "./create-api-client"
-import { unwrapApiResult } from "./unwrap-api-result"
 
 import type { InternalAxiosRequestConfig } from "axios"
 
 const RENEW_PATH = "/v1/auth/token/renew"
 
-type RenewedTokens = {
-  accessToken: string
-  refreshToken: string
-}
-
-export const api = createApiClient()
-
-let renewing: Promise<string> | null = null
+export const api = createApiClient(getSsoClient().config.apiBaseUrl || "/api")
 
 api.interceptors.request.use((config) => {
   if (config.skipAuth) {
     config.headers.delete("Authorization")
     return config
   }
-  const token = getAccessToken()
+  const token = getSsoClient().getAccessToken()
   if (token) {
     config.headers.set("Authorization", `Bearer ${token}`)
   }
@@ -43,75 +30,33 @@ api.interceptors.response.use(
     }
 
     const config = error.config
-    if (!config || isLoginRequest(config)) {
-      return Promise.reject(error)
-    }
-    if (isRenewRequest(config) || config._retry) {
-      clearAuthSession()
-      redirectToLogin()
+    if (!config || skipsRenew(config) || config._retry) {
       return Promise.reject(error)
     }
 
     config._retry = true
     try {
-      const accessToken = await renewAccessToken()
+      const accessToken = await getSsoClient().recoverFromUnauthorized()
       config.headers.set("Authorization", `Bearer ${accessToken}`)
       return api.request(config)
     } catch (renewError) {
-      clearAuthSession()
-      redirectToLogin()
       return Promise.reject(renewError)
     }
   },
 )
-
-function renewAccessToken() {
-  if (!renewing) {
-    renewing = requestRenewedAccessToken().finally(() => {
-      renewing = null
-    })
-  }
-  return renewing
-}
-
-async function requestRenewedAccessToken() {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) {
-    throw new Error("refresh token이 없습니다.")
-  }
-
-  const { data } = await api.post<unknown>(
-    RENEW_PATH,
-    { refreshToken },
-    { skipAuth: true },
-  )
-  const tokens = unwrapApiResult<RenewedTokens>(data)
-  setAccessToken(tokens.accessToken)
-  setRefreshToken(tokens.refreshToken)
-  return tokens.accessToken
-}
 
 function requestUrl(config: InternalAxiosRequestConfig) {
   const baseURL = config.baseURL ?? ""
   return `${baseURL}${config.url ?? ""}`
 }
 
-function isLoginRequest(config: InternalAxiosRequestConfig) {
-  return requestUrl(config).includes("/v1/auth/login/")
-}
-
-function isRenewRequest(config: InternalAxiosRequestConfig) {
-  return requestUrl(config).includes(RENEW_PATH)
-}
-
-function redirectToLogin() {
-  if (typeof window === "undefined") {
-    return
-  }
-  if (window.location.pathname === "/login") {
-    return
-  }
-  window.location.assign("/login")
+function skipsRenew(config: InternalAxiosRequestConfig) {
+  const url = requestUrl(config)
+  return (
+    url.includes(RENEW_PATH) ||
+    url.includes("/v1/auth/sso/") ||
+    url.includes("/v1/auth/logout")
+  )
 }
 
 /** @deprecated `api`를 사용한다 */
