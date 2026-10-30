@@ -15,21 +15,40 @@ export type RoleType = (typeof ROLE_TYPES)[number]
 export type AdminScope =
   "SUPER_ADMIN" | "CENTRAL" | "CHAPTER" | "SCHOOL" | "SCHOOL_PART"
 
+type ApiInt = number | string
+
 export type CurrentGisuMemberInfo = {
-  gisuId: number
-  generation: number
+  gisuId?: ApiInt | null
+  generation?: ApiInt | null
   isAdmin: boolean
   roleTypes: string[]
 }
 
+export type ChallengerHistoryItem = {
+  gisuId?: ApiInt | null
+  generation?: ApiInt | null
+}
+
+export type ParticipatedGisu = {
+  gisuId: number
+  generation: number
+}
+
 export type MemberSummaryResponse = {
-  id: number
+  id: ApiInt
   name?: string | null
   isSuperAdmin?: boolean
-  schoolId?: number | null
+  schoolId?: ApiInt | null
   schoolName?: string | null
   profileImageUrl?: string | null
+  profileImageLink?: string | null
   currentGisuMemberInfo?: CurrentGisuMemberInfo | null
+  challengerHistory?: ChallengerHistoryItem[] | null
+}
+
+function toPositiveInt(value: ApiInt | null | undefined): number | null {
+  const parsed = typeof value === "number" ? value : Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
 export type AdminSession = {
@@ -43,6 +62,8 @@ export type AdminSession = {
   schoolId: number | null
   schoolName: string | null
   profileImageUrl: string | null
+  /** 참여한 기수 (최신 기수 우선). 프로필 기수 목록 필터에 사용 */
+  participatedGisus: ParticipatedGisu[]
   scope: AdminScope | null
 }
 
@@ -120,25 +141,62 @@ export function schoolExecutiveLock(
   }
 }
 
+export function toParticipatedGisus(input: {
+  challengerHistory?: ChallengerHistoryItem[] | null
+  currentGisuMemberInfo?: CurrentGisuMemberInfo | null
+}): ParticipatedGisu[] {
+  const seen = new Set<number>()
+  const items: ParticipatedGisu[] = []
+
+  const push = (
+    rawGisuId: ApiInt | null | undefined,
+    rawGeneration: ApiInt | null | undefined,
+  ) => {
+    const gisuId = toPositiveInt(rawGisuId)
+    const generation = toPositiveInt(rawGeneration)
+    if (gisuId == null || generation == null || seen.has(gisuId)) {
+      return
+    }
+    seen.add(gisuId)
+    items.push({ gisuId, generation })
+  }
+
+  for (const entry of input.challengerHistory ?? []) {
+    push(entry.gisuId, entry.generation)
+  }
+
+  const current = input.currentGisuMemberInfo
+  if (current != null) {
+    push(current.gisuId, current.generation)
+  }
+
+  return items
+}
+
 export function toAdminSession(member: MemberSummaryResponse): AdminSession {
   const info = member.currentGisuMemberInfo ?? null
   const roleTypes = (info?.roleTypes ?? []).filter(isRoleType)
   const isSuperAdmin = member.isSuperAdmin ?? false
   const isAdmin = info?.isAdmin ?? false
 
-  const profileImageUrl = member.profileImageUrl?.trim() || null
+  const profileImageUrl =
+    member.profileImageUrl?.trim() || member.profileImageLink?.trim() || null
 
   return {
-    id: member.id,
+    id: toPositiveInt(member.id) ?? 0,
     name: member.name ?? "",
     isSuperAdmin,
     isAdmin,
     roleTypes,
-    gisuId: info?.gisuId ?? null,
-    generation: info?.generation ?? null,
-    schoolId: member.schoolId ?? null,
+    gisuId: toPositiveInt(info?.gisuId),
+    generation: toPositiveInt(info?.generation),
+    schoolId: toPositiveInt(member.schoolId),
     schoolName: member.schoolName ?? null,
     profileImageUrl,
+    participatedGisus: toParticipatedGisus({
+      challengerHistory: member.challengerHistory,
+      currentGisuMemberInfo: info,
+    }),
     scope: widestScope({ isSuperAdmin, roleTypes }),
   }
 }
