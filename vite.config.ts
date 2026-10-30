@@ -5,7 +5,6 @@ import path from "node:path"
 import { defineConfig, loadEnv } from "vite"
 import svgr from "vite-plugin-svgr"
 
-// TODO: SSO alpha api 호스트는 미확정이다. 이 값은 기존 개발 프록시 기본값이다.
 const DEFAULT_DEV_API_PROXY_TARGET = "https://api-dev.university.neordinary.com"
 
 export default defineConfig(({ mode }) => {

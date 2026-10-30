@@ -5,9 +5,7 @@ import type { AxiosInstance } from "axios"
 const DEFAULT_TIMEOUT_MS = 15_000
 
 /** 스펙 경로는 `/api/v1/...`이다. base가 오리진만 있으면 `/api`를 붙이고, 이미 `/api`면 유지한다. */
-export function resolveApiBaseURL(
-  baseURL: string = import.meta.env.VITE_API_BASE_URL || "/api",
-) {
+export function resolveApiBaseURL(baseURL = "/api") {
   const trimmed = baseURL.replace(/\/+$/, "")
   if (trimmed.endsWith("/api")) {
     return trimmed
@@ -15,9 +13,7 @@ export function resolveApiBaseURL(
   return `${trimmed}/api`
 }
 
-export function createApiClient(
-  baseURL = import.meta.env.VITE_API_BASE_URL || "/api",
-): AxiosInstance {
+export function createApiClient(baseURL = "/api"): AxiosInstance {
   const client = axios.create({
     baseURL: resolveApiBaseURL(baseURL),
     timeout: DEFAULT_TIMEOUT_MS,

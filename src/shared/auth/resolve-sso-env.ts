@@ -1,70 +1,84 @@
 import type { AuthClientConfig, LoginMode } from "@/lib/auth-client"
 
+export type SsoStage = "local" | "dev" | "prod"
+
 export type SsoRuntimeEnv = {
-  alphaApiBaseUrl?: string
+  /** localhost에서만 의미 있음. 기본 http://localhost:5174 */
   authAppUrl?: string
+  /** localhost에서만 의미 있음. 기본 direct */
   loginMode?: string
 }
 
-const LOCAL_ORIGIN = "http://localhost:5173"
-const DEV_ADMIN_ORIGIN = "https://dev.admin.university.neordinary.com"
-const PROD_ADMIN_ORIGIN = "https://admin.university.neordinary.com"
+const LOCAL_AUTH_APP_URL = "http://localhost:5174"
+
+const STAGE_URLS = {
+  local: {
+    apiBaseUrl: "",
+    authAppUrl: LOCAL_AUTH_APP_URL,
+  },
+  dev: {
+    apiBaseUrl: "https://api-dev.university.neordinary.com",
+    authAppUrl: "https://dev.auth.university.neordinary.com",
+  },
+  prod: {
+    apiBaseUrl: "https://api.university.neordinary.com",
+    authAppUrl: "https://auth.university.neordinary.com",
+  },
+} as const satisfies Record<
+  SsoStage,
+  { apiBaseUrl: string; authAppUrl: string }
+>
+
+/** 이 백오피스가 SSO를 허용하는 origin (scheme + host + port). */
+const ADMIN_ORIGINS: Record<string, SsoStage> = {
+  "http://localhost:5173": "local",
+  "https://dev.admin.university.neordinary.com": "dev",
+  "https://admin.university.neordinary.com": "prod",
+}
+
+const CLIENT_ID: Record<SsoStage, string> = {
+  local: "local",
+  dev: "backoffice",
+  prod: "backoffice",
+}
+
+export function resolveSsoStage(origin: string): SsoStage {
+  const stage = ADMIN_ORIGINS[origin]
+  if (!stage) {
+    throw new Error(`SSO를 시작할 수 없는 origin입니다: ${origin}`)
+  }
+  return stage
+}
 
 export function resolveSsoEnv(
   origin: string,
   runtime: SsoRuntimeEnv = {},
 ): AuthClientConfig {
+  const stage = resolveSsoStage(origin)
+  const urls = STAGE_URLS[stage]
   const redirectUri = `${origin}/auth/callback`
 
-  if (origin === LOCAL_ORIGIN) {
+  if (stage === "local") {
     return {
-      apiBaseUrl: "",
-      authAppUrl: present(runtime.authAppUrl) ?? "http://localhost:5174",
-      clientId: "local",
+      apiBaseUrl: urls.apiBaseUrl,
+      authAppUrl: present(runtime.authAppUrl) ?? urls.authAppUrl,
+      clientId: CLIENT_ID.local,
       loginMode: localLoginMode(runtime.loginMode),
       redirectUri,
     }
   }
 
-  if (origin === DEV_ADMIN_ORIGIN) {
-    const apiBaseUrl = present(runtime.alphaApiBaseUrl)
-    const authAppUrl = present(runtime.authAppUrl)
-    // TODO: alpha api 호스트와 개발 배포 인증 앱 주소는 아직 확정되지 않았다.
-    if (!apiBaseUrl) {
-      throw new Error(
-        "dev admin SSO api 주소가 없습니다. VITE_ALPHA_API_BASE_URL을 설정하세요. TODO: alpha api 호스트는 미확정입니다.",
-      )
-    }
-    if (!authAppUrl) {
-      throw new Error(
-        "개발 배포 인증 앱 주소가 없습니다. VITE_AUTH_APP_URL을 설정하세요. TODO: 개발 인증 앱 호스트는 미확정입니다.",
-      )
-    }
-    return {
-      apiBaseUrl,
-      authAppUrl,
-      clientId: "backoffice",
-      loginMode: "auth-app",
-      redirectUri,
-    }
+  return {
+    apiBaseUrl: urls.apiBaseUrl,
+    authAppUrl: urls.authAppUrl,
+    clientId: CLIENT_ID[stage],
+    loginMode: "auth-app",
+    redirectUri,
   }
-
-  if (origin === PROD_ADMIN_ORIGIN) {
-    return {
-      apiBaseUrl: "https://api.university.neordinary.com",
-      authAppUrl: "https://auth.university.neordinary.com",
-      clientId: "backoffice",
-      loginMode: "auth-app",
-      redirectUri,
-    }
-  }
-
-  throw new Error(`SSO를 시작할 수 없는 origin입니다: ${origin}`)
 }
 
 export function readSsoRuntimeEnv(): SsoRuntimeEnv {
   return {
-    alphaApiBaseUrl: import.meta.env.VITE_ALPHA_API_BASE_URL,
     authAppUrl: import.meta.env.VITE_AUTH_APP_URL,
     loginMode: import.meta.env.VITE_SSO_LOGIN_MODE,
   }
