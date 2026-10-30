@@ -5,10 +5,11 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
-import { PartTag, RoleTag, StatusTag, TextButton } from "@umc-product/react"
+import { RoleTag, StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
 import { MemberNetworkError } from "./MemberNetworkError"
+import { MemberPartTag } from "./MemberPartTag"
 import { MemberPermissionDenied } from "./MemberPermissionDenied"
 import { MemberSearchEmpty } from "./MemberSearchEmpty"
 import { MemberTableSkeleton } from "./MemberTableSkeleton"
@@ -78,7 +79,19 @@ export function MemberTable({
       }),
       columnHelper.accessor("part", {
         header: "파트",
-        cell: (info) => <PartTag part={info.getValue()} size="sm" />,
+        cell: ({ row }) => {
+          const { part, sourcePart, partLabel, generationNumber } = row.original
+
+          return (
+            <MemberPartTag
+              generationNumber={generationNumber}
+              part={part}
+              partLabel={partLabel}
+              size="sm"
+              sourcePart={sourcePart}
+            />
+          )
+        },
         meta: {
           headerClass:
             "w-[140px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",

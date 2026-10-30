@@ -165,9 +165,30 @@ function mapRole(item: SearchMemberItem): {
   }
 }
 
+/** 11기부터 PE 체계. 그 이전은 API 파트명을 그대로 표시한다. */
+export const PE_PART_GENERATION = 11
+
+export function usesLegacyPartLabel(
+  generationNumber: number | null | undefined,
+): boolean {
+  return generationNumber != null && generationNumber < PE_PART_GENERATION
+}
+
 export function toPointsMember(item: SearchMemberItem): PointsMember {
   const apiPart = item.part ?? null
-  const generationNumber = item.generation
+  const rawGeneration = item.generation
+  const generationNumber =
+    typeof rawGeneration === "number"
+      ? rawGeneration
+      : typeof rawGeneration === "string"
+        ? Number(rawGeneration)
+        : null
+  const normalizedGeneration =
+    generationNumber != null &&
+    Number.isInteger(generationNumber) &&
+    generationNumber > 0
+      ? generationNumber
+      : null
   const role = mapRole(item)
 
   return {
@@ -178,9 +199,11 @@ export function toPointsMember(item: SearchMemberItem): PointsMember {
     schoolLabel: item.schoolName ?? "",
     region: "seoul",
     regionLabel: undefined,
-    part: apiPart ? PART_TAG[apiPart] : "pm",
+    part: apiPart ? (PART_TAG[apiPart] ?? "pm") : "pm",
+    sourcePart: apiPart,
     partLabel: apiPart ? PART_LABEL[apiPart] : undefined,
-    generation: generationNumber != null ? `${generationNumber}기` : "",
+    generation: normalizedGeneration != null ? `${normalizedGeneration}기` : "",
+    generationNumber: normalizedGeneration,
     role: role.role,
     roleLabel: role.roleLabel,
     status: "active",
