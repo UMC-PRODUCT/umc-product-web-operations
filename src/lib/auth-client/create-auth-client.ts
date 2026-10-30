@@ -198,7 +198,10 @@ export function createAuthClient(
     await startLogin(returnTo)
   }
 
-  async function logout(logoutOptions?: { global?: boolean }) {
+  async function logout(logoutOptions?: {
+    global?: boolean
+    returnTo?: string
+  }) {
     const refreshToken = getRefreshToken()
     try {
       if (refreshToken) {
@@ -216,7 +219,10 @@ export function createAuthClient(
     clearSession()
     if (logoutOptions?.global) {
       const url = new URL("/logout", ensureOrigin(config.authAppUrl))
-      url.searchParams.set("return_to", location.origin)
+      url.searchParams.set(
+        "return_to",
+        logoutOptions.returnTo ?? location.origin,
+      )
       location.assign(url.toString())
     }
   }

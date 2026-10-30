@@ -54,7 +54,11 @@ export type AuthClient = {
   getRefreshToken: () => string | null
   handleCallback: (currentUrl?: string) => Promise<string>
   hasSsoSession: () => Promise<boolean>
-  logout: (options?: { global?: boolean }) => Promise<void>
+  logout: (options?: {
+    global?: boolean
+    /** global 로그아웃 후 인증 앱이 돌아올 주소. 없으면 현재 origin. */
+    returnTo?: string
+  }) => Promise<void>
   recoverFromUnauthorized: () => Promise<string>
   renewAccessToken: () => Promise<string>
   setTokens: (
