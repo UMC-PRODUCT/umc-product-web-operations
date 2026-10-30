@@ -124,7 +124,7 @@ function AdminShellFrame() {
             />
             <main
               className={cn(
-                usesFeaturePageHeader ? "mt-[26px] flex-1" : "mt-6 flex-1",
+                usesFeaturePageHeader ? "flex-1" : "mt-6 flex-1",
                 isNoticeComposePage && "flex min-h-0 flex-col",
               )}
             >

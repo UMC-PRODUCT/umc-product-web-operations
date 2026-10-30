@@ -160,7 +160,7 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
 
   return (
     <section
-      className="flex flex-col gap-(--umc-spacing-gap-32)"
+      className="flex flex-col gap-(--umc-spacing-gap-32) pl-(--umc-spacing-padding-12)"
       ref={sectionRef}
     >
       <div className="flex flex-col gap-(--umc-spacing-gap-12)">

@@ -84,10 +84,10 @@ export function PointsToolbar({
       />
       <SearchField
         aria-label="구성원 검색"
-        className="w-[300px] shrink-0"
+        className="w-[400px] shrink-0"
         clearable
         onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="이름 · 닉네임으로 검색할 수 있어요"
+        placeholder="이름 / 닉네임 / 이메일로 검색하세요"
         value={query}
       />
     </div>
