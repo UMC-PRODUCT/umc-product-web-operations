@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 
 import { ApiError } from "@/lib/auth-client"
 import { getSsoClient } from "@/shared/auth/sso-client"
+import { AuthBusyScreen } from "@/shared/ui/loading-spinner"
 
 const callbackTasks = new Map<string, Promise<string>>()
 
@@ -50,11 +51,13 @@ function CallbackPage() {
     }
   }, [router])
 
-  return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <p>
-        {failed ? "로그인에 실패했습니다. 다시 시도해 주세요." : "로그인 중"}
-      </p>
-    </div>
-  )
+  if (failed) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <p role="alert">로그인에 실패했습니다. 다시 시도해 주세요.</p>
+      </div>
+    )
+  }
+
+  return <AuthBusyScreen label="로그인 중" />
 }
