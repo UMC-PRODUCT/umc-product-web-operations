@@ -2,6 +2,8 @@
 
 이 문서는 다른 UMC 웹 앱에서 공통 SSO 로그인을 붙일 때, **무엇을 가져가고 무엇을 앱에서 직접 만들어야 하는지**를 설명합니다.
 
+패키지로 분리할 코드 경계·업로드 전 정리 항목은 [인증 패키지 분리 경계](./auth-client-package-boundary.md)를 먼저 보면 좋습니다.
+
 지금 이 레포에서는 공통 로그인 코드가 `src/lib/auth-client`에 있습니다. 나중에 `@umc-product/auth-client` 같은 패키지로 분리되면 import 경로만 바뀌고, 아래 흐름과 API는 그대로 쓰는 것을 목표로 합니다. 실제 사용 예시는 이 백오피스의 `src/shared/auth`, `src/routes/login.tsx`, `src/routes/auth/callback.tsx`, `src/shared/api/client.ts`를 보면 됩니다.
 
 ---
@@ -65,7 +67,7 @@ export function getSsoClient() {
 
 두 번째 인자 `onUnauthenticated`는 API가 401을 내고 refresh도 실패했을 때 어떻게 할지를 정합니다. `login`이면 다시 로그인 흐름으로 보내고, `ignore`이면 에러만 던집니다. 실제 서비스 화면은 보통 `login`이 맞고, 테스트나 특수 화면에서만 `ignore`를 씁니다.
 
-어느 환경에서 어떤 URL과 `clientId`를 쓸지는 **앱마다 다릅니다.** 이 백오피스의 `resolveSsoEnv`는 localhost / dev.admin / prod admin origin을 백오피스 기준으로 매핑한 예시일 뿐입니다. 다른 앱은 자기 도메인 표를 새로 만들어야 하고, 이 파일을 그대로 복사하면 안 됩니다.
+어느 환경에서 어떤 URL과 `clientId`를 쓸지는 **앱마다 다릅니다.** 이 백오피스의 `resolveSsoEnv`는 origin → stage(`local` / `dev` / `prod`)로 나눈 뒤, stage별 API·Auth URL 표와 앱 `clientId`를 조합합니다. 배포 URL은 코드 표에 고정하고, `.env`는 localhost 오버라이드(`VITE_AUTH_APP_URL`, `VITE_SSO_LOGIN_MODE`)와 프록시 대상만 둡니다. 다른 앱은 **자기 origin allowlist와 `clientId`** 를 새로 만들어야 하고, 이 파일을 그대로 복사하면 안 됩니다.
 
 ---
 
