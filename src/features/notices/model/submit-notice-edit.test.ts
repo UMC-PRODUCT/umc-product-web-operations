@@ -6,9 +6,11 @@ import { submitNoticeEdit } from "./submit-notice-edit"
 const patchNotice = vi.fn()
 const replaceNoticeLinks = vi.fn()
 const replaceNoticeImages = vi.fn()
+const addNoticeVote = vi.fn()
 const uploadNoticeImageFiles = vi.fn()
 
 vi.mock("../api/notices-command.api", () => ({
+  addNoticeVote: (...args: unknown[]) => addNoticeVote(...args),
   patchNotice: (...args: unknown[]) => patchNotice(...args),
   replaceNoticeImages: (...args: unknown[]) => replaceNoticeImages(...args),
   replaceNoticeLinks: (...args: unknown[]) => replaceNoticeLinks(...args),
@@ -24,10 +26,12 @@ describe("submitNoticeEdit", () => {
     patchNotice.mockReset()
     replaceNoticeLinks.mockReset()
     replaceNoticeImages.mockReset()
+    addNoticeVote.mockReset()
     uploadNoticeImageFiles.mockReset()
     patchNotice.mockResolvedValue(undefined)
     replaceNoticeLinks.mockResolvedValue(undefined)
     replaceNoticeImages.mockResolvedValue(undefined)
+    addNoticeVote.mockResolvedValue({ noticeVoteId: 1, voteId: 2 })
     uploadNoticeImageFiles.mockResolvedValue([])
   })
 
@@ -87,5 +91,37 @@ describe("submitNoticeEdit", () => {
 
     expect(replaceNoticeLinks).toHaveBeenCalledWith(2, [])
     expect(replaceNoticeImages).toHaveBeenCalledWith(2, [])
+  })
+
+  it("calls NOTICE-103 after content save when voteDraft is provided", async () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      title: "t",
+      content: "c",
+      links: [],
+      existingImages: [],
+      imageFiles: [],
+    }
+    const voteDraft = {
+      allowMultiple: false,
+      endDate: new Date("2026-11-30T00:00:00"),
+      endTime: "18:00",
+      isAnonymous: false,
+      options: ["Yes", "No"],
+      startDate: new Date("2026-11-01T00:00:00"),
+      startTime: "09:00",
+      title: "투표",
+    }
+
+    const outcome = await submitNoticeEdit({ form, noticeId: 11, voteDraft })
+
+    expect(outcome).toEqual({ kind: "success" })
+    expect(addNoticeVote).toHaveBeenCalledWith(
+      11,
+      expect.objectContaining({
+        title: "투표",
+        options: ["Yes", "No"],
+      }),
+    )
   })
 })

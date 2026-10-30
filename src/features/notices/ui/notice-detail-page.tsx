@@ -102,7 +102,7 @@ export function NoticeDetailPage({
       ) : null}
       <article
         aria-busy={isImageLoading ? true : undefined}
-        className="border-neutral-disabled flex w-full flex-col items-start gap-(--umc-spacing-gap-24) rounded-(--umc-radius-14) border bg-white p-(--umc-spacing-padding-32)"
+        className="border-neutral-disabled flex w-full flex-col items-start gap-(--umc-spacing-gap-24) rounded-(--umc-radius-14) border bg-white p-(--umc-spacing-padding-40)"
       >
         {isImageLoading ? (
           <NoticeDetailLoadingContents showRequiredTag={notice.required} />
@@ -187,7 +187,7 @@ export function NoticeDetailPage({
 
             {notice.link ? <NoticeDetailLinkCard link={notice.link} /> : null}
 
-            {notice.poll ? (
+            {notice.poll != null ? (
               <NoticeDetailVoteCard
                 canManagePoll={canManageNotice}
                 noticeId={notice.id}

@@ -8,6 +8,8 @@ import {
   type GisuGenerationLookup,
 } from "./notice-gisu-generation"
 import { NOTICE_PART_LABELS } from "./notice-part-options"
+import { recomputePollPercents } from "./notice-poll-vote"
+import { resolveNoticeVoteUiStatus } from "./resolve-notice-vote-ui-status"
 
 import type {
   GetNoticeDetailResponse,
@@ -134,7 +136,7 @@ function resolveAudience(
   return "staff"
 }
 
-function mapVotePoll(
+export function mapNoticeVoteInfoToPoll(
   vote: NonNullable<GetNoticeDetailResponse["vote"]>,
 ): NoticePoll {
   const settings: string[] = []
@@ -147,19 +149,23 @@ function mapVotePoll(
 
   const selectedIds = new Set(vote.mySelectedOptionIds ?? [])
 
-  return {
-    id: String(vote.voteId),
-    options: vote.options.map((option) => ({
+  const options = recomputePollPercents(
+    vote.options.map((option) => ({
       id: String(option.optionId),
       isSelected: selectedIds.has(option.optionId),
       label: option.content,
-      progressPercent: Math.round(option.voteRate * 100),
-      voteCount: option.voteCount,
+      progressPercent: 0,
+      voteCount: Number(option.voteCount) || 0,
     })),
-    participantCount: vote.totalParticipants,
+  )
+
+  return {
+    id: String(vote.voteId),
+    options,
+    participantCount: Number(vote.totalParticipants) || 0,
     periodLabel: formatNoticeVotePeriod(vote.startsAt, vote.endsAtExclusive),
     settingsLabel: settings.join(" · "),
-    status: vote.status === "CLOSED" ? "closed" : "in_progress",
+    status: resolveNoticeVoteUiStatus(vote),
     title: vote.title,
   }
 }
@@ -207,7 +213,7 @@ export function mapNoticeDetailResponse(
       createdAt: detail.createdAt,
       hasImages: detail.images.length > 0,
       hasLinks: detail.links.length > 0,
-      hasVote: detail.vote != null,
+      hasVote: detail.hasVote ?? detail.vote != null,
       id: detail.id,
       mustRead: detail.mustRead,
       targetInfo: detail.targetInfo,
@@ -245,7 +251,7 @@ export function mapNoticeDetailResponse(
           url: firstLink.url,
         }
       : undefined,
-    poll: detail.vote ? mapVotePoll(detail.vote) : undefined,
+    poll: detail.vote ? mapNoticeVoteInfoToPoll(detail.vote) : undefined,
     targetDisplay: formatTargetDisplay(detail.targetInfo, context),
     updatedAt: formatNoticeDetailDateTime(detail.updatedAt),
   }

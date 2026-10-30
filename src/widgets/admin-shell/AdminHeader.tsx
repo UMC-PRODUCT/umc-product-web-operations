@@ -2,7 +2,12 @@ import "./admin-header.css"
 
 import { useQueryClient } from "@tanstack/react-query"
 import { getRouteApi, useNavigate } from "@tanstack/react-router"
-import { Header, HeaderActionButton, HeaderHomeLink } from "@umc-product/react"
+import {
+  HeaderActionButton,
+  HeaderDesktop,
+  HeaderHomeLink,
+  HeaderMobile,
+} from "@umc-product/react"
 import { useEffect, useId, useRef, useState } from "react"
 
 import { clearAdminSession } from "@/features/auth"
@@ -123,72 +128,79 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
     }
   }, [open])
 
-  return (
-    <Header
-      actions={
-        <>
-          <HeaderActionButton
-            onClick={() => {
-              window.open(
-                "https://pf.kakao.com/_MDxhqX",
-                "_blank",
-                "noopener,noreferrer",
-              )
+  const logo = (
+    <HeaderHomeLink context="operation" generation={generation} href="/" />
+  )
+
+  const actions = (
+    <>
+      <HeaderActionButton
+        onClick={() => {
+          window.open(
+            "https://pf.kakao.com/_MDxhqX",
+            "_blank",
+            "noopener,noreferrer",
+          )
+        }}
+        type="button"
+      >
+        문의사항
+      </HeaderActionButton>
+      <div className="relative flex items-center justify-center" ref={rootRef}>
+        <button
+          aria-controls={open ? menuId : undefined}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-label="프로필"
+          className="flex cursor-pointer items-center justify-center rounded-full border border-transparent transition-[box-shadow,border-color] duration-200 hover:border-[#b3e5e1] hover:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:border-[#b3e5e1] focus-visible:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:outline-none"
+          onClick={() => {
+            setOpen((current) => !current)
+          }}
+          type="button"
+        >
+          <ProfileAvatar alt="" imageUrl={session.profileImageUrl} size={40} />
+        </button>
+        {open ? (
+          <ProfileDropdown
+            className="absolute top-[calc(100%+8px)] right-0 z-50"
+            gisuOptions={selectedGisu.options}
+            id={menuId}
+            name={session.name || "이름 없음"}
+            onLogout={handleLogout}
+            onSelectGisu={(gisuId) => {
+              selectedGisu.setGisuId(gisuId)
+              void queryClient.invalidateQueries({ queryKey: ["notices"] })
+              setOpen(false)
             }}
-            type="button"
-          >
-            문의사항
-          </HeaderActionButton>
-          <div
-            className="relative flex items-center justify-center"
-            ref={rootRef}
-          >
-            <button
-              aria-controls={open ? menuId : undefined}
-              aria-expanded={open}
-              aria-haspopup="menu"
-              aria-label="프로필"
-              className="flex cursor-pointer items-center justify-center rounded-full border border-transparent transition-[box-shadow,border-color] duration-200 hover:border-[#b3e5e1] hover:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:border-[#b3e5e1] focus-visible:shadow-[0_0_0_3px_rgba(179,229,225,0.45),0_0_12px_rgba(122,199,193,0.35)] focus-visible:outline-none"
-              onClick={() => {
-                setOpen((current) => !current)
-              }}
-              type="button"
-            >
-              <ProfileAvatar
-                alt=""
-                imageUrl={session.profileImageUrl}
-                size={40}
-              />
-            </button>
-            {open ? (
-              <ProfileDropdown
-                className="absolute top-[calc(100%+8px)] right-0 z-50"
-                gisuOptions={selectedGisu.options}
-                id={menuId}
-                name={session.name || "이름 없음"}
-                onLogout={handleLogout}
-                onSelectGisu={(gisuId) => {
-                  selectedGisu.setGisuId(gisuId)
-                  void queryClient.invalidateQueries({ queryKey: ["notices"] })
-                  setOpen(false)
-                }}
-                profileImageUrl={session.profileImageUrl}
-                roleColor={resolveRoleColor(session)}
-                roleLabel={resolveRoleLabel(session)}
-                schoolName={session.schoolName || "학교 정보 없음"}
-                selectedGisuId={selectedGisu.selectedValue}
-              />
-            ) : null}
-          </div>
-        </>
-      }
-      className="admin-header relative z-20"
-      currentPath={currentPath}
-      logo={
-        <HeaderHomeLink context="operation" generation={generation} href="/" />
-      }
-      mode="light"
-      navItems={HEADER_NAV_ITEMS}
-    />
+            profileImageUrl={session.profileImageUrl}
+            roleColor={resolveRoleColor(session)}
+            roleLabel={resolveRoleLabel(session)}
+            schoolName={session.schoolName || "학교 정보 없음"}
+            selectedGisuId={selectedGisu.selectedValue}
+          />
+        ) : null}
+      </div>
+    </>
+  )
+
+  const headerProps = {
+    actions,
+    currentPath,
+    logo,
+    mode: "light" as const,
+    navItems: HEADER_NAV_ITEMS,
+  }
+
+  return (
+    <div className="admin-header-shell relative z-20">
+      <HeaderDesktop
+        {...headerProps}
+        className="admin-header admin-header--desktop"
+      />
+      <HeaderMobile
+        {...headerProps}
+        className="admin-header admin-header--mobile"
+      />
+    </div>
   )
 }

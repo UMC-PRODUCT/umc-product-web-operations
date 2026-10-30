@@ -27,16 +27,20 @@ import { submitNoticeCreate } from "../model/submit-notice-create"
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
 import { NoticeCreatePublishDialogErrorToast } from "./notice-create/notice-create-publish-dialog-error-toast"
 import { NoticeCreateSummaryPanel } from "./notice-create/notice-create-summary-panel"
+import { NoticeCreateVotePanel } from "./notice-create/notice-create-vote-panel"
+import { NoticeVoteDeleteDialog } from "./notice-create/notice-vote-delete-dialog"
 import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
   restoreNoticeDialogFocus,
 } from "./notice-dialog-focus"
 import {
+  showNoticeCreateForbiddenToast,
   showNoticeErrorToast,
-  showNoticeWarningToast,
+  showNoticeImageUploadFailureToast,
 } from "./show-notice-error-toast"
 
+import type { NoticeCreateVoteDraft } from "../model/notice-create-vote-draft"
 import type { NoticeOperatorSession } from "../model/notice-session"
 
 type NoticeCreatePageProps = {
@@ -58,8 +62,14 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const [publishNetworkError, setPublishNetworkError] = useState(false)
   const publishDialogFocusStore = useRef<HTMLElement | null>(null)
+  const [votePanelOpen, setVotePanelOpen] = useState(false)
+  const [voteDeleteDialogOpen, setVoteDeleteDialogOpen] = useState(false)
+  const [voteDraft, setVoteDraft] = useState<NoticeCreateVoteDraft | null>(null)
 
-  const isDirty = useMemo(() => isNoticeCreateFormDirty(form), [form])
+  const isDirty = useMemo(
+    () => isNoticeCreateFormDirty(form) || voteDraft != null,
+    [form, voteDraft],
+  )
 
   const blocker = useBlocker({
     enableBeforeUnload: isDirty,
@@ -252,6 +262,7 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
         session,
         operationGisuId: contextGisuId,
         targetGeneration: contextGeneration,
+        voteDraft,
       })
 
       if (outcome.kind === "success") {
@@ -280,7 +291,10 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
       if (outcome.kind === "forbidden") {
         setPublishDialogOpen(false)
         restoreNoticeDialogFocus(publishDialogFocusStore)
-        showNoticeWarningToast(toast, NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE)
+        showNoticeCreateForbiddenToast(
+          toast,
+          NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
+        )
         return
       }
 
@@ -314,14 +328,24 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
           onChange={patchForm}
           partOptions={partOptions}
           onImageUploadReject={() => {
-            showNoticeErrorToast(
+            showNoticeImageUploadFailureToast(
               toast,
               NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
             )
           }}
           organization={organization}
+          onVoteAddClick={() => {
+            setVotePanelOpen(true)
+          }}
+          onVoteDeleteClick={() => {
+            setVoteDeleteDialogOpen(true)
+          }}
+          onVoteEditClick={() => {
+            setVotePanelOpen(true)
+          }}
           showRequiredFieldErrors={showRequiredFieldErrors}
           targetSummaryLine={targetSummaryLine}
+          voteDraft={voteDraft}
         />
         <NoticeCreateSummaryPanel
           audienceTags={summary.audienceTags}
@@ -376,6 +400,28 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
           />
         ) : null}
       </Dialog>
+
+      <NoticeCreateVotePanel
+        initialDraft={voteDraft ?? undefined}
+        onClose={() => {
+          setVotePanelOpen(false)
+        }}
+        onCreate={(draft) => {
+          setVoteDraft(draft)
+          setVotePanelOpen(false)
+        }}
+        open={votePanelOpen}
+      />
+
+      {voteDeleteDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
+      <NoticeVoteDeleteDialog
+        onConfirm={() => {
+          setVoteDraft(null)
+          setVoteDeleteDialogOpen(false)
+        }}
+        onOpenChange={setVoteDeleteDialogOpen}
+        open={voteDeleteDialogOpen}
+      />
 
       {leaveDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog

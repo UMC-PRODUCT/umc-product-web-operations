@@ -102,6 +102,7 @@ export type GetNoticeDetailResponse = {
   authorMemberId?: number
   content: string
   createdAt: string
+  hasVote?: boolean
   id: number
   images: NoticeImageInfo[]
   links: NoticeLinkInfo[]
@@ -202,4 +203,19 @@ export type AddNoticeImagesRequest = {
 
 export type AddNoticeImagesResponse = {
   imageIds: number[]
+}
+
+/** NOTICE-103 — 공지 투표 추가 */
+export type AddNoticeVoteRequest = {
+  allowMultipleChoice: boolean
+  endsAtExclusive: string
+  isAnonymous: boolean
+  options: string[]
+  startsAt: string
+  title: string
+}
+
+export type AddNoticeVoteResponse = {
+  noticeVoteId: number
+  voteId: number
 }

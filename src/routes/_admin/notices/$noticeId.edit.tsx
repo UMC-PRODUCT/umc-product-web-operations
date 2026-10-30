@@ -4,6 +4,7 @@ import { NoticeEditPage } from "@/features/notices"
 import { loadNoticeEdit } from "@/features/notices/model/load-notice-edit"
 import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
 import { NoticeDetailStatusView } from "@/features/notices/ui/notice-detail-status-view"
+import { NoticeEditForbiddenStatusView } from "@/features/notices/ui/notice-edit-forbidden-status-view"
 
 type NoticeEditSearch = {
   listAudience?: ReturnType<typeof parseNoticeListAudienceOptional>
@@ -22,7 +23,7 @@ function NoticeEditRoute() {
   const { listAudience } = Route.useSearch()
 
   if (loaderData.kind === "forbidden") {
-    return <NoticeDetailStatusView variant="forbidden" />
+    return <NoticeEditForbiddenStatusView listAudience={listAudience} />
   }
 
   if (loaderData.kind === "deleted") {
@@ -31,6 +32,7 @@ function NoticeEditRoute() {
 
   return (
     <NoticeEditPage
+      initialAttachedVotePoll={loaderData.attachedVotePoll}
       initialForm={loaderData.initialForm}
       listAudience={listAudience}
       noticeId={loaderData.noticeId}

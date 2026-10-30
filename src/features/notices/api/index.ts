@@ -10,12 +10,17 @@ export type {
   PageResponseGetNoticeSummaryResponse,
   SearchNoticesParams,
 } from "./notice-api.types"
+export type {
+  AddNoticeVoteRequest,
+  AddNoticeVoteResponse,
+} from "./notice-api.types"
 export {
   uploadNoticeImageFile,
   uploadNoticeImageFiles,
 } from "./notice-file-upload.api"
 export {
   addNoticeImages,
+  addNoticeVote,
   deleteNotice,
   deleteNoticeVote,
   patchNotice,

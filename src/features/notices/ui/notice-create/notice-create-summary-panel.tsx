@@ -48,38 +48,36 @@ function NoticeCreateSummaryContent({
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-(--umc-spacing-gap-4)">
-        <div className="flex items-center gap-(--umc-spacing-gap-4)">
-          <span className="inline-flex size-4 shrink-0 items-center justify-center">
-            {showMustRead ? (
+      {showMustRead || showNotification ? (
+        <div className="flex flex-col gap-(--umc-spacing-gap-4)">
+          {showMustRead ? (
+            <div className="flex items-center gap-(--umc-spacing-gap-4)">
               <CheckIcon
                 aria-hidden
-                className="text-icon-brand-strong-600"
+                className="text-icon-brand-strong-600 shrink-0"
                 size={16}
                 weight="fill"
               />
-            ) : null}
-          </span>
-          <span className="text-body-3-medium text-neutral-medium-600">
-            필독
-          </span>
-        </div>
-        <div className="flex items-center gap-(--umc-spacing-gap-4)">
-          <span className="inline-flex size-4 shrink-0 items-center justify-center">
-            {showNotification ? (
+              <span className="text-body-3-medium text-neutral-medium-600">
+                필독
+              </span>
+            </div>
+          ) : null}
+          {showNotification ? (
+            <div className="flex items-center gap-(--umc-spacing-gap-4)">
               <CheckIcon
                 aria-hidden
-                className="text-icon-brand-strong-600"
+                className="text-icon-brand-strong-600 shrink-0"
                 size={16}
                 weight="fill"
               />
-            ) : null}
-          </span>
-          <span className="text-body-3-medium text-neutral-medium-600">
-            알림 설정 (게시 즉시 대상자 푸시)
-          </span>
+              <span className="text-body-3-medium text-neutral-medium-600">
+                알림 설정 (게시 즉시 대상자 푸시)
+              </span>
+            </div>
+          ) : null}
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }

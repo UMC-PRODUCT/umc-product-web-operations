@@ -1,17 +1,33 @@
 /**
- * DS `.umc-header__nav { overflow-x: auto }` 때문에
- * `.umc-header__nav-list`의 `0 0 16px` glow가 잘린다.
+ * DS `.umc-header-desktop__nav { overflow-x: auto }` 때문에
+ * `.umc-header-desktop__nav-list`의 glow가 잘린다.
  * (overflow-x가 visible이 아니면 overflow-y도 auto로 계산됨)
  *
  * padding으로 blur 영역을 스크롤포트 안에 확보하고,
  * 음수 margin으로 레이아웃 크기는 유지한다.
  */
-.umc-header.admin-header {
+.admin-header-shell .admin-header--desktop.umc-header-desktop {
   overflow: visible;
 }
 
-.umc-header.admin-header .umc-header__nav {
+.admin-header-shell
+  .admin-header--desktop.umc-header-desktop
+  .umc-header-desktop__nav {
   overflow: visible;
   padding: 16px;
   margin: -16px;
+}
+
+.admin-header-shell .admin-header--mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-header-shell .admin-header--desktop {
+    display: none;
+  }
+
+  .admin-header-shell .admin-header--mobile {
+    display: flex;
+  }
 }
