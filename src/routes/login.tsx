@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { lazy, Suspense, useEffect, useState } from "react"
 
+import {
+  clearOperatorOnlyLoginNotice,
+  hasOperatorOnlyLoginNotice,
+  OperatorOnlyNotice,
+} from "@/features/auth"
 import { getSsoClient } from "@/shared/auth/sso-client"
+import { AuthBusyScreen, LoadingSpinner } from "@/shared/ui/loading-spinner"
 
 const DevLoginForm = import.meta.env.DEV
   ? lazy(() =>
@@ -34,8 +40,16 @@ function LoginPage() {
   const { redirect: redirectTo } = Route.useSearch()
   const returnTo = redirectTo ?? "/notices"
   const [phase, setPhase] = useState<"checking" | "form" | "error">("checking")
+  const [showOperatorNotice, setShowOperatorNotice] = useState(() =>
+    hasOperatorOnlyLoginNotice(),
+  )
+  const [busyLabel, setBusyLabel] = useState<string | null>(null)
 
   useEffect(() => {
+    if (showOperatorNotice || busyLabel) {
+      return
+    }
+
     const client = getSsoClient()
     if (client.config.loginMode === "auth-app") {
       void client.startLogin(returnTo)
@@ -64,12 +78,45 @@ function LoginPage() {
     return () => {
       cancelled = true
     }
-  }, [returnTo])
+  }, [returnTo, showOperatorNotice, busyLabel])
+
+  if (busyLabel) {
+    return <AuthBusyScreen label={busyLabel} />
+  }
+
+  if (showOperatorNotice) {
+    return (
+      <OperatorOnlyNotice
+        onBack={() => {
+          clearOperatorOnlyLoginNotice()
+          window.history.back()
+        }}
+        onRelogin={() => {
+          clearOperatorOnlyLoginNotice()
+          const client = getSsoClient()
+          const returnToLogin = `${window.location.origin}/login`
+          setBusyLabel("로그아웃 중")
+          void (async () => {
+            if (client.config.loginMode === "auth-app") {
+              await client.logout({
+                global: true,
+                returnTo: returnToLogin,
+              })
+              return
+            }
+            await client.logout()
+            setBusyLabel(null)
+            setShowOperatorNotice(false)
+          })()
+        }}
+      />
+    )
+  }
 
   if (phase === "form" && import.meta.env.DEV && DevLoginForm) {
     return (
       <div className="flex min-h-screen items-center justify-center p-6">
-        <Suspense fallback={<p>로그인 중</p>}>
+        <Suspense fallback={<LoadingSpinner label="로그인 중" />}>
           <DevLoginForm
             onSubmit={({ email, password }) =>
               getSsoClient().devLogin(email, password, returnTo)
@@ -88,9 +135,5 @@ function LoginPage() {
     )
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <p>로그인 중</p>
-    </div>
-  )
+  return <AuthBusyScreen label="로그인 중" />
 }
