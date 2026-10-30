@@ -1,15 +1,18 @@
 import { getNoticeDetail } from "../api/notices-query.api"
 import { mapNoticeDetailToEditForm } from "./map-notice-detail-to-edit-form"
+import { mapNoticeVoteInfoToPoll } from "./map-notice-from-api"
 import {
   isNoticeForbiddenError,
   isNoticeNotFoundError,
 } from "./notice-api-error"
 
 import type { NoticeCreateFormState } from "./notice-create-form"
+import type { NoticePoll } from "./notice-detail.types"
 
 export type NoticeEditLoaderData =
   | {
       kind: "success"
+      attachedVotePoll: NoticePoll | null
       initialForm: NoticeCreateFormState
       noticeId: number
       title: string
@@ -29,6 +32,9 @@ export async function loadNoticeEdit(
     const detail = await getNoticeDetail(parsedId)
     return {
       kind: "success",
+      attachedVotePoll: detail.vote
+        ? mapNoticeVoteInfoToPoll(detail.vote)
+        : null,
       initialForm: mapNoticeDetailToEditForm(detail),
       noticeId: parsedId,
       title: detail.title,

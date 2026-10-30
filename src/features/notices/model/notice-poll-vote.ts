@@ -1,22 +1,45 @@
 import type { NoticePollOption } from "./notice-detail.types"
 
+function toVoteCount(value: number | string | undefined): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 export function getLeadingOptionIds(options: NoticePollOption[]): Set<string> {
   if (options.length === 0) {
     return new Set()
   }
 
-  const maxVotes = Math.max(...options.map((option) => option.voteCount))
+  const counts = options.map((option) => toVoteCount(option.voteCount))
+  const maxVotes = Math.max(...counts)
   return new Set(
     options
-      .filter((option) => option.voteCount === maxVotes)
+      .filter((_, index) => counts[index] === maxVotes)
       .map((option) => option.id),
   )
+}
+
+export function getVoteOptionProgressPercent(
+  option: NoticePollOption,
+  options: NoticePollOption[],
+): number {
+  const totalVotes = options.reduce(
+    (sum, item) => sum + toVoteCount(item.voteCount),
+    0,
+  )
+  if (totalVotes === 0) {
+    return 0
+  }
+  return Math.round((toVoteCount(option.voteCount) / totalVotes) * 100)
 }
 
 export function recomputePollPercents(
   options: NoticePollOption[],
 ): NoticePollOption[] {
-  const totalVotes = options.reduce((sum, option) => sum + option.voteCount, 0)
+  const totalVotes = options.reduce(
+    (sum, option) => sum + toVoteCount(option.voteCount),
+    0,
+  )
 
   if (totalVotes === 0) {
     return options.map((option) => ({ ...option, progressPercent: 0 }))
@@ -24,7 +47,7 @@ export function recomputePollPercents(
 
   return options.map((option) => ({
     ...option,
-    progressPercent: Math.round((option.voteCount / totalVotes) * 100),
+    progressPercent: getVoteOptionProgressPercent(option, options),
   }))
 }
 
@@ -46,6 +69,7 @@ export function applyPollVote({
   const nextOptions = options.map((option) => ({
     ...option,
     isSelected: false,
+    voteCount: toVoteCount(option.voteCount),
   }))
 
   if (!isFirstVote) {
@@ -65,9 +89,10 @@ export function applyPollVote({
     }
   }
 
+  const baseParticipants = toVoteCount(participantCount)
   const nextParticipantCount = isFirstVote
-    ? participantCount + 1
-    : participantCount
+    ? baseParticipants + 1
+    : baseParticipants
 
   return {
     options: recomputePollPercents(nextOptions),

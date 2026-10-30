@@ -3,6 +3,8 @@ import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
 import type {
   AddNoticeImagesRequest,
+  AddNoticeVoteRequest,
+  AddNoticeVoteResponse,
   CreateNoticeRequest,
   CreateNoticeResponse,
   ReplaceNoticeImagesRequest,
@@ -91,6 +93,18 @@ export async function deleteNotice(noticeId: number): Promise<void> {
   if (data !== null && data !== undefined && data !== "") {
     unwrapApiResult<null>(data)
   }
+}
+
+/** NOTICE-103 — 공지에 투표 1개 생성·연결 */
+export async function addNoticeVote(
+  noticeId: number,
+  body: AddNoticeVoteRequest,
+): Promise<AddNoticeVoteResponse> {
+  const { data } = await api.post<unknown>(
+    `/v1/notices/${noticeId}/votes`,
+    body,
+  )
+  return unwrapApiResult<AddNoticeVoteResponse>(data)
 }
 
 /** NOTICE-106 — 공지에 연결된 투표 삭제(운영 UI: 투표 종료) */
