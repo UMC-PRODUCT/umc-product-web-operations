@@ -25,6 +25,7 @@ import {
   AWARD_MODAL_TITLE,
   formatAwardScoreLabel,
   formatOtherScoreCaption,
+  formatTypeListScore,
   getPointTypeOptions,
   getTypeListLabel,
   REASON_MAX_LENGTH,
@@ -562,7 +563,7 @@ export function AwardPointsModal({
                                 size="sm"
                                 variant="weak"
                               >
-                                {option.score}
+                                {formatTypeListScore(option.score)}
                               </Tag>
                             </span>
                             <Checkbox
