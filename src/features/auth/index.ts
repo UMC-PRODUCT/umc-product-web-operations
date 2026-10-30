@@ -26,4 +26,9 @@ export {
   OperatorGisuProvider,
   useOperatorGisu,
 } from "./model/operator-gisu-context"
+export {
+  clearOperatorOnlyLoginNotice,
+  hasOperatorOnlyLoginNotice,
+  markOperatorOnlyLoginNotice,
+} from "./model/operator-only-login-notice"
 export { ForbiddenNotice, OperatorOnlyNotice } from "./ui/access-notice"
