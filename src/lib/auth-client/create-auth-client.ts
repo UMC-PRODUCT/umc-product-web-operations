@@ -102,7 +102,8 @@ export function createAuthClient(
         ? `${trimTrailingSlash(config.authAppUrl)}/authorize?${params.toString()}`
         : `${apiUrl(config.apiBaseUrl, "/api/v1/auth/sso/oauth/authorize")}?${params.toString()}`
 
-    location.assign(target)
+    // 로그인 시작 전 화면이 히스토리에 남지 않도록 replace 한다.
+    location.replace(target)
   }
 
   async function handleCallback(currentUrl?: string) {
@@ -223,7 +224,8 @@ export function createAuthClient(
         "return_to",
         logoutOptions.returnTo ?? location.origin,
       )
-      location.assign(url.toString())
+      // 로그아웃 전 보호 화면이 뒤로가기로 다시 열리지 않게 한다.
+      location.replace(url.toString())
     }
   }
 
@@ -327,6 +329,9 @@ function browserLocation(): AuthLocation {
     },
     get origin() {
       return window.location.origin
+    },
+    replace(url: string) {
+      window.location.replace(url)
     },
   }
 }

@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_admin")({
     const client = getSsoClient()
     if (!client.getAccessToken() && !client.getRefreshToken()) {
       throw redirect({
+        replace: true,
         search: { redirect: location.pathname },
         to: "/login",
       })
@@ -42,7 +43,7 @@ export const Route = createFileRoute("/_admin")({
           await new Promise<never>(() => {})
         }
         await client.logout()
-        throw redirect({ to: "/login" })
+        throw redirect({ replace: true, to: "/login" })
       }
       return { session }
     } catch (error) {
@@ -58,6 +59,7 @@ export const Route = createFileRoute("/_admin")({
       if (!client.getAccessToken() && !client.getRefreshToken()) {
         clearAdminSession(context.queryClient)
         throw redirect({
+          replace: true,
           search: { redirect: location.pathname },
           to: "/login",
         })

@@ -31,6 +31,7 @@ export type AuthLocation = {
   origin: string
   href: string
   assign: (url: string) => void
+  replace: (url: string) => void
 }
 
 export type AuthClientDeps = {

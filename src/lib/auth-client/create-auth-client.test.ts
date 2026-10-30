@@ -19,6 +19,7 @@ function location(origin: string, href = `${origin}/`): AuthLocation {
     assign: vi.fn(),
     href,
     origin,
+    replace: vi.fn(),
   }
 }
 
@@ -59,7 +60,7 @@ describe("startLogin", () => {
 
     await client.startLogin("/notices")
 
-    const target = String(vi.mocked(browser.assign).mock.calls[0]?.[0])
+    const target = String(vi.mocked(browser.replace).mock.calls[0]?.[0])
     const url = new URL(target, browser.origin)
     expect(url.pathname).toBe("/api/v1/auth/sso/oauth/authorize")
     expect(url.searchParams.get("client_id")).toBe("local")
@@ -89,7 +90,7 @@ describe("startLogin", () => {
 
     await client.startLogin()
 
-    const target = String(vi.mocked(browser.assign).mock.calls[0]?.[0])
+    const target = String(vi.mocked(browser.replace).mock.calls[0]?.[0])
     const url = new URL(target)
     expect(url.origin).toBe("https://auth.university.neordinary.com")
     expect(url.pathname).toBe("/authorize")
@@ -152,7 +153,7 @@ describe("handleCallback", () => {
       ).rejects.toMatchObject({ code })
 
       expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(browser.assign).toHaveBeenCalledTimes(1)
+      expect(browser.replace).toHaveBeenCalledTimes(1)
       expect(sessionStorage.getItem(SSO_STORAGE.state)).not.toBe("state-1")
       expect(sessionStorage.getItem(SSO_STORAGE.codeVerifier)).not.toBe(
         "verifier-1",
@@ -255,7 +256,7 @@ describe("createApiFetch", () => {
     expect(results).toEqual([{ ok: true }, { ok: true }, { ok: true }])
     expect(renewCount).toBe(1)
     expect(client.getRefreshToken()).toBe("refresh-2")
-    expect(browser.assign).not.toHaveBeenCalled()
+    expect(browser.replace).not.toHaveBeenCalled()
   })
 
   it("starts login when renew fails and the policy is login", async () => {
@@ -283,7 +284,7 @@ describe("createApiFetch", () => {
       client.createApiFetch()("/api/v1/notices"),
     ).rejects.toBeInstanceOf(ApiError)
 
-    expect(browser.assign).toHaveBeenCalledTimes(1)
+    expect(browser.replace).toHaveBeenCalledTimes(1)
     expect(client.getRefreshToken()).toBeNull()
   })
 
@@ -312,6 +313,6 @@ describe("createApiFetch", () => {
       name: "ApiError",
       status: 401,
     })
-    expect(browser.assign).not.toHaveBeenCalled()
+    expect(browser.replace).not.toHaveBeenCalled()
   })
 })

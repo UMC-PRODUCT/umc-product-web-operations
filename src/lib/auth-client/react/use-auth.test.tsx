@@ -45,6 +45,7 @@ describe("useAuth", () => {
           assign: vi.fn(),
           href: "http://localhost:5173/",
           origin: "http://localhost:5173",
+          replace: vi.fn(),
         },
       },
     )
@@ -72,6 +73,7 @@ describe("useAuth", () => {
           assign: vi.fn(),
           href: "http://localhost:5173/",
           origin: "http://localhost:5173",
+          replace: vi.fn(),
         },
       },
     )
@@ -99,6 +101,7 @@ describe("useAuth", () => {
           assign: vi.fn(),
           href: "http://localhost:5173/",
           origin: "http://localhost:5173",
+          replace: vi.fn(),
         },
       },
     )

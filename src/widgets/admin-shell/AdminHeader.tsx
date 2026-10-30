@@ -90,7 +90,10 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
   const handleLogout = () => {
     setOpen(false)
     void getSsoClient()
-      .logout({ global: true })
+      .logout({
+        global: true,
+        returnTo: `${window.location.origin}/login`,
+      })
       .finally(() => {
         queryClient.removeQueries({ queryKey: adminSessionQueryKey })
       })
