@@ -20,6 +20,10 @@ function toFilterValue<T extends string>(value: string | null): T | null {
   return value as T
 }
 
+function filterSelectVariant(value: string | null): "default" | "filter" {
+  return value ? "filter" : "default"
+}
+
 type PointsToolbarProps = {
   chapterId: string | null
   chapterOptions: readonly OrganizationFilterOption[]
@@ -60,6 +64,7 @@ export function PointsToolbar({
         placeholder="지부 전체"
         size="md"
         value={chapterId}
+        variant={filterSelectVariant(chapterId)}
       />
       <Select
         aria-label="학교"
@@ -70,6 +75,7 @@ export function PointsToolbar({
         placeholder="학교 전체"
         size="md"
         value={schoolId}
+        variant={filterSelectVariant(schoolId)}
       />
       <Select
         aria-label="파트"
@@ -81,6 +87,7 @@ export function PointsToolbar({
         placeholder="파트 전체"
         size="md"
         value={part}
+        variant={filterSelectVariant(part)}
       />
       <SearchField
         aria-label="구성원 검색"
