@@ -25,6 +25,7 @@ export type CurrentGisuMemberInfo = {
 }
 
 export type ChallengerHistoryItem = {
+  challengerId?: ApiInt | null
   gisuId?: ApiInt | null
   generation?: ApiInt | null
 }
