@@ -2,7 +2,6 @@ import { normalizeNoticeCreateTargetParts } from "./notice-create-target-parts"
 
 import type {
   CreateNoticeRequest,
-  NoticePart,
   NoticeTab,
   NoticeTargetInfo,
 } from "../api/notice-api.types"
@@ -27,29 +26,71 @@ function resolveChallengerTargetGisuId(
   return form.targetGisuId
 }
 
-/** NOTICE-201: 빈 배열이면 전체 파트, 운영진 탭별 규칙은 스펙 표 참고 */
-function resolveTargetParts(
+function resolveChallengerTargetOrganizationIds(
+  form: NoticeCreateFormState,
+  targetGisuId: number | null,
+): Pick<NoticeTargetInfo, "targetChapterId" | "targetSchoolId"> {
+  if (targetGisuId == null) {
+    return { targetChapterId: null, targetSchoolId: null }
+  }
+
+  return {
+    targetChapterId: form.orgMode === "chapter" ? form.chapterId : null,
+    targetSchoolId: form.orgMode === "school" ? form.schoolId : null,
+  }
+}
+
+/** NOTICE-201: 운영진 공지는 targetChapterId 지정 불가 */
+function buildStaffTargetInfo(
   form: NoticeCreateFormState,
   targetNoticeTab: NoticeTab,
+  sessionGisuId: number | null,
   targetGeneration: number | null,
-): NoticePart[] | undefined {
-  const isStaffNotice = targetNoticeTab !== "CHALLENGER"
+): NoticeTargetInfo {
+  const targetGisuId = resolveStaffTargetGisuId(form, sessionGisuId)
+
+  const targetSchoolId =
+    targetNoticeTab === "SCHOOL_PART_LEADER" && form.orgMode === "school"
+      ? form.schoolId
+      : null
+
+  const targetInfo: NoticeTargetInfo = {
+    targetNoticeTab,
+    targetGisuId,
+    targetSchoolId,
+  }
+
+  if (targetNoticeTab === "SCHOOL_PART_LEADER") {
+    const normalized = normalizeNoticeCreateTargetParts(
+      form.parts,
+      targetGeneration,
+    )
+    targetInfo.targetParts = normalized.length > 0 ? normalized : []
+  }
+
+  return targetInfo
+}
+
+function buildChallengerTargetInfo(
+  form: NoticeCreateFormState,
+  targetGeneration: number | null,
+): NoticeTargetInfo {
+  const targetGisuId = resolveChallengerTargetGisuId(form)
+  const { targetChapterId, targetSchoolId } =
+    resolveChallengerTargetOrganizationIds(form, targetGisuId)
+
   const normalized = normalizeNoticeCreateTargetParts(
     form.parts,
     targetGeneration,
   )
 
-  if (isStaffNotice) {
-    if (
-      targetNoticeTab === "CENTRAL_MEMBER" ||
-      targetNoticeTab === "SCHOOL_CORE"
-    ) {
-      return undefined
-    }
-    return normalized.length > 0 ? normalized : []
+  return {
+    targetNoticeTab: "CHALLENGER",
+    targetGisuId,
+    targetChapterId,
+    targetSchoolId,
+    targetParts: normalized.length > 0 ? normalized : [],
   }
-
-  return normalized.length > 0 ? normalized : []
 }
 
 function buildTargetInfo(
@@ -58,41 +99,16 @@ function buildTargetInfo(
   sessionGisuId: number | null,
   targetGeneration: number | null,
 ): NoticeTargetInfo {
-  const isStaffNotice = targetNoticeTab !== "CHALLENGER"
-
-  const targetGisuId = isStaffNotice
-    ? resolveStaffTargetGisuId(form, sessionGisuId)
-    : resolveChallengerTargetGisuId(form)
-
-  let targetChapterId: number | null | undefined
-  let targetSchoolId: number | null | undefined
-
-  if (isStaffNotice) {
-    targetChapterId = undefined
-    targetSchoolId = form.orgMode === "school" ? form.schoolId : null
-  } else {
-    if (targetGisuId == null) {
-      targetChapterId = null
-      targetSchoolId = null
-    } else {
-      targetChapterId = form.orgMode === "chapter" ? form.chapterId : null
-      targetSchoolId = form.orgMode === "school" ? form.schoolId : null
-    }
+  if (targetNoticeTab === "CHALLENGER") {
+    return buildChallengerTargetInfo(form, targetGeneration)
   }
 
-  const targetParts = resolveTargetParts(
+  return buildStaffTargetInfo(
     form,
     targetNoticeTab,
+    sessionGisuId,
     targetGeneration,
   )
-
-  return {
-    targetNoticeTab,
-    targetGisuId,
-    targetChapterId,
-    targetSchoolId,
-    targetParts,
-  }
 }
 
 function buildCreateNoticeRequest(

@@ -1,3 +1,5 @@
+import { renderNoticeDetailBodyLine } from "./notice-detail-body-inline"
+
 type NoticeDetailBodyProps = {
   body: string
 }
@@ -7,14 +9,9 @@ export function NoticeDetailBody({ body }: NoticeDetailBodyProps) {
 
   return (
     <div className="flex w-full flex-col gap-(--umc-spacing-gap-8) pb-(--umc-spacing-padding-20)">
-      {lines.map((line, index) => (
-        <p
-          className="text-body-1-medium text-neutral-default-900"
-          key={`${index}-${line}`}
-        >
-          {line}
-        </p>
-      ))}
+      {lines.map((line, index) =>
+        renderNoticeDetailBodyLine(line, `${index}-${line}`),
+      )}
     </div>
   )
 }

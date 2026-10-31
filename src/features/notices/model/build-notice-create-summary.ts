@@ -1,5 +1,10 @@
 import { NOTICE_CREATE_STAFF_SCOPE_OPTIONS } from "./notice-create-form"
 import { NOTICE_PART_LABELS } from "./notice-part-options"
+import {
+  canNoticeCreateUseChapterOrg,
+  canNoticeCreateUsePartSelection,
+  canStaffNoticeUseSchoolOrg,
+} from "./notice-staff-target-rules"
 
 import type { NoticeCreateFormState } from "./notice-create-form"
 
@@ -32,12 +37,27 @@ export function buildNoticeCreateSummary(
   } else if (labels.gisuLabel) {
     targetParts.push(labels.gisuLabel)
   }
-  if (form.orgMode === "school" && labels.schoolName) {
-    targetParts.push(labels.schoolName)
-  } else if (form.orgMode === "chapter" && labels.chapterName) {
+
+  const showSchoolInSummary =
+    form.orgMode === "school" &&
+    labels.schoolName &&
+    (!form.staffEnabled ||
+      form.challengerEnabled ||
+      canStaffNoticeUseSchoolOrg(form.staffScope))
+
+  if (showSchoolInSummary) {
+    targetParts.push(labels.schoolName!)
+  }
+
+  if (
+    form.orgMode === "chapter" &&
+    labels.chapterName &&
+    canNoticeCreateUseChapterOrg(form)
+  ) {
     targetParts.push(labels.chapterName)
   }
-  if (form.parts.length > 0) {
+
+  if (form.parts.length > 0 && canNoticeCreateUsePartSelection(form)) {
     targetParts.push(
       form.parts.map((part) => NOTICE_PART_LABELS[part]).join(", "),
     )

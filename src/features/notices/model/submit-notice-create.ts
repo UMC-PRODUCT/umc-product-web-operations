@@ -28,6 +28,7 @@ import {
   isNoticeCreateLinkUrl,
   NOTICE_CREATE_LINK_INVALID_MESSAGE,
 } from "./notice-create-link"
+import { validateStaffNoticeCreateForm } from "./notice-staff-target-rules"
 
 import type { NoticeCreateVoteDraft } from "./notice-create-vote-draft"
 import type { NoticeOperatorSession } from "./notice-session"
@@ -66,10 +67,22 @@ export function validateNoticeCreateForm(
   ) {
     return "전체 기수로 챌린저 공지를 보낼 때는 UMC 전체 대상만 가능해요. 지부·학교 대상은 특정 기수를 선택해 주세요"
   }
-  if (form.orgMode === "chapter" && form.chapterId == null) {
+  const staffValidationMessage = validateStaffNoticeCreateForm(form)
+  if (staffValidationMessage) {
+    return staffValidationMessage
+  }
+  if (
+    form.challengerEnabled &&
+    form.orgMode === "chapter" &&
+    form.chapterId == null
+  ) {
     return "지부를 선택해 주세요"
   }
-  if (form.orgMode === "school" && form.schoolId == null) {
+  if (
+    form.challengerEnabled &&
+    form.orgMode === "school" &&
+    form.schoolId == null
+  ) {
     return "학교를 선택해 주세요"
   }
   const linkDraftValidation = getNoticeCreateLinkDraftValidation(form.linkDraft)

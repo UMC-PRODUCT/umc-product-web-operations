@@ -19,8 +19,10 @@ function Bone({ className }: { className?: string }) {
   )
 }
 
-const IMAGE_PLACEHOLDER_CLASS =
-  "size-[200px] shrink-0 rounded-(--umc-radius-12) bg-[linear-gradient(138deg,var(--umc-color-teal-grey-100,#eff0f0)_6.73%,var(--umc-color-action-primary-pressed,#e2e3e3)_93.94%)]"
+const IMAGE_PLACEHOLDER_CLASS = cn(
+  "size-[200px] shrink-0 rounded-(--umc-radius-12)",
+  "bg-[linear-gradient(138deg,var(--umc-color-fill-neutral-weaker-hover-pressed)_6.73%,var(--umc-color-fill-neutral-weak-hover-pressed)_93.94%)]",
+)
 
 export function NoticeDetailLoadingContents({
   showRequiredTag = true,

@@ -8,7 +8,6 @@ type NoticeDetailMetaRowProps = {
   items: NoticeDetailMetaItem[]
 }
 
-/** Figma `log` (580:14266) — Body/3-Medium 라벨, Body/3-Regular 값, 그룹 gap 12 */
 export function NoticeDetailMetaRow({ items }: NoticeDetailMetaRowProps) {
   return (
     <div className="flex w-full flex-nowrap items-start gap-(--umc-spacing-gap-12) whitespace-nowrap">

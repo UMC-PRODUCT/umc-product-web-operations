@@ -20,6 +20,12 @@ import {
   type NoticeCreateStaffScope,
 } from "../../model/notice-create-form"
 import { getNoticeCreateLinkDraftValidation } from "../../model/notice-create-link"
+import {
+  canNoticeCreateUseChapterOrg,
+  canNoticeCreateUsePartSelection,
+  canStaffNoticeUseSchoolOrg,
+  isStaffCentralNoticeTab,
+} from "../../model/notice-staff-target-rules"
 import { NOTICE_CREATE_LENGTH_COUNTER_CLASS } from "../constants"
 import { NoticeCreateBodyField } from "./notice-create-body-field"
 import { NoticeCreateImageGallery } from "./notice-create-image-gallery"
@@ -43,15 +49,12 @@ const NOTICE_CREATE_LINK_FIELD_CLASS = cn(
 
 const NOTICE_CREATE_TITLE_FIELD_CLASS = cn(
   "w-full",
-  "[&_.umc-text-field-box-field__unit]:text-label-2-medium",
-  "[&_.umc-text-field-box-field__unit]:text-placeholder",
+  "[&_.umc-text-field-box-field__unit]:ms-[var(--umc-spacing-gap-8,8px)]",
+  "[&_.umc-text-field-box-field__input]:pe-[var(--umc-spacing-gap-8,8px)]",
 )
 
 function formatNoticeCreateTitleCounter(length: number, max: number): string {
-  if (length >= max) {
-    return `${length}/${max}`
-  }
-  return `${length} / ${max}`
+  return `${length}/${max}`
 }
 
 function NoticeCreateLinkFieldUnit({ children }: { children: ReactNode }) {
@@ -167,18 +170,50 @@ export function NoticeCreateFormFields({
     value: String(school.schoolId),
   }))
 
+  const gisuModeOptions = useMemo(
+    () =>
+      NOTICE_CREATE_GISU_MODE_OPTIONS.map((option) => ({
+        ...option,
+        disabled:
+          form.staffEnabled &&
+          !form.challengerEnabled &&
+          option.value === "all",
+      })),
+    [form.challengerEnabled, form.staffEnabled],
+  )
+
   const orgModeOptions = useMemo(() => {
     const disableChapterAndSchool = form.gisuMode === "all"
 
     return NOTICE_CREATE_ORG_MODE_OPTIONS.map((option) => ({
       ...option,
       disabled:
-        disableChapterAndSchool &&
-        (option.value === "chapter" || option.value === "school"),
+        (disableChapterAndSchool &&
+          (option.value === "chapter" || option.value === "school")) ||
+        (option.value === "chapter" && !canNoticeCreateUseChapterOrg(form)) ||
+        (option.value === "school" &&
+          form.staffEnabled &&
+          !canStaffNoticeUseSchoolOrg(form.staffScope)),
     }))
-  }, [form.gisuMode])
+  }, [form])
 
-  const showPartSelection = form.gisuMode !== "all" || form.orgMode !== "umc"
+  const showPartSelection = canNoticeCreateUsePartSelection(form)
+
+  const applyStaffScopeChange = (staffScope: NoticeCreateStaffScope) => {
+    const patch: Partial<NoticeCreateFormState> = { staffScope }
+
+    if (isStaffCentralNoticeTab(staffScope)) {
+      if (form.orgMode === "school") {
+        patch.orgMode = "umc"
+        patch.schoolId = null
+      }
+      if (!form.challengerEnabled) {
+        patch.parts = []
+      }
+    }
+
+    onChange(patch)
+  }
 
   const togglePart = (part: NoticeCreatePartOption["value"]) => {
     onChange({
@@ -265,7 +300,22 @@ export function NoticeCreateFormFields({
               color={form.staffEnabled ? "brand" : "neutral"}
               labelPlacement="end"
               onCheckedChange={(checked) => {
-                onChange({ staffEnabled: checked === true })
+                const staffEnabled = checked === true
+                if (
+                  staffEnabled &&
+                  !form.challengerEnabled &&
+                  (form.orgMode === "chapter" || form.gisuMode === "all")
+                ) {
+                  onChange({
+                    chapterId: null,
+                    gisuMode:
+                      form.gisuMode === "all" ? "specific" : form.gisuMode,
+                    orgMode: form.orgMode === "chapter" ? "umc" : form.orgMode,
+                    staffEnabled,
+                  })
+                  return
+                }
+                onChange({ staffEnabled })
               }}
               size="lg"
             >
@@ -287,7 +337,7 @@ export function NoticeCreateFormFields({
               <OptionButtonGroup
                 aria-label="운영진 범위"
                 onValueChange={(value) => {
-                  onChange({ staffScope: value as NoticeCreateStaffScope })
+                  applyStaffScopeChange(value as NoticeCreateStaffScope)
                 }}
                 options={NOTICE_CREATE_STAFF_SCOPE_OPTIONS}
                 size="sm"
@@ -322,7 +372,7 @@ export function NoticeCreateFormFields({
                 }
                 onChange({ gisuMode })
               }}
-              options={NOTICE_CREATE_GISU_MODE_OPTIONS}
+              options={gisuModeOptions}
               size="sm"
               type="single"
               value={form.gisuMode}
@@ -370,7 +420,8 @@ export function NoticeCreateFormFields({
               value={form.orgMode}
               variant="weak"
             />
-            {form.orgMode === "chapter" ? (
+            {form.orgMode === "chapter" &&
+            canNoticeCreateUseChapterOrg(form) ? (
               <Select
                 aria-label="지부"
                 className="w-auto shrink-0"
