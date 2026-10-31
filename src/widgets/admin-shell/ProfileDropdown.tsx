@@ -27,7 +27,6 @@ export type ProfileDropdownProps = {
   selectedGisuId: string | null
   onSelectGisu: (gisuId: string) => void
   onLogout: () => void
-  onAccountSettings?: () => void
   className?: string
 }
 
@@ -40,7 +39,7 @@ export type ProfileDropdownProps = {
  *     profile: avatar → (닉네임/이름 + 학교) + RoleTag
  *     gisu: Divider → label → menu list
  *     Divider
- *     actions: 계정 설정 / 로그아웃
+ *     actions: 로그아웃
  */
 export function ProfileDropdown({
   id,
@@ -54,7 +53,6 @@ export function ProfileDropdown({
   selectedGisuId,
   onSelectGisu,
   onLogout,
-  onAccountSettings,
   className,
 }: ProfileDropdownProps) {
   const trimmedNickname = nickname?.trim() || null
@@ -131,14 +129,6 @@ export function ProfileDropdown({
         <Divider />
 
         <div className="relative flex shrink-0 flex-col items-start gap-2.5 px-1.5">
-          <button
-            className="relative flex h-[18px] w-16 shrink-0 cursor-pointer items-center text-[14px] leading-[1.35] font-medium whitespace-nowrap text-[#3f4141] transition-colors hover:text-[#0f1010]"
-            onClick={onAccountSettings}
-            role="menuitem"
-            type="button"
-          >
-            계정 설정
-          </button>
           <button
             className="relative flex h-[18px] w-16 shrink-0 cursor-pointer items-center text-[14px] leading-[1.35] font-medium whitespace-nowrap text-[#dc3d3d] transition-colors hover:text-[#a60303]"
             onClick={onLogout}
