@@ -2,10 +2,15 @@ import { isAxiosError } from "axios"
 
 import { uploadNoticeImageFiles } from "../api/notice-file-upload.api"
 import {
+  addNoticeVote,
   patchNotice,
   replaceNoticeImages,
   replaceNoticeLinks,
 } from "../api/notices-command.api"
+import {
+  buildAddNoticeVoteRequest,
+  validateNoticeCreateVoteForSubmit,
+} from "./build-notice-create-vote-request"
 import {
   getHttpStatus,
   getNoticeApiErrorMessage,
@@ -22,6 +27,8 @@ import {
   isNoticeCreateLinkUrl,
   NOTICE_CREATE_LINK_INVALID_MESSAGE,
 } from "./notice-create-link"
+
+import type { NoticeCreateVoteDraft } from "./notice-create-vote-draft"
 
 export type SubmitNoticeEditOutcome =
   | { kind: "success" }
@@ -65,10 +72,20 @@ export function isNoticeEditFormDirty(
 export async function submitNoticeEdit(input: {
   form: NoticeCreateFormState
   noticeId: number
+  voteDraft?: NoticeCreateVoteDraft | null
 }): Promise<SubmitNoticeEditOutcome> {
   const validationMessage = validateNoticeEditForm(input.form)
   if (validationMessage) {
     return { kind: "validation_error", message: validationMessage }
+  }
+
+  if (input.voteDraft != null) {
+    const voteValidationMessage = validateNoticeCreateVoteForSubmit(
+      input.voteDraft,
+    )
+    if (voteValidationMessage != null) {
+      return { kind: "validation_error", message: voteValidationMessage }
+    }
   }
 
   try {
@@ -89,6 +106,13 @@ export async function submitNoticeEdit(input: {
       ...newImageIds,
     ]
     await replaceNoticeImages(input.noticeId, imageIds)
+
+    if (input.voteDraft != null) {
+      await addNoticeVote(
+        input.noticeId,
+        buildAddNoticeVoteRequest(input.voteDraft),
+      )
+    }
 
     return { kind: "success" }
   } catch (error) {

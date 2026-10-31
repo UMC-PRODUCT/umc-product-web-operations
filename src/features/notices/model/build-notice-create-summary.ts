@@ -27,7 +27,9 @@ export function buildNoticeCreateSummary(
     )?.label ?? ""
 
   const targetParts: string[] = []
-  if (form.gisuMode === "specific" && labels.gisuLabel) {
+  if (form.gisuMode === "all") {
+    targetParts.push("전체 기수")
+  } else if (labels.gisuLabel) {
     targetParts.push(labels.gisuLabel)
   }
   if (form.orgMode === "school" && labels.schoolName) {

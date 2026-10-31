@@ -10,11 +10,11 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import { getServerErrorMessage } from "@/shared/api/server-error"
 
-import { deleteNoticeVoteByNoticeId } from "../model/delete-notice-vote"
 import {
   applyPollVote,
   getInitialViewerSelection,
   getLeadingOptionIds,
+  getVoteOptionProgressPercent,
   shouldCancelNoticeVoteOnLeave,
 } from "../model/notice-poll-vote"
 import {
@@ -32,12 +32,16 @@ import type { NoticePoll, NoticePollOption } from "../model/notice-detail.types"
 
 type NoticeDetailVoteCardProps = {
   canManagePoll?: boolean
+  /** 작성 화면 미리보기 — API 호출 없이 카드 UI만 동작 */
+  interaction?: "default" | "preview"
+  /** Figma 1221:13714 — 폼에 첨부된 투표 카드(결과만, 액션 숨김) */
+  layout?: "default" | "attached"
   noticeId: string
   poll: NoticePoll
 }
 
 function formatVoteCount(count: number) {
-  return `${count}명`
+  return `${Number(count)}명`
 }
 
 function isMultipleChoicePoll(poll: NoticePoll) {
@@ -75,6 +79,7 @@ type VoteOptionResultRowProps = {
   isLeading: boolean
   isViewerChoice: boolean
   option: NoticePollOption
+  progressPercent: number
 }
 
 function getResultCheckboxState(
@@ -130,6 +135,7 @@ function VoteOptionResultRow({
   isLeading,
   isViewerChoice,
   option,
+  progressPercent,
 }: VoteOptionResultRowProps) {
   const resultCheckbox = getResultCheckboxState(
     isLeading,
@@ -153,11 +159,11 @@ function VoteOptionResultRow({
         </span>
       </div>
       <ProgressBar
-        aria-label={`${option.label} ${option.progressPercent}%`}
+        aria-label={`${option.label} ${progressPercent}%`}
         color={isLeading ? "brand" : "neutral"}
         max={100}
         size="lg"
-        value={option.progressPercent}
+        value={progressPercent}
       />
     </li>
   )
@@ -165,9 +171,13 @@ function VoteOptionResultRow({
 
 export function NoticeDetailVoteCard({
   canManagePoll = false,
+  interaction = "default",
+  layout = "default",
   noticeId,
   poll,
 }: NoticeDetailVoteCardProps) {
+  const isPreview = interaction === "preview"
+  const isAttached = layout === "attached"
   const toast = useToast()
   const allowMultiple = isMultipleChoicePoll(poll)
   const initialSelection = useMemo(
@@ -210,6 +220,20 @@ export function NoticeDetailVoteCard({
   })
 
   useEffect(() => {
+    const nextSelection = getInitialViewerSelection(poll.options)
+    setStatus(poll.status)
+    setOptions(poll.options)
+    setParticipantCount(poll.participantCount)
+    setViewerSelection(nextSelection)
+    setHasEverVoted(nextSelection.length > 0)
+    setDraftSelection(nextSelection)
+    setIsRevoting(false)
+  }, [poll])
+
+  useEffect(() => {
+    if (isPreview) {
+      return
+    }
     return () => {
       const state = voteLeaveStateRef.current
       if (!shouldCancelNoticeVoteOnLeave(state)) {
@@ -223,11 +247,13 @@ export function NoticeDetailVoteCard({
 
       void cancelNoticeVoteResponse(parsedNoticeId)
     }
-  }, [])
+  }, [isPreview])
 
   const isClosed = status === "closed"
-  const isInputMode = !isClosed && (!hasEverVoted || isRevoting)
-  const showResults = isClosed || (hasEverVoted && !isRevoting)
+  const canVote =
+    !isPreview && !isAttached && !isClosed && (!hasEverVoted || isRevoting)
+  const isInputMode = canVote
+  const showResults = isAttached || isClosed || (hasEverVoted && !isRevoting)
   const leadingOptionIds = useMemo(
     () => getLeadingOptionIds(options),
     [options],
@@ -258,17 +284,19 @@ export function NoticeDetailVoteCard({
     }
 
     const parsedNoticeId = Number(noticeId)
-    if (!Number.isFinite(parsedNoticeId)) {
+    if (!isPreview && !Number.isFinite(parsedNoticeId)) {
       return
     }
 
     setIsSubmittingVote(true)
     try {
-      await saveNoticeVoteResponse({
-        noticeId: parsedNoticeId,
-        optionIds: draftSelection.map((optionId) => Number(optionId)),
-        hasExistingResponse: hasEverVoted,
-      })
+      if (!isPreview) {
+        await saveNoticeVoteResponse({
+          noticeId: parsedNoticeId,
+          optionIds: draftSelection.map((optionId) => Number(optionId)),
+          hasExistingResponse: hasEverVoted,
+        })
+      }
 
       const result = applyPollVote({
         isFirstVote: !hasEverVoted,
@@ -299,29 +327,19 @@ export function NoticeDetailVoteCard({
     setIsRevoting(true)
   }
 
-  const handleEndPoll = async () => {
+  const handleEndPoll = () => {
     if (isEndingPoll) {
-      return
-    }
-
-    const parsedNoticeId = Number(noticeId)
-    if (!Number.isFinite(parsedNoticeId)) {
       return
     }
 
     setIsEndingPoll(true)
     try {
-      await deleteNoticeVoteByNoticeId(parsedNoticeId)
+      // NOTICE-106은 공지 수정 시 투표 연결 해제용. 상세 「투표 종료」는 집계 결과를
+      // 유지한 채 종료 UI만 표시한다(별도 close Command API 연동 전).
       setStatus("closed")
       setIsRevoting(false)
       endDialogFocusStore.current = null
       setEndDialogOpen(false)
-    } catch (error) {
-      showNoticeErrorToast(
-        toast,
-        getServerErrorMessage(error) ??
-          "투표를 종료하지 못했어요. 잠시 후 다시 시도해주세요.",
-      )
     } finally {
       setIsEndingPoll(false)
     }
@@ -330,7 +348,8 @@ export function NoticeDetailVoteCard({
   const canSubmitVote = draftSelection.length > 0
   const showVoteButton = isInputMode && canSubmitVote
   const showRevoteButton = !isClosed && hasEverVoted && !isRevoting
-  const showEndPollButton = canManagePoll && !isClosed
+  const showEndPollButton =
+    !isAttached && !isPreview && canManagePoll && !isClosed
 
   return (
     <>
@@ -392,12 +411,14 @@ export function NoticeDetailVoteCard({
                 isViewerChoice={viewerSelection.includes(option.id)}
                 key={option.id}
                 option={option}
+                progressPercent={getVoteOptionProgressPercent(option, options)}
               />
             ))}
           </ul>
         ) : null}
 
-        {!isClosed &&
+        {!isAttached &&
+        !isClosed &&
         (showVoteButton || showRevoteButton || showEndPollButton) ? (
           <div className="flex flex-wrap items-start gap-(--umc-spacing-gap-12)">
             {showVoteButton ? (
@@ -448,7 +469,7 @@ export function NoticeDetailVoteCard({
         ) : null}
 
         <p className="text-caption-1-regular text-placeholder">
-          {participantCount}명 참여
+          {Number(participantCount)}명 참여
         </p>
       </article>
 

@@ -4,6 +4,7 @@ import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
+import { deleteNoticeVoteByNoticeId } from "../model/delete-notice-vote"
 import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
 import {
   resolveNoticeCreateContextGisuId,
@@ -13,7 +14,10 @@ import { noticeListOrganizationQueryOptions } from "../model/notice-list-organiz
 import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
-  NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE,
+  NOTICE_EDIT_DELETED_DIALOG_CONFIRM_LABEL,
+  NOTICE_EDIT_DELETED_DIALOG_DESCRIPTION,
+  NOTICE_EDIT_DELETED_DIALOG_TITLE,
+  NOTICE_EDIT_FAILURE_TOAST_MESSAGE,
   NOTICE_EDIT_SUCCESS_TOAST_MESSAGE,
 } from "../model/notice-outcomes"
 import {
@@ -21,6 +25,8 @@ import {
   submitNoticeEdit,
 } from "../model/submit-notice-edit"
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
+import { NoticeCreateVotePanel } from "./notice-create/notice-create-vote-panel"
+import { NoticeVoteDeleteDialog } from "./notice-create/notice-vote-delete-dialog"
 import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
@@ -28,20 +34,26 @@ import {
 } from "./notice-dialog-focus"
 import { NoticeEditSummaryPanel } from "./notice-edit/notice-edit-summary-panel"
 import {
+  showNoticeCreateForbiddenToast,
+  showNoticeEditFailureToast,
   showNoticeErrorToast,
-  showNoticeWarningToast,
+  showNoticeImageUploadFailureToast,
 } from "./show-notice-error-toast"
 import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
 
 import type { NoticeCreateFormState } from "../model/notice-create-form"
+import type { NoticeCreateVoteDraft } from "../model/notice-create-vote-draft"
+import type { NoticePoll } from "../model/notice-detail.types"
 
 type NoticeEditPageProps = {
+  initialAttachedVotePoll: NoticePoll | null
   initialForm: NoticeCreateFormState
   listAudience?: "challenger" | "staff"
   noticeId: number
 }
 
 export function NoticeEditPage({
+  initialAttachedVotePoll,
   initialForm,
   listAudience,
   noticeId,
@@ -55,12 +67,27 @@ export function NoticeEditPage({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false)
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
+  const [deletedWhileEditingDialogOpen, setDeletedWhileEditingDialogOpen] =
+    useState(false)
   const allowLeaveRef = useRef(false)
   const pendingLeaveToRef = useRef<string | null>(null)
   const leaveDialogFocusStore = useRef<HTMLElement | null>(null)
+  const deletedDialogFocusStore = useRef<HTMLElement | null>(null)
+  const baselineAttachedVotePollRef = useRef(initialAttachedVotePoll)
+  const [attachedVotePoll, setAttachedVotePoll] = useState(
+    initialAttachedVotePoll,
+  )
+  const [votePanelOpen, setVotePanelOpen] = useState(false)
+  const [voteDraft, setVoteDraft] = useState<NoticeCreateVoteDraft | null>(null)
+  const [voteDeleteDialogOpen, setVoteDeleteDialogOpen] = useState(false)
+  const voteDeleteTargetRef = useRef<"attached" | "draft">("attached")
+  const [isDeletingVote, setIsDeletingVote] = useState(false)
   const isDirty = useMemo(
-    () => isNoticeEditFormDirty(form, baselineFormRef.current),
-    [form],
+    () =>
+      isNoticeEditFormDirty(form, baselineFormRef.current) ||
+      attachedVotePoll !== baselineAttachedVotePollRef.current ||
+      voteDraft != null,
+    [attachedVotePoll, form, voteDraft],
   )
 
   const blocker = useBlocker({
@@ -179,6 +206,21 @@ export function NoticeEditPage({
     blocker.proceed?.()
   }
 
+  const openDeletedWhileEditingDialog = () => {
+    captureNoticeDialogFocus(deletedDialogFocusStore)
+    allowLeaveRef.current = true
+    setDeletedWhileEditingDialogOpen(true)
+  }
+
+  const confirmDeletedWhileEditing = () => {
+    deletedDialogFocusStore.current = null
+    setDeletedWhileEditingDialogOpen(false)
+    void navigate({
+      search: listAudience ? { audience: listAudience } : {},
+      to: "/notices",
+    })
+  }
+
   const requestLeave = () => {
     if (allowLeaveRef.current || !isDirty) {
       void navigate({
@@ -202,7 +244,11 @@ export function NoticeEditPage({
     setShowRequiredFieldErrors(true)
 
     try {
-      const outcome = await submitNoticeEdit({ form, noticeId })
+      const outcome = await submitNoticeEdit({
+        form,
+        noticeId,
+        voteDraft: attachedVotePoll == null ? voteDraft : null,
+      })
 
       if (outcome.kind === "success") {
         allowLeaveRef.current = true
@@ -229,21 +275,21 @@ export function NoticeEditPage({
       }
 
       if (outcome.kind === "forbidden") {
-        showNoticeWarningToast(toast, NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE)
+        showNoticeCreateForbiddenToast(
+          toast,
+          NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
+        )
         return
       }
 
       if (outcome.kind === "not_found") {
-        await navigate({
-          params: { noticeId: String(noticeId) },
-          to: "/notices/$noticeId",
-        })
+        openDeletedWhileEditingDialog()
         return
       }
 
-      showNoticeErrorToast(toast, NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
+      showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
     } catch {
-      showNoticeErrorToast(toast, NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
+      showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
     } finally {
       setIsSubmitting(false)
     }
@@ -259,6 +305,8 @@ export function NoticeEditPage({
 
       <div className="flex w-full items-start gap-(--umc-spacing-gap-24)">
         <NoticeCreateFormFields
+          attachedVoteNoticeId={String(noticeId)}
+          attachedVotePoll={attachedVotePoll}
           form={form}
           isOrganizationLoading={
             organizationQuery.isLoading || gisuListQuery.isLoading
@@ -267,14 +315,26 @@ export function NoticeEditPage({
           onChange={patchForm}
           partOptions={partOptions}
           onImageUploadReject={() => {
-            showNoticeErrorToast(
+            showNoticeImageUploadFailureToast(
               toast,
               NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
             )
           }}
+          onVoteAddClick={() => {
+            setVotePanelOpen(true)
+          }}
+          onVoteDeleteClick={() => {
+            voteDeleteTargetRef.current =
+              attachedVotePoll != null ? "attached" : "draft"
+            setVoteDeleteDialogOpen(true)
+          }}
+          onVoteEditClick={() => {
+            setVotePanelOpen(true)
+          }}
           organization={organization}
           showRequiredFieldErrors={showRequiredFieldErrors}
           targetSummaryLine={targetSummaryLine}
+          voteDraft={voteDraft}
         />
         <NoticeEditSummaryPanel
           isSubmitting={isSubmitting}
@@ -285,7 +345,54 @@ export function NoticeEditPage({
         />
       </div>
 
-      {leaveDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
+      {leaveDialogOpen ||
+      deletedWhileEditingDialogOpen ||
+      voteDeleteDialogOpen ||
+      votePanelOpen ? (
+        <NoticeDialogDimmed intensity="medium" />
+      ) : null}
+      <NoticeCreateVotePanel
+        initialDraft={voteDraft ?? undefined}
+        onClose={() => {
+          setVotePanelOpen(false)
+        }}
+        onCreate={(draft) => {
+          setVoteDraft(draft)
+          setVotePanelOpen(false)
+        }}
+        open={votePanelOpen}
+      />
+      <NoticeVoteDeleteDialog
+        confirmLoading={isDeletingVote}
+        onConfirm={() => {
+          if (voteDeleteTargetRef.current === "draft") {
+            setVoteDraft(null)
+            setVoteDeleteDialogOpen(false)
+            return
+          }
+          void (async () => {
+            setIsDeletingVote(true)
+            try {
+              await deleteNoticeVoteByNoticeId(noticeId)
+              setAttachedVotePoll(null)
+              baselineAttachedVotePollRef.current = null
+              setVoteDeleteDialogOpen(false)
+              await queryClient.invalidateQueries({
+                queryKey: ["notice-detail", noticeId],
+              })
+            } catch {
+              showNoticeEditFailureToast(
+                toast,
+                NOTICE_EDIT_FAILURE_TOAST_MESSAGE,
+              )
+            } finally {
+              setIsDeletingVote(false)
+            }
+          })()
+        }}
+        onOpenChange={setVoteDeleteDialogOpen}
+        open={voteDeleteDialogOpen}
+      />
       <Dialog
         cancelLabel="계속 수정"
         color="brand"
@@ -300,6 +407,20 @@ export function NoticeEditPage({
         }}
         open={leaveDialogOpen}
         title="수정한 내용이 저장되지 않았어요"
+      />
+      <Dialog
+        color="brand"
+        confirmLabel={NOTICE_EDIT_DELETED_DIALOG_CONFIRM_LABEL}
+        description={NOTICE_EDIT_DELETED_DIALOG_DESCRIPTION}
+        onConfirm={confirmDeletedWhileEditing}
+        onOpenChange={(open) => {
+          if (!open) {
+            return
+          }
+          setDeletedWhileEditingDialogOpen(open)
+        }}
+        open={deletedWhileEditingDialogOpen}
+        title={NOTICE_EDIT_DELETED_DIALOG_TITLE}
       />
     </section>
   )
