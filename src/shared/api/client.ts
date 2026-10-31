@@ -1,21 +1,24 @@
 import { isAxiosError } from "axios"
 
+import { isAuthEndpoint } from "@/lib/auth-client"
 import { getSsoClient } from "@/shared/auth/sso-client"
 
-import { createApiClient } from "./create-api-client"
+import { createApiClient, resolveApiBaseURL } from "./create-api-client"
 
 import type { InternalAxiosRequestConfig } from "axios"
 
-const RENEW_PATH = "/v1/auth/token/renew"
-
-export const api = createApiClient(getSsoClient().config.apiBaseUrl || "/api")
+// baseURL은 첫 요청 때 정한다. 모듈 로드 시 SSO 설정을 읽으면 등록되지 않은
+// origin에서 import만으로 앱 전체가 죽는다.
+export const api = createApiClient()
 
 api.interceptors.request.use((config) => {
+  const client = getSsoClient()
+  config.baseURL ??= resolveApiBaseURL(client.config.apiBaseUrl || "/api")
   if (config.skipAuth) {
     config.headers.delete("Authorization")
     return config
   }
-  const token = getSsoClient().getAccessToken()
+  const token = client.getAccessToken()
   if (token) {
     config.headers.set("Authorization", `Bearer ${token}`)
   }
@@ -30,7 +33,7 @@ api.interceptors.response.use(
     }
 
     const config = error.config
-    if (!config || skipsRenew(config) || config._retry) {
+    if (!config || isAuthEndpoint(requestUrl(config)) || config._retry) {
       return Promise.reject(error)
     }
 
@@ -48,15 +51,6 @@ api.interceptors.response.use(
 function requestUrl(config: InternalAxiosRequestConfig) {
   const baseURL = config.baseURL ?? ""
   return `${baseURL}${config.url ?? ""}`
-}
-
-function skipsRenew(config: InternalAxiosRequestConfig) {
-  const url = requestUrl(config)
-  return (
-    url.includes(RENEW_PATH) ||
-    url.includes("/v1/auth/sso/") ||
-    url.includes("/v1/auth/logout")
-  )
 }
 
 /** @deprecated `api`를 사용한다 */

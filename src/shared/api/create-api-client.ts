@@ -13,9 +13,10 @@ export function resolveApiBaseURL(baseURL = "/api") {
   return `${trimmed}/api`
 }
 
-export function createApiClient(baseURL = "/api"): AxiosInstance {
+/** `baseURL`을 생략하면 요청마다 `config.baseURL`을 채워야 한다. */
+export function createApiClient(baseURL?: string): AxiosInstance {
   const client = axios.create({
-    baseURL: resolveApiBaseURL(baseURL),
+    baseURL: baseURL === undefined ? undefined : resolveApiBaseURL(baseURL),
     timeout: DEFAULT_TIMEOUT_MS,
     headers: {
       "Content-Type": "application/json",
