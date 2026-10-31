@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_admin")({
     if (!client.getAccessToken() && !client.getRefreshToken()) {
       throw redirect({
         replace: true,
-        search: { redirect: location.pathname },
+        search: { redirect: location.href },
         to: "/login",
       })
     }
@@ -35,13 +35,7 @@ export const Route = createFileRoute("/_admin")({
       if (!isOperator(session)) {
         context.queryClient.removeQueries({ queryKey: adminSessionQueryKey })
         markOperatorOnlyLoginNotice()
-        const returnTo = `${window.location.origin}/login`
-        if (client.config.loginMode === "auth-app") {
-          // 인증 앱 로그아웃으로 이동한 뒤 return_to로 /login 에 돌아온다.
-          // 여기서 로컬 redirect를 던지면 assign이 가로채질 수 있다.
-          await client.logout({ global: true, returnTo })
-          await new Promise<never>(() => {})
-        }
+        // 다른 서비스의 로그인까지 끊지 않도록 SSO 세션은 남기고 이 앱의 토큰만 지운다.
         await client.logout()
         throw redirect({ replace: true, to: "/login" })
       }
@@ -60,7 +54,7 @@ export const Route = createFileRoute("/_admin")({
         clearAdminSession(context.queryClient)
         throw redirect({
           replace: true,
-          search: { redirect: location.pathname },
+          search: { redirect: location.href },
           to: "/login",
         })
       }
