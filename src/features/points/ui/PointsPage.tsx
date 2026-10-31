@@ -15,6 +15,7 @@ import {
   toPointsMember,
   toSchoolOptions,
 } from "../model/map-search-member"
+import { MOCK_MEMBERS } from "../model/mock-members"
 import { MemberTable } from "./MemberTable"
 import { PointsToolbar } from "./PointsToolbar"
 import { useDebouncedValue } from "./use-debounced-value"
@@ -28,6 +29,8 @@ type LockedSchool = {
 
 type PointsPageProps = {
   lockedSchool?: LockedSchool | null
+  /** URL `?mock=roles` — 운영 역할 다중 표시 목 데이터 */
+  mock?: "roles"
 }
 
 const SEARCH_DEBOUNCE_MS = 300
@@ -40,7 +43,7 @@ function toTotalPages(value: unknown) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
 }
 
-export function PointsPage({ lockedSchool = null }: PointsPageProps) {
+export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
   const navigate = useNavigate()
   const selectedGisu = useSelectedGisu()
   const sectionRef = useRef<HTMLElement>(null)
@@ -50,6 +53,7 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
   const [query, setQuery] = useState("")
   const keyword = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
   const [page, setPage] = useState(0)
+  const useMockRoles = mock === "roles"
 
   const resetPage = () => {
     setPage(0)
@@ -138,19 +142,27 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
         page,
         size: MEMBER_SEARCH_PAGE_SIZE,
       }),
-    enabled: !selectedGisu.isPending,
+    enabled: !useMockRoles && !selectedGisu.isPending,
     placeholderData: keepPreviousData,
     retry: false,
   })
 
-  const members = (membersQuery.data?.page?.content ?? []).map(toPointsMember)
-  const totalPages = toTotalPages(membersQuery.data?.page?.totalPages)
-  const isForbidden = isForbiddenError(membersQuery.error)
+  const members = useMockRoles
+    ? MOCK_MEMBERS
+    : (membersQuery.data?.page?.content ?? []).map(toPointsMember)
+  const totalPages = useMockRoles
+    ? 1
+    : toTotalPages(membersQuery.data?.page?.totalPages)
+  const isForbidden = !useMockRoles && isForbiddenError(membersQuery.error)
   const isLoading =
-    (membersQuery.isPending && !isForbidden) ||
-    (membersQuery.isFetching && membersQuery.isError)
+    !useMockRoles &&
+    ((membersQuery.isPending && !isForbidden) ||
+      (membersQuery.isFetching && membersQuery.isError))
   const isError =
-    membersQuery.isError && !isForbidden && !membersQuery.isFetching
+    !useMockRoles &&
+    membersQuery.isError &&
+    !isForbidden &&
+    !membersQuery.isFetching
   const showPagination =
     totalPages > 1 &&
     !isLoading &&
