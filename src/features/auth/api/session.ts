@@ -1,8 +1,8 @@
 import { queryOptions } from "@tanstack/react-query"
 
-import { clearAuthSession } from "@/shared/api/access-token"
 import { api } from "@/shared/api/client"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
+import { getSsoClient } from "@/shared/auth/sso-client"
 
 import { toAdminSession } from "../model/admin-session"
 
@@ -13,7 +13,7 @@ import type { MemberSummaryResponse } from "../model/admin-session"
 export const adminSessionQueryKey = ["auth", "me"] as const
 
 export function clearAdminSession(queryClient: QueryClient) {
-  clearAuthSession()
+  getSsoClient().clearSession()
   queryClient.removeQueries({ queryKey: adminSessionQueryKey })
 }
 

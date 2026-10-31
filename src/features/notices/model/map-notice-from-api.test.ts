@@ -131,4 +131,48 @@ describe("mapNoticeDetailResponse", () => {
     expect(detail.poll?.options[0]?.isSelected).toBe(true)
     expect(detail.poll?.settingsLabel).toContain("복수선택")
   })
+
+  it("maps CLOSED vote to closed poll status for detail card", () => {
+    const detail = mapNoticeDetailResponse({
+      id: 1,
+      title: "투표 종료 공지",
+      content: "본문",
+      createdAt: "2026-10-20T05:00:00.000Z",
+      updatedAt: "2026-10-21T05:00:00.000Z",
+      mustRead: false,
+      viewCount: 1,
+      authorMemberId: 2,
+      author: { memberId: 2, name: "작성자" },
+      images: [],
+      links: [],
+      vote: {
+        voteId: 9,
+        title: "일정",
+        allowMultipleChoice: false,
+        isAnonymous: true,
+        status: "CLOSED",
+        startsAt: "2026-10-01T05:00:00.000Z",
+        endsAtExclusive: "2026-10-10T05:00:00.000Z",
+        totalParticipants: 4,
+        options: [
+          {
+            optionId: 100,
+            content: "A",
+            voteCount: 3,
+            voteRate: 0.75,
+          },
+          {
+            optionId: 101,
+            content: "B",
+            voteCount: 1,
+            voteRate: 0.25,
+          },
+        ],
+      },
+    })
+
+    expect(detail.poll?.status).toBe("closed")
+    expect(detail.poll?.options).toHaveLength(2)
+    expect(detail.hasVote).toBe(true)
+  })
 })

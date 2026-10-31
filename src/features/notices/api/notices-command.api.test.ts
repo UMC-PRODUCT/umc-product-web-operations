@@ -12,6 +12,7 @@ function parseRequestBody(data: unknown): unknown {
 
 import {
   addNoticeImages,
+  addNoticeVote,
   deleteNotice,
   deleteNoticeVote,
   patchNotice,
@@ -301,6 +302,57 @@ describe("deleteNotice", () => {
 
     expect(method).toBe("delete")
     expect(url).toBe("/v1/notices/42")
+  })
+})
+
+describe("addNoticeVote", () => {
+  afterEach(() => {
+    api.defaults.adapter = undefined
+  })
+
+  it("calls POST /v1/notices/:id/votes", async () => {
+    let method: string | undefined
+    let url: string | undefined
+    let body: unknown
+
+    api.defaults.adapter = async (config) => {
+      method = config.method
+      url = config.url
+      body = config.data
+      return {
+        data: {
+          success: true,
+          code: "OK",
+          message: "성공",
+          result: { noticeVoteId: 2, voteId: 3 },
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config: config satisfies InternalAxiosRequestConfig,
+      }
+    }
+
+    const result = await addNoticeVote(5, {
+      allowMultipleChoice: false,
+      endsAtExclusive: "2026-12-01T00:00:00.000Z",
+      isAnonymous: true,
+      options: ["A", "B"],
+      startsAt: "2026-11-01T00:00:00.000Z",
+      title: "투표",
+    })
+
+    expect(method).toBe("post")
+    expect(url).toBe("/v1/notices/5/votes")
+    expect(parseRequestBody(body)).toEqual({
+      allowMultipleChoice: false,
+      endsAtExclusive: "2026-12-01T00:00:00.000Z",
+      isAnonymous: true,
+      options: ["A", "B"],
+      startsAt: "2026-11-01T00:00:00.000Z",
+      title: "투표",
+    })
+    expect(result).toEqual({ noticeVoteId: 2, voteId: 3 })
   })
 })
 

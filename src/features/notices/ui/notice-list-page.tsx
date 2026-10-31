@@ -266,7 +266,7 @@ export function NoticeListPage({
             size="sm"
             type="button"
           >
-            공지 작성
+            공지 작성하기
           </Button>
         ) : null}
       </div>

@@ -10,6 +10,7 @@ import { type ReactNode, useMemo } from "react"
 
 import { cn } from "@/shared/lib/cn"
 
+import { mapNoticeCreateVoteDraftToPoll } from "../../model/map-notice-create-vote-draft-to-poll"
 import {
   NOTICE_CREATE_STAFF_SCOPE_OPTIONS,
   NOTICE_CREATE_TITLE_MAX_LENGTH,
@@ -23,8 +24,11 @@ import { NOTICE_CREATE_LENGTH_COUNTER_CLASS } from "../constants"
 import { NoticeCreateBodyField } from "./notice-create-body-field"
 import { NoticeCreateImageGallery } from "./notice-create-image-gallery"
 import { NoticeCreateSection } from "./notice-create-section"
+import { NoticeFormVoteAttachSection } from "./notice-form-vote-attach-section"
 
 import type { NoticeCreatePartOption } from "../../model/notice-create-part-options"
+import type { NoticeCreateVoteDraft } from "../../model/notice-create-vote-draft"
+import type { NoticePoll } from "../../model/notice-detail.types"
 
 /** Figma link row — accessory inset 8px (top / bottom / right) */
 const NOTICE_CREATE_LINK_FIELD_CLASS = cn(
@@ -91,8 +95,14 @@ type NoticeCreateFormFieldsProps = {
   onImageUploadReject?: () => void
   organization: OrganizationOptions
   partOptions: NoticeCreatePartOption[]
+  onVoteAddClick?: () => void
+  onVoteDeleteClick?: () => void
+  onVoteEditClick?: () => void
+  attachedVotePoll?: NoticePoll | null
+  attachedVoteNoticeId?: string
   showRequiredFieldErrors: boolean
   targetSummaryLine: string
+  voteDraft?: NoticeCreateVoteDraft | null
 }
 
 function FormRow({
@@ -124,9 +134,24 @@ export function NoticeCreateFormFields({
   onImageUploadReject,
   organization,
   partOptions,
+  onVoteAddClick,
+  onVoteDeleteClick,
+  onVoteEditClick,
+  attachedVotePoll = null,
+  attachedVoteNoticeId,
   showRequiredFieldErrors,
   targetSummaryLine,
+  voteDraft = null,
 }: NoticeCreateFormFieldsProps) {
+  const createVotePoll = useMemo(
+    () =>
+      voteDraft != null ? mapNoticeCreateVoteDraftToPoll(voteDraft) : null,
+    [voteDraft],
+  )
+  const displayedVotePoll =
+    mode === "edit" ? (attachedVotePoll ?? createVotePoll) : createVotePoll
+  const voteAttachSectionMode =
+    mode === "edit" && attachedVotePoll != null ? "edit" : "create"
   const isEditMode = mode === "edit"
   const lockAudienceAndTarget = isEditMode
   const titleInvalid = showRequiredFieldErrors && !form.title.trim()
@@ -152,6 +177,8 @@ export function NoticeCreateFormFields({
         (option.value === "chapter" || option.value === "school"),
     }))
   }, [form.gisuMode])
+
+  const showPartSelection = form.gisuMode !== "all" || form.orgMode !== "umc"
 
   const togglePart = (part: NoticeCreatePartOption["value"]) => {
     onChange({
@@ -288,6 +315,7 @@ export function NoticeCreateFormFields({
                     chapterId: null,
                     gisuMode,
                     orgMode: "umc",
+                    parts: [],
                     schoolId: null,
                   })
                   return
@@ -303,7 +331,7 @@ export function NoticeCreateFormFields({
             {form.gisuMode === "specific" ? (
               <Select
                 aria-label="대상 기수"
-                className="w-[82px] shrink-0"
+                className="w-auto shrink-0"
                 disabled={isOrganizationLoading}
                 onValueChange={(value) => {
                   onChange({
@@ -345,7 +373,7 @@ export function NoticeCreateFormFields({
             {form.orgMode === "chapter" ? (
               <Select
                 aria-label="지부"
-                className="w-[140px] shrink-0"
+                className="w-auto shrink-0"
                 disabled={isOrganizationLoading}
                 onValueChange={(value) => {
                   onChange({
@@ -364,7 +392,7 @@ export function NoticeCreateFormFields({
             {form.orgMode === "school" ? (
               <Select
                 aria-label="학교"
-                className="w-[140px] shrink-0"
+                className="w-auto shrink-0"
                 disabled={isOrganizationLoading}
                 onValueChange={(value) => {
                   onChange({
@@ -382,27 +410,31 @@ export function NoticeCreateFormFields({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-start gap-(--umc-spacing-gap-20)">
-            <p className="text-body-1-regular text-neutral-strong-800 w-[40px] shrink-0 pt-1">
-              파트
-            </p>
-            <div className="flex flex-wrap gap-x-(--umc-spacing-gap-20) gap-y-(--umc-spacing-gap-12)">
-              {partOptions.map((part) => (
-                <Checkbox
-                  checked={form.parts.includes(part.value)}
-                  color={form.parts.includes(part.value) ? "brand" : "neutral"}
-                  key={part.value}
-                  labelPlacement="end"
-                  onCheckedChange={() => {
-                    togglePart(part.value)
-                  }}
-                  size="lg"
-                >
-                  {part.label}
-                </Checkbox>
-              ))}
+          {showPartSelection ? (
+            <div className="flex flex-wrap items-start gap-(--umc-spacing-gap-20)">
+              <p className="text-body-1-regular text-neutral-strong-800 w-[40px] shrink-0 pt-1">
+                파트
+              </p>
+              <div className="flex flex-wrap gap-x-(--umc-spacing-gap-20) gap-y-(--umc-spacing-gap-12)">
+                {partOptions.map((part) => (
+                  <Checkbox
+                    checked={form.parts.includes(part.value)}
+                    color={
+                      form.parts.includes(part.value) ? "brand" : "neutral"
+                    }
+                    key={part.value}
+                    labelPlacement="end"
+                    onCheckedChange={() => {
+                      togglePart(part.value)
+                    }}
+                    size="lg"
+                  >
+                    {part.label}
+                  </Checkbox>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="bg-background-neutral-medium border-neutral-medium-300 flex w-full items-center gap-(--umc-spacing-gap-20) rounded-(--umc-radius-6) border-[0.7px] px-(--umc-spacing-padding-16) py-(--umc-spacing-padding-8)">
             <div className="flex shrink-0 items-center gap-1">
@@ -555,17 +587,40 @@ export function NoticeCreateFormFields({
               </div>
             </FormRow>
 
-            <FormRow label="투표">
-              <Button
-                leadingIcon={<AddIcon aria-hidden size={16} />}
-                size="md"
-                type="button"
-                variant="fill"
-                color="white"
-              >
-                투표 추가
-              </Button>
-            </FormRow>
+            {displayedVotePoll != null ? (
+              <NoticeFormVoteAttachSection
+                mode={voteAttachSectionMode}
+                noticeId={
+                  mode === "edit"
+                    ? (attachedVoteNoticeId ?? "notice-edit-vote")
+                    : "notice-create-vote-preview"
+                }
+                onDeleteClick={() => {
+                  onVoteDeleteClick?.()
+                }}
+                onEditClick={
+                  voteAttachSectionMode === "create"
+                    ? () => {
+                        onVoteEditClick?.()
+                      }
+                    : undefined
+                }
+                poll={displayedVotePoll}
+              />
+            ) : (
+              <FormRow label="투표">
+                <Button
+                  color="white"
+                  leadingIcon={<AddIcon aria-hidden size={16} />}
+                  onClick={onVoteAddClick}
+                  size="md"
+                  type="button"
+                  variant="fill"
+                >
+                  투표 추가
+                </Button>
+              </FormRow>
+            )}
           </div>
         </div>
       </NoticeCreateSection>

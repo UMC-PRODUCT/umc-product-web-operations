@@ -2,11 +2,16 @@ import { isAxiosError } from "axios"
 
 import { uploadNoticeImageFiles } from "../api/notice-file-upload.api"
 import {
+  addNoticeVote,
   postNotice,
   replaceNoticeImages,
   replaceNoticeLinks,
 } from "../api/notices-command.api"
 import { buildCreateNoticeRequests } from "./build-notice-create-payload"
+import {
+  buildAddNoticeVoteRequest,
+  validateNoticeCreateVoteForSubmit,
+} from "./build-notice-create-vote-request"
 import {
   getHttpStatus,
   getNoticeApiErrorMessage,
@@ -24,6 +29,7 @@ import {
   NOTICE_CREATE_LINK_INVALID_MESSAGE,
 } from "./notice-create-link"
 
+import type { NoticeCreateVoteDraft } from "./notice-create-vote-draft"
 import type { NoticeOperatorSession } from "./notice-session"
 
 export type SubmitNoticeCreateOutcome =
@@ -95,10 +101,20 @@ export async function submitNoticeCreate(input: {
   operationGisuId?: number | null
   /** 대상 기수의 generation — 10기 이하 레거시 파트를 API enum으로 변환 */
   targetGeneration?: number | null
+  voteDraft?: NoticeCreateVoteDraft | null
 }): Promise<SubmitNoticeCreateOutcome> {
   const validationMessage = validateNoticeCreateForm(input.form)
   if (validationMessage) {
     return { kind: "validation_error", message: validationMessage }
+  }
+
+  if (input.voteDraft != null) {
+    const voteValidationMessage = validateNoticeCreateVoteForSubmit(
+      input.voteDraft,
+    )
+    if (voteValidationMessage != null) {
+      return { kind: "validation_error", message: voteValidationMessage }
+    }
   }
 
   const operationGisuId = input.operationGisuId ?? input.session.gisuId ?? null
@@ -118,15 +134,24 @@ export async function submitNoticeCreate(input: {
       input.targetGeneration ?? null,
     )
 
-    let noticeId = 0
+    const noticeIds: number[] = []
     for (const request of requests) {
-      noticeId = await postNotice(request)
+      const noticeId = await postNotice(request)
       await attachNoticeContent(noticeId, {
         imageIds,
         links: input.form.links,
       })
+      noticeIds.push(noticeId)
     }
 
+    if (input.voteDraft != null && noticeIds.length > 0) {
+      const voteBody = buildAddNoticeVoteRequest(input.voteDraft)
+      for (const noticeId of noticeIds) {
+        await addNoticeVote(noticeId, voteBody)
+      }
+    }
+
+    const noticeId = noticeIds.at(-1) ?? 0
     return { kind: "success", noticeId }
   } catch (error) {
     if (isNoticeForbiddenError(error)) {
