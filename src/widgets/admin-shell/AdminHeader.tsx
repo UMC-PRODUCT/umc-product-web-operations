@@ -1,7 +1,7 @@
 import "./admin-header.css"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { getRouteApi, useNavigate } from "@tanstack/react-router"
+import { getRouteApi } from "@tanstack/react-router"
 import {
   HeaderActionButton,
   HeaderDesktop,
