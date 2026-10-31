@@ -1,115 +1,128 @@
-import { useQueryClient } from "@tanstack/react-query"
-import {
-  createFileRoute,
-  isRedirect,
-  redirect,
-  useNavigate,
-} from "@tanstack/react-router"
-import { Button, TextFieldBox } from "@umc-product/react"
-import { type FormEvent, useState } from "react"
+import { createFileRoute } from "@tanstack/react-router"
+import { lazy, Suspense, useEffect, useState } from "react"
 
 import {
-  adminSessionQueryKey,
-  adminSessionQueryOptions,
-  clearAdminSession,
-  loginByEmail,
+  clearOperatorOnlyLoginNotice,
+  hasOperatorOnlyLoginNotice,
+  OperatorOnlyNotice,
 } from "@/features/auth"
-import { getAccessToken, getRefreshToken } from "@/shared/api/access-token"
-import { getServerErrorMessage } from "@/shared/api/server-error"
+import { getSsoClient } from "@/shared/auth/sso-client"
+import { AuthBusyScreen, LoadingSpinner } from "@/shared/ui/loading-spinner"
+
+const DevLoginForm = import.meta.env.DEV
+  ? lazy(() =>
+      import("@/lib/auth-client/react").then((module) => ({
+        default: module.DevLoginForm,
+      })),
+    )
+  : null
+
+type LoginSearch = {
+  redirect?: string
+}
 
 export const Route = createFileRoute("/login")({
-  beforeLoad: async ({ context }) => {
-    if (!getAccessToken() && !getRefreshToken()) {
-      return
-    }
-    try {
-      await context.queryClient.ensureQueryData(adminSessionQueryOptions())
-      throw redirect({ to: "/notices" })
-    } catch (error) {
-      if (isRedirect(error)) {
-        throw error
-      }
-      if (!getAccessToken() && !getRefreshToken()) {
-        clearAdminSession(context.queryClient)
-      }
-    }
-  },
   component: LoginPage,
+  validateSearch: (search: Record<string, unknown>): LoginSearch => {
+    const redirectTo = search.redirect
+    if (
+      typeof redirectTo === "string" &&
+      redirectTo.startsWith("/") &&
+      !redirectTo.startsWith("//")
+    ) {
+      return { redirect: redirectTo }
+    }
+    return {}
+  },
 })
 
 function LoginPage() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  const { redirect: redirectTo } = Route.useSearch()
+  const returnTo = redirectTo ?? "/notices"
+  const [phase, setPhase] = useState<"checking" | "form" | "error">("checking")
+  const [showOperatorNotice] = useState(() => hasOperatorOnlyLoginNotice())
+  const [busyLabel, setBusyLabel] = useState<string | null>(null)
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setErrorMessage(null)
-    setPending(true)
-    let signedIn = false
-    try {
-      await loginByEmail({ email, password })
-      signedIn = true
-      queryClient.removeQueries({ queryKey: adminSessionQueryKey })
-      try {
-        await queryClient.fetchQuery(adminSessionQueryOptions())
-      } catch {
-        // 로그인 토큰은 유효하므로 세션 조회 실패해도 입장시킨다.
-      }
-      await navigate({ to: "/notices" })
-    } catch (error) {
-      if (signedIn) {
-        clearAdminSession(queryClient)
-      }
-      setErrorMessage(getServerErrorMessage(error) ?? "로그인에 실패했어요")
-    } finally {
-      setPending(false)
+  useEffect(() => {
+    if (showOperatorNotice || busyLabel) {
+      return
     }
+
+    const client = getSsoClient()
+    if (client.config.loginMode === "auth-app") {
+      void client.startLogin(returnTo)
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const signedIn = await client.hasSsoSession()
+        if (cancelled) {
+          return
+        }
+        if (signedIn) {
+          await client.startLogin(returnTo)
+          return
+        }
+        setPhase("form")
+      } catch {
+        if (!cancelled) {
+          setPhase("error")
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [returnTo, showOperatorNotice, busyLabel])
+
+  if (busyLabel) {
+    return <AuthBusyScreen label={busyLabel} />
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <form
-        className="flex w-full max-w-sm flex-col gap-4"
-        onSubmit={(event) => {
-          void handleSubmit(event)
+  if (showOperatorNotice) {
+    return (
+      <OperatorOnlyNotice
+        onBack={() => {
+          clearOperatorOnlyLoginNotice()
+          window.history.back()
         }}
-      >
-        <h1 className="text-2xl font-semibold">로그인</h1>
-        <TextFieldBox
-          autoComplete="email"
-          label="이메일"
-          onChange={(event) => {
-            setEmail(event.target.value)
-          }}
-          placeholder="admin@umc.com"
-          required
-          type="email"
-          value={email}
-        />
-        <TextFieldBox
-          autoComplete="current-password"
-          label="비밀번호"
-          onChange={(event) => {
-            setPassword(event.target.value)
-          }}
-          placeholder="••••••••"
-          required
-          type="password"
-          value={password}
-        />
-        {errorMessage ? (
-          <p className="text-body-3-regular text-error" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
-        <Button disabled={pending} size="md" type="submit">
-          로그인
-        </Button>
-      </form>
-    </div>
-  )
+        onRelogin={() => {
+          clearOperatorOnlyLoginNotice()
+          setBusyLabel("로그아웃 중")
+          // SSO 세션까지 끊어야 다른 계정으로 로그인할 수 있다.
+          void getSsoClient().logout({
+            global: true,
+            returnTo: `${window.location.origin}/login`,
+          })
+        }}
+      />
+    )
+  }
+
+  if (phase === "form" && import.meta.env.DEV && DevLoginForm) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <Suspense fallback={<LoadingSpinner label="로그인 중" />}>
+          <DevLoginForm
+            onSubmit={({ email, password }) =>
+              getSsoClient().devLogin(email, password, returnTo)
+            }
+          />
+        </Suspense>
+      </div>
+    )
+  }
+
+  if (phase === "error") {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <p role="alert">로그인 상태를 확인하지 못했습니다.</p>
+      </div>
+    )
+  }
+
+  return <AuthBusyScreen label="로그인 중" />
 }

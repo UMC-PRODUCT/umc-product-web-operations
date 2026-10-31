@@ -1,34 +1,24 @@
 import { isAxiosError } from "axios"
 
-import {
-  clearAuthSession,
-  getAccessToken,
-  getRefreshToken,
-  setAccessToken,
-  setRefreshToken,
-} from "./access-token"
-import { createApiClient } from "./create-api-client"
-import { unwrapApiResult } from "./unwrap-api-result"
+import { isAuthEndpoint } from "@/lib/auth-client"
+import { getSsoClient } from "@/shared/auth/sso-client"
+
+import { createApiClient, resolveApiBaseURL } from "./create-api-client"
 
 import type { InternalAxiosRequestConfig } from "axios"
 
-const RENEW_PATH = "/v1/auth/token/renew"
-
-type RenewedTokens = {
-  accessToken: string
-  refreshToken: string
-}
-
+// baseURL은 첫 요청 때 정한다. 모듈 로드 시 SSO 설정을 읽으면 등록되지 않은
+// origin에서 import만으로 앱 전체가 죽는다.
 export const api = createApiClient()
 
-let renewing: Promise<string> | null = null
-
 api.interceptors.request.use((config) => {
+  const client = getSsoClient()
+  config.baseURL ??= resolveApiBaseURL(client.config.apiBaseUrl || "/api")
   if (config.skipAuth) {
     config.headers.delete("Authorization")
     return config
   }
-  const token = getAccessToken()
+  const token = client.getAccessToken()
   if (token) {
     config.headers.set("Authorization", `Bearer ${token}`)
   }
@@ -43,75 +33,24 @@ api.interceptors.response.use(
     }
 
     const config = error.config
-    if (!config || isLoginRequest(config)) {
-      return Promise.reject(error)
-    }
-    if (isRenewRequest(config) || config._retry) {
-      clearAuthSession()
-      redirectToLogin()
+    if (!config || isAuthEndpoint(requestUrl(config)) || config._retry) {
       return Promise.reject(error)
     }
 
     config._retry = true
     try {
-      const accessToken = await renewAccessToken()
+      const accessToken = await getSsoClient().recoverFromUnauthorized()
       config.headers.set("Authorization", `Bearer ${accessToken}`)
       return api.request(config)
     } catch (renewError) {
-      clearAuthSession()
-      redirectToLogin()
       return Promise.reject(renewError)
     }
   },
 )
 
-function renewAccessToken() {
-  if (!renewing) {
-    renewing = requestRenewedAccessToken().finally(() => {
-      renewing = null
-    })
-  }
-  return renewing
-}
-
-async function requestRenewedAccessToken() {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) {
-    throw new Error("refresh token이 없습니다.")
-  }
-
-  const { data } = await api.post<unknown>(
-    RENEW_PATH,
-    { refreshToken },
-    { skipAuth: true },
-  )
-  const tokens = unwrapApiResult<RenewedTokens>(data)
-  setAccessToken(tokens.accessToken)
-  setRefreshToken(tokens.refreshToken)
-  return tokens.accessToken
-}
-
 function requestUrl(config: InternalAxiosRequestConfig) {
   const baseURL = config.baseURL ?? ""
   return `${baseURL}${config.url ?? ""}`
-}
-
-function isLoginRequest(config: InternalAxiosRequestConfig) {
-  return requestUrl(config).includes("/v1/auth/login/")
-}
-
-function isRenewRequest(config: InternalAxiosRequestConfig) {
-  return requestUrl(config).includes(RENEW_PATH)
-}
-
-function redirectToLogin() {
-  if (typeof window === "undefined") {
-    return
-  }
-  if (window.location.pathname === "/login") {
-    return
-  }
-  window.location.assign("/login")
 }
 
 /** @deprecated `api`를 사용한다 */

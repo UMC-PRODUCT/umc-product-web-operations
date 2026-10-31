@@ -15,6 +15,7 @@ import { Route as AdminIndexRouteImport } from './routes/_admin/index'
 import { Route as AdminActivityRouteRouteImport } from './routes/_admin/activity/route'
 import { Route as AdminNoticesRouteRouteImport } from './routes/_admin/notices/route'
 import { Route as AdminRecruitingRouteRouteImport } from './routes/_admin/recruiting/route'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminActivityIndexRouteImport } from './routes/_admin/activity/index'
 import { Route as AdminActivityPointsRouteImport } from './routes/_admin/activity/points'
 import { Route as AdminNoticesIndexRouteImport } from './routes/_admin/notices/index'
@@ -53,6 +54,11 @@ const AdminRecruitingRouteRoute = AdminRecruitingRouteRouteImport.update({
   id: '/recruiting',
   path: '/recruiting',
   getParentRoute: () => AdminRouteRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminActivityIndexRoute = AdminActivityIndexRouteImport.update({
   id: '/',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof AdminActivityRouteRouteWithChildren
   '/notices': typeof AdminNoticesRouteRouteWithChildren
   '/recruiting': typeof AdminRecruitingRouteRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/activity/points': typeof AdminActivityPointsRouteWithChildren
   '/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/notices/new': typeof AdminNoticesNewRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AdminIndexRoute
   '/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/notices/new': typeof AdminNoticesNewRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_admin/activity': typeof AdminActivityRouteRouteWithChildren
   '/_admin/notices': typeof AdminNoticesRouteRouteWithChildren
   '/_admin/recruiting': typeof AdminRecruitingRouteRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/_admin/': typeof AdminIndexRoute
   '/_admin/activity/points': typeof AdminActivityPointsRouteWithChildren
   '/_admin/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/notices'
     | '/recruiting'
+    | '/auth/callback'
     | '/activity/points'
     | '/notices/$noticeId'
     | '/notices/new'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/auth/callback'
     | '/'
     | '/notices/$noticeId'
     | '/notices/new'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/_admin/activity'
     | '/_admin/notices'
     | '/_admin/recruiting'
+    | '/auth/callback'
     | '/_admin/'
     | '/_admin/activity/points'
     | '/_admin/notices/$noticeId'
@@ -200,6 +212,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/recruiting'
       preLoaderRoute: typeof AdminRecruitingRouteRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_admin/activity/': {
       id: '/_admin/activity/'
@@ -396,6 +416,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AdminRouteRoute: AdminRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

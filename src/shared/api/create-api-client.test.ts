@@ -1,7 +1,8 @@
 import { AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { afterEach, describe, expect, it } from "vitest"
 
-import { clearAccessToken, setAccessToken } from "./access-token"
+import { getSsoClient } from "@/shared/auth/sso-client"
+
 import { api } from "./client"
 import { createApiClient, resolveApiBaseURL } from "./create-api-client"
 
@@ -32,7 +33,7 @@ describe("resolveApiBaseURL", () => {
 
 describe("createApiClient", () => {
   afterEach(() => {
-    clearAccessToken()
+    getSsoClient().clearSession()
     api.defaults.adapter = undefined
   })
 
@@ -77,7 +78,10 @@ describe("createApiClient", () => {
         config,
       }
     }
-    setAccessToken("access-token")
+    getSsoClient().setTokens({
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+    })
 
     await api.get("/v1/members")
 

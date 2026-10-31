@@ -19,6 +19,7 @@ const LAYER_RANK = {
   features: 3,
   entities: 4,
   shared: 5,
+  lib: 5,
   types: 5,
 }
 
