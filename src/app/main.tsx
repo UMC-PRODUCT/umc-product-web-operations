@@ -7,6 +7,7 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
 import { routeTree } from "../routeTree.gen"
+import { RouteError } from "./route-error"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,7 @@ const queryClient = new QueryClient({
 const router = createRouter({
   routeTree,
   context: { queryClient },
+  defaultErrorComponent: RouteError,
   defaultPreload: "intent",
   trailingSlash: "never",
 })
