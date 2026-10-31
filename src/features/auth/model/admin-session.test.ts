@@ -4,6 +4,7 @@ import {
   isOperator,
   schoolExecutiveLock,
   toAdminSession,
+  toParticipatedGisus,
   widestScope,
 } from "./admin-session"
 
@@ -50,7 +51,79 @@ describe("toAdminSession", () => {
     expect(session.scope).toBe("SCHOOL")
     expect(session.gisuId).toBe(11)
     expect(session.profileImageUrl).toBeNull()
+    expect(session.participatedGisus).toEqual([{ gisuId: 11, generation: 8 }])
     expect(isOperator(session)).toBe(true)
+  })
+
+  it("maps challengerHistory into participated gisus (unique, history first)", () => {
+    const session = toAdminSession({
+      id: 3,
+      name: "하늘",
+      isSuperAdmin: false,
+      challengerHistory: [
+        { gisuId: 12, generation: 9 },
+        { gisuId: 11, generation: 8 },
+        { gisuId: 12, generation: 9 },
+      ],
+      currentGisuMemberInfo: {
+        gisuId: 10,
+        generation: 7,
+        isAdmin: true,
+        roleTypes: ["SCHOOL_PRESIDENT"],
+      },
+    })
+
+    expect(session.participatedGisus).toEqual([
+      { gisuId: 12, generation: 9 },
+      { gisuId: 11, generation: 8 },
+      { gisuId: 10, generation: 7 },
+    ])
+  })
+
+  it("builds participated gisus from history alone", () => {
+    expect(
+      toParticipatedGisus({
+        challengerHistory: [
+          { gisuId: 5, generation: 11 },
+          { gisuId: null, generation: 10 },
+        ],
+      }),
+    ).toEqual([{ gisuId: 5, generation: 11 }])
+  })
+
+  it("coerces string ids from MEMBER-201 into participated gisus", () => {
+    const session = toAdminSession({
+      id: "33",
+      name: "QA32",
+      isSuperAdmin: false,
+      schoolId: "29",
+      schoolName: "중앙대학교",
+      currentGisuMemberInfo: {
+        gisuId: "6",
+        generation: "11",
+        isAdmin: true,
+        roleTypes: ["SCHOOL_ETC_ADMIN"],
+      },
+      challengerHistory: [
+        {
+          challengerId: "32",
+          gisuId: "6",
+          generation: "11",
+        },
+        {
+          challengerId: "31",
+          gisuId: "5",
+          generation: "10",
+        },
+      ],
+    })
+
+    expect(session.gisuId).toBe(6)
+    expect(session.generation).toBe(11)
+    expect(session.participatedGisus).toEqual([
+      { gisuId: 6, generation: 11 },
+      { gisuId: 5, generation: 10 },
+    ])
   })
 
   it("keeps a trimmed profile image url", () => {

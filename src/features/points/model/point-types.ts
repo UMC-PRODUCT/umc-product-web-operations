@@ -93,6 +93,14 @@ export function formatAwardScoreLabel(score: number): string {
   return `${score}점`
 }
 
+/** 유형 리스트 Tag용. 상점 +3, 벌점 -4 */
+export function formatTypeListScore(score: number): string {
+  if (score > 0) {
+    return `+${score}`
+  }
+  return `${score}`
+}
+
 export function formatOtherScoreCaption(
   kind: OtherPointKind,
   magnitude: number,

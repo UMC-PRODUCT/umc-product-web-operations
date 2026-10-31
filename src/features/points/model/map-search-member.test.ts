@@ -11,6 +11,7 @@ import {
   toOrganizationId,
   toPointsMember,
   toSchoolOptions,
+  usesLegacyPartLabel,
 } from "./map-search-member"
 import { buildSummary } from "./point-history"
 
@@ -35,11 +36,62 @@ describe("challenger search mapping", () => {
       nickname: "하늘",
       schoolLabel: "중앙대학교",
       part: "web-pe",
+      sourcePart: "WEB",
+      partLabel: "Web",
       generation: "11기",
+      generationNumber: 11,
       role: "campus",
-      roleLabel: "교내 운영진",
+      roleLabel: "파트장",
+      roles: [{ color: "campus", label: "파트장" }],
       challengerId: 34,
     })
+    expect(usesLegacyPartLabel(member.generationNumber)).toBe(false)
+  })
+
+  it("maps multiple admin roles and keeps overflow labels distinct", () => {
+    const member = toPointsMember({
+      memberId: 12,
+      name: "김운영",
+      nickname: "하늘",
+      schoolName: "중앙대학교",
+      challengerId: 34,
+      generation: 11,
+      part: "WEB",
+      isAdminInActiveGisu: true,
+      roleTypes: ["SCHOOL_PRESIDENT", "SCHOOL_PART_LEADER", "SCHOOL_ETC_ADMIN"],
+      challengerStatus: "ACTIVE",
+    })
+
+    expect(member.roles).toEqual([
+      { color: "product", label: "회장" },
+      { color: "campus", label: "파트장" },
+      { color: "campus", label: "기타 운영진" },
+    ])
+    expect(member.roleLabel).toBe("회장")
+  })
+
+  it("keeps legacy part labels for generations before 11", () => {
+    const member = toPointsMember({
+      memberId: 12,
+      name: "김운영",
+      nickname: "하늘",
+      schoolName: "중앙대학교",
+      challengerId: 34,
+      generation: 10,
+      part: "SPRINGBOOT",
+      isAdminInActiveGisu: false,
+      roleTypes: [],
+      challengerStatus: "ACTIVE",
+    })
+
+    expect(member).toMatchObject({
+      part: "web-pe",
+      sourcePart: "SPRINGBOOT",
+      partLabel: "Spring",
+      generation: "10기",
+      generationNumber: 10,
+    })
+    expect(usesLegacyPartLabel(member.generationNumber)).toBe(true)
   })
 
   it("builds chapter and school options from the organization response", () => {

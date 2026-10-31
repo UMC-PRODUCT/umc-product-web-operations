@@ -27,8 +27,17 @@ function getNoticeDetailIdFromPath(pathname: string): string | null {
 }
 
 export function AdminShell() {
+  const { session } = adminRouteApi.useRouteContext()
+  const allowedGisuIds = useMemo(() => {
+    // 슈퍼 어드민은 전체 기수 접근. 그 외는 참여 이력 기수만.
+    if (session.isSuperAdmin) {
+      return undefined
+    }
+    return session.participatedGisus.map((gisu) => gisu.gisuId)
+  }, [session.isSuperAdmin, session.participatedGisus])
+
   return (
-    <SelectedGisuProvider>
+    <SelectedGisuProvider allowedGisuIds={allowedGisuIds}>
       <AdminShellFrame />
     </SelectedGisuProvider>
   )
@@ -115,7 +124,7 @@ function AdminShellFrame() {
             />
             <main
               className={cn(
-                usesFeaturePageHeader ? "mt-[26px] flex-1" : "mt-6 flex-1",
+                usesFeaturePageHeader ? "flex-1" : "mt-6 flex-1",
                 isNoticeComposePage && "flex min-h-0 flex-col",
               )}
             >

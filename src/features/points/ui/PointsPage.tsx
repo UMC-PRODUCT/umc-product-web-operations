@@ -15,6 +15,7 @@ import {
   toPointsMember,
   toSchoolOptions,
 } from "../model/map-search-member"
+import { MOCK_MEMBERS } from "../model/mock-members"
 import { MemberTable } from "./MemberTable"
 import { PointsToolbar } from "./PointsToolbar"
 import { useDebouncedValue } from "./use-debounced-value"
@@ -28,6 +29,8 @@ type LockedSchool = {
 
 type PointsPageProps = {
   lockedSchool?: LockedSchool | null
+  /** URL `?mock=roles` — 운영 역할 다중 표시 목 데이터 */
+  mock?: "roles"
 }
 
 const SEARCH_DEBOUNCE_MS = 300
@@ -40,7 +43,7 @@ function toTotalPages(value: unknown) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
 }
 
-export function PointsPage({ lockedSchool = null }: PointsPageProps) {
+export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
   const navigate = useNavigate()
   const selectedGisu = useSelectedGisu()
   const sectionRef = useRef<HTMLElement>(null)
@@ -50,6 +53,7 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
   const [query, setQuery] = useState("")
   const keyword = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
   const [page, setPage] = useState(0)
+  const useMockRoles = mock === "roles"
 
   const resetPage = () => {
     setPage(0)
@@ -138,19 +142,27 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
         page,
         size: MEMBER_SEARCH_PAGE_SIZE,
       }),
-    enabled: !selectedGisu.isPending,
+    enabled: !useMockRoles && !selectedGisu.isPending,
     placeholderData: keepPreviousData,
     retry: false,
   })
 
-  const members = (membersQuery.data?.page?.content ?? []).map(toPointsMember)
-  const totalPages = toTotalPages(membersQuery.data?.page?.totalPages)
-  const isForbidden = isForbiddenError(membersQuery.error)
+  const members = useMockRoles
+    ? MOCK_MEMBERS
+    : (membersQuery.data?.page?.content ?? []).map(toPointsMember)
+  const totalPages = useMockRoles
+    ? 1
+    : toTotalPages(membersQuery.data?.page?.totalPages)
+  const isForbidden = !useMockRoles && isForbiddenError(membersQuery.error)
   const isLoading =
-    (membersQuery.isPending && !isForbidden) ||
-    (membersQuery.isFetching && membersQuery.isError)
+    !useMockRoles &&
+    ((membersQuery.isPending && !isForbidden) ||
+      (membersQuery.isFetching && membersQuery.isError))
   const isError =
-    membersQuery.isError && !isForbidden && !membersQuery.isFetching
+    !useMockRoles &&
+    membersQuery.isError &&
+    !isForbidden &&
+    !membersQuery.isFetching
   const showPagination =
     totalPages > 1 &&
     !isLoading &&
@@ -160,7 +172,7 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
 
   return (
     <section
-      className="flex flex-col gap-(--umc-spacing-gap-32)"
+      className="flex flex-col gap-(--umc-spacing-gap-32) pl-(--umc-spacing-padding-12)"
       ref={sectionRef}
     >
       <div className="flex flex-col gap-(--umc-spacing-gap-12)">
@@ -199,38 +211,42 @@ export function PointsPage({ lockedSchool = null }: PointsPageProps) {
           schoolId={lockedSchool?.schoolId ?? schoolId}
           schoolOptions={schoolOptions}
         />
-        <MemberTable
-          isError={isError}
-          isForbidden={isForbidden}
-          isLoading={isLoading}
-          members={isLoading || isError || isForbidden ? [] : members}
-          onAssignPoints={(memberId) => {
-            const member = members.find((item) => item.id === memberId)
-            void navigate({
-              to: "/activity/points/$memberId",
-              params: { memberId },
-              search:
-                member?.challengerId != null
-                  ? { challengerId: member.challengerId }
-                  : {},
-            })
-          }}
-          onRetry={() => {
-            void membersQuery.refetch()
-          }}
-          query={keyword}
-        />
-        {showPagination ? (
-          <Pagination
-            className="w-full justify-center"
-            onPageChange={(nextPage) => {
-              setPage(nextPage - 1)
-              sectionRef.current?.scrollIntoView({ block: "start" })
-            }}
-            page={page + 1}
-            totalPages={totalPages}
-          />
-        ) : null}
+        <div className="w-full min-w-0 [scrollbar-width:none] overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-[1158px] max-w-[1158px] shrink-0 flex-col items-center gap-(--umc-spacing-gap-20)">
+            <MemberTable
+              isError={isError}
+              isForbidden={isForbidden}
+              isLoading={isLoading}
+              members={isLoading || isError || isForbidden ? [] : members}
+              onAssignPoints={(memberId) => {
+                const member = members.find((item) => item.id === memberId)
+                void navigate({
+                  to: "/activity/points/$memberId",
+                  params: { memberId },
+                  search:
+                    member?.challengerId != null
+                      ? { challengerId: member.challengerId }
+                      : {},
+                })
+              }}
+              onRetry={() => {
+                void membersQuery.refetch()
+              }}
+              query={keyword}
+            />
+            {showPagination ? (
+              <Pagination
+                className="w-full justify-center"
+                onPageChange={(nextPage) => {
+                  setPage(nextPage - 1)
+                  sectionRef.current?.scrollIntoView({ block: "start" })
+                }}
+                page={page + 1}
+                totalPages={totalPages}
+              />
+            ) : null}
+          </div>
+        </div>
       </div>
     </section>
   )

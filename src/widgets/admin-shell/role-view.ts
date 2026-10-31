@@ -1,3 +1,5 @@
+import { sortRoleTypesByDisplayPriority } from "./profile-roles"
+
 import type { AdminSession, RoleType } from "@/features/auth"
 
 /** roleTypes → 사이드 상단 View 스위처 라벨 */
@@ -38,7 +40,7 @@ export function toRoleViewOptions(
     push(SUPER_ADMIN_VIEW_VALUE, "Super Admin View")
   }
 
-  for (const role of session.roleTypes) {
+  for (const role of sortRoleTypesByDisplayPriority(session.roleTypes)) {
     push(role, ROLE_VIEW_LABELS[role])
   }
 

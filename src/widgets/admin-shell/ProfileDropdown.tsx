@@ -5,7 +5,7 @@ import { cn } from "@/shared/lib/cn"
 import GisuCheckIcon from "./assets/gisu-check.svg?react"
 import { ProfileAvatar } from "./ProfileAvatar"
 
-import type { RoleTagColor } from "@umc-product/react"
+import type { ProfileRoleTag } from "./profile-roles"
 
 export type ProfileDropdownGisuOption = {
   value: string
@@ -20,14 +20,13 @@ export type ProfileDropdownProps = {
   /** 닉네임. 없으면 이름만 표시 */
   nickname?: string | null
   schoolName: string
-  roleLabel: string
-  roleColor?: RoleTagColor
+  /** 겸임 시 우선순위 순 RoleTag */
+  roles: readonly ProfileRoleTag[]
   profileImageUrl?: string | null
   gisuOptions: readonly ProfileDropdownGisuOption[]
   selectedGisuId: string | null
   onSelectGisu: (gisuId: string) => void
   onLogout: () => void
-  onAccountSettings?: () => void
   className?: string
 }
 
@@ -35,26 +34,24 @@ export type ProfileDropdownProps = {
  * Figma `Web/Header/Profile Menu` (5641:88469 외 변형)
  *
  * 뼈대:
- * [padding 12/16, radius 10, Neutral Neutral_1]
+ * [padding 12/16, radius 10, Drop Neutral_1]
  *   column gap-12
- *     profile: avatar → (닉네임/이름 + 학교) + RoleTag
+ *     profile: avatar → (닉네임/이름 + 학교) + RoleTag(s)
  *     gisu: Divider → label → menu list
  *     Divider
- *     actions: 계정 설정 / 로그아웃
+ *     actions: 로그아웃
  */
 export function ProfileDropdown({
   id,
   name,
   nickname = null,
   schoolName,
-  roleLabel,
-  roleColor = "challenger-super-admin",
+  roles,
   profileImageUrl = null,
   gisuOptions,
   selectedGisuId,
   onSelectGisu,
   onLogout,
-  onAccountSettings,
   className,
 }: ProfileDropdownProps) {
   const trimmedNickname = nickname?.trim() || null
@@ -95,9 +92,18 @@ export function ProfileDropdown({
               </p>
             </div>
 
-            <RoleTag className="shrink-0" color={roleColor} size="md">
-              {roleLabel}
-            </RoleTag>
+            <div className="relative flex shrink-0 flex-col items-end gap-1">
+              {roles.map((role) => (
+                <RoleTag
+                  className="shrink-0"
+                  color={role.color}
+                  key={role.label}
+                  size="md"
+                >
+                  {role.label}
+                </RoleTag>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -131,14 +137,6 @@ export function ProfileDropdown({
         <Divider />
 
         <div className="relative flex shrink-0 flex-col items-start gap-2.5 px-1.5">
-          <button
-            className="relative flex h-[18px] w-16 shrink-0 cursor-pointer items-center text-[14px] leading-[1.35] font-medium whitespace-nowrap text-[#3f4141] transition-colors hover:text-[#0f1010]"
-            onClick={onAccountSettings}
-            role="menuitem"
-            type="button"
-          >
-            계정 설정
-          </button>
           <button
             className="relative flex h-[18px] w-16 shrink-0 cursor-pointer items-center text-[14px] leading-[1.35] font-medium whitespace-nowrap text-[#dc3d3d] transition-colors hover:text-[#a60303]"
             onClick={onLogout}

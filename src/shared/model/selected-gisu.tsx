@@ -22,7 +22,20 @@ type SelectedGisuContextValue = {
 
 const SelectedGisuContext = createContext<SelectedGisuContextValue | null>(null)
 
-export function SelectedGisuProvider({ children }: { children: ReactNode }) {
+export type SelectedGisuProviderProps = {
+  children: ReactNode
+  /**
+   * 프로필·기수 선택에 노출할 기수 ID.
+   * - `undefined`: 전체 기수
+   * - 배열: 해당 기수만 (참여 이력 필터)
+   */
+  allowedGisuIds?: readonly number[]
+}
+
+export function SelectedGisuProvider({
+  children,
+  allowedGisuIds,
+}: SelectedGisuProviderProps) {
   const gisuQuery = useQuery({
     queryKey: ["gisu", "list"],
     queryFn: fetchGisuList,
@@ -31,8 +44,20 @@ export function SelectedGisuProvider({ children }: { children: ReactNode }) {
   })
   const [overrideId, setOverrideId] = useState<string | null>(null)
 
+  const allowedIdSet = useMemo(() => {
+    if (allowedGisuIds == null) {
+      return null
+    }
+    return new Set(allowedGisuIds)
+  }, [allowedGisuIds])
+
   const value = useMemo<SelectedGisuContextValue>(() => {
-    const items = gisuQuery.data ?? []
+    const allItems = gisuQuery.data ?? []
+    const items =
+      allowedIdSet == null
+        ? allItems
+        : allItems.filter((item) => allowedIdSet.has(item.gisuId))
+
     const selected =
       items.find((item) => String(item.gisuId) === overrideId) ??
       items.find((item) => item.isActive) ??
@@ -51,7 +76,13 @@ export function SelectedGisuProvider({ children }: { children: ReactNode }) {
       isPending: gisuQuery.isPending,
       isError: gisuQuery.isError,
     }
-  }, [gisuQuery.data, gisuQuery.isError, gisuQuery.isPending, overrideId])
+  }, [
+    allowedIdSet,
+    gisuQuery.data,
+    gisuQuery.isError,
+    gisuQuery.isPending,
+    overrideId,
+  ])
 
   return (
     <SelectedGisuContext.Provider value={value}>

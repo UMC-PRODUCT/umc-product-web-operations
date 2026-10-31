@@ -10,7 +10,6 @@ export type AdminSection = "notices" | "activity" | "recruiting"
 export const HEADER_NAV_ITEMS: NavItem[] = [
   { label: "공지", href: "/notices" },
   { label: "활동 관리", href: "/activity" },
-  { label: "리크루팅", href: "/recruiting" },
 ]
 
 export function resolveAdminSection(pathname: string): AdminSection {
