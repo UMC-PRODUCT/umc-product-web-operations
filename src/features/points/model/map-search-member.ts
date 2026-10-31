@@ -20,16 +20,18 @@ const SCHOOL_KEYWORDS: Record<MemberSchool, readonly string[]> = {
 const PART_QUERY: Partial<Record<string, MemberSearchPart>> = {
   pm: "PLAN",
   design: "DESIGN",
-  "web-pe": "WEB",
-  "mobile-pe": "ANDROID",
+  "web-pe": "WEB_PRODUCT_ENGINEER",
+  "mobile-pe": "MOBILE_PRODUCT_ENGINEER",
 }
 
 const PART_TAG: Record<MemberSearchPart, MemberPartFilter> = {
   PLAN: "pm",
   DESIGN: "design",
   WEB: "web-pe",
+  WEB_PRODUCT_ENGINEER: "web-pe",
   ANDROID: "mobile-pe",
   IOS: "mobile-pe",
+  MOBILE_PRODUCT_ENGINEER: "mobile-pe",
   NODEJS: "web-pe",
   SPRINGBOOT: "web-pe",
   ADMIN: "pm",
@@ -39,8 +41,10 @@ const PART_LABEL: Record<MemberSearchPart, string> = {
   PLAN: "PM",
   DESIGN: "Design",
   WEB: "Web",
+  WEB_PRODUCT_ENGINEER: "Web PE",
   ANDROID: "Android",
   IOS: "iOS",
+  MOBILE_PRODUCT_ENGINEER: "Mobile PE",
   NODEJS: "Node.js",
   SPRINGBOOT: "Spring",
   ADMIN: "Admin",
