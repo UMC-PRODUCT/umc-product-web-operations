@@ -15,73 +15,15 @@ import { getSsoClient } from "@/shared/auth/sso-client"
 import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { HEADER_NAV_ITEMS } from "./nav"
+import { resolveProfileRoles } from "./profile-roles"
 import { ProfileAvatar } from "./ProfileAvatar"
 import { ProfileDropdown } from "./ProfileDropdown"
-
-import type { RoleTagColor } from "@umc-product/react"
-
-import type { AdminSession, RoleType } from "@/features/auth"
 
 const adminRouteApi = getRouteApi("/_admin")
 
 type AdminHeaderProps = {
   currentPath: string
   generation: number
-}
-
-const ROLE_TAG_LABELS: Partial<Record<RoleType, string>> = {
-  CENTRAL_PRESIDENT: "중앙 운영진",
-  CENTRAL_VICE_PRESIDENT: "중앙 운영진",
-  CENTRAL_OPERATING_TEAM_MEMBER: "중앙 운영진",
-  CENTRAL_EDUCATION_TEAM_MEMBER: "중앙 운영진",
-  CHAPTER_PRESIDENT: "지부 회장",
-  SCHOOL_PRESIDENT: "교내 회장",
-  SCHOOL_VICE_PRESIDENT: "교내 부회장",
-  SCHOOL_PART_LEADER: "교내 운영진",
-  SCHOOL_ETC_ADMIN: "교내 운영진",
-}
-
-function resolveRoleLabel(session: AdminSession): string {
-  if (session.isSuperAdmin) {
-    return "슈퍼 어드민"
-  }
-
-  for (const role of session.roleTypes) {
-    const label = ROLE_TAG_LABELS[role]
-    if (label) {
-      return label
-    }
-  }
-
-  switch (session.scope) {
-    case "CENTRAL":
-      return "중앙 운영진"
-    case "CHAPTER":
-      return "지부 회장"
-    case "SCHOOL":
-    case "SCHOOL_PART":
-      return "교내 운영진"
-    default:
-      return "챌린저"
-  }
-}
-
-function resolveRoleColor(session: AdminSession): RoleTagColor {
-  if (session.isSuperAdmin) {
-    return "challenger-super-admin"
-  }
-
-  switch (session.scope) {
-    case "CENTRAL":
-      return "central"
-    case "CHAPTER":
-      return "chapter"
-    case "SCHOOL":
-    case "SCHOOL_PART":
-      return "campus"
-    default:
-      return "challenger-super-admin"
-  }
 }
 
 export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
@@ -179,8 +121,7 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
               setOpen(false)
             }}
             profileImageUrl={session.profileImageUrl}
-            roleColor={resolveRoleColor(session)}
-            roleLabel={resolveRoleLabel(session)}
+            roles={resolveProfileRoles(session)}
             schoolName={session.schoolName || "학교 정보 없음"}
             selectedGisuId={selectedGisu.selectedValue}
           />
