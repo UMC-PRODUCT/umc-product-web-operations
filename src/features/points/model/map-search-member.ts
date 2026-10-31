@@ -1,8 +1,15 @@
-import type { RoleTagColor } from "@umc-product/react"
-
 import type { GisuOrganizationItem } from "../api/gisu-organization"
-import type { MemberSearchPart, SearchMemberItem } from "../api/member-search"
-import type { MemberPartFilter, MemberSchool, PointsMember } from "./types"
+import type {
+  ChallengerSearchRoleType,
+  MemberSearchPart,
+  SearchMemberItem,
+} from "../api/member-search"
+import type {
+  MemberPartFilter,
+  MemberSchool,
+  PointsMember,
+  PointsMemberRole,
+} from "./types"
 
 const SCHOOL_KEYWORDS: Record<MemberSchool, readonly string[]> = {
   cau: ["중앙대학교", "중앙대"],
@@ -140,29 +147,42 @@ function guessSchool(schoolName: string | null | undefined): MemberSchool {
   return "cau"
 }
 
-function mapRole(item: SearchMemberItem): {
-  role: RoleTagColor
-  roleLabel: string
-} {
-  const roleType = item.isAdminInActiveGisu ? item.roleTypes?.[0] : undefined
+const CHALLENGER_ROLE: PointsMemberRole = {
+  color: "challenger-super-admin",
+  label: "챌린저",
+}
 
+function mapRoleType(roleType: ChallengerSearchRoleType): PointsMemberRole {
   switch (roleType) {
     case "CHAPTER_PRESIDENT":
-      return { role: "chapter", roleLabel: "지부장" }
+      return { color: "chapter", label: "지부장" }
     case "CENTRAL_PRESIDENT":
     case "CENTRAL_VICE_PRESIDENT":
     case "CENTRAL_OPERATING_TEAM_MEMBER":
     case "CENTRAL_EDUCATION_TEAM_MEMBER":
-      return { role: "central", roleLabel: "중앙 운영진" }
+      return { color: "central", label: "중앙 운영진" }
     case "SCHOOL_PRESIDENT":
+      return { color: "product", label: "회장" }
     case "SCHOOL_VICE_PRESIDENT":
-      return { role: "product", roleLabel: "회장단" }
+      return { color: "product", label: "부회장" }
     case "SCHOOL_PART_LEADER":
+      return { color: "campus", label: "파트장" }
     case "SCHOOL_ETC_ADMIN":
-      return { role: "campus", roleLabel: "교내 운영진" }
-    default:
-      return { role: "challenger-super-admin", roleLabel: "챌린저" }
+      return { color: "campus", label: "기타 운영진" }
   }
+}
+
+export function mapMemberRoles(item: SearchMemberItem): PointsMemberRole[] {
+  if (!item.isAdminInActiveGisu) {
+    return [CHALLENGER_ROLE]
+  }
+
+  const roleTypes = item.roleTypes?.filter(Boolean) ?? []
+  if (roleTypes.length === 0) {
+    return [CHALLENGER_ROLE]
+  }
+
+  return roleTypes.map(mapRoleType)
 }
 
 /** 11기부터 PE 체계. 그 이전은 API 파트명을 그대로 표시한다. */
@@ -189,7 +209,8 @@ export function toPointsMember(item: SearchMemberItem): PointsMember {
     generationNumber > 0
       ? generationNumber
       : null
-  const role = mapRole(item)
+  const roles = mapMemberRoles(item)
+  const primaryRole = roles[0] ?? CHALLENGER_ROLE
 
   return {
     id: String(item.memberId ?? item.challengerId ?? ""),
@@ -204,8 +225,9 @@ export function toPointsMember(item: SearchMemberItem): PointsMember {
     partLabel: apiPart ? PART_LABEL[apiPart] : undefined,
     generation: normalizedGeneration != null ? `${normalizedGeneration}기` : "",
     generationNumber: normalizedGeneration,
-    role: role.role,
-    roleLabel: role.roleLabel,
+    role: primaryRole.color,
+    roleLabel: primaryRole.label,
+    roles,
     status: "active",
     challengerId: item.challengerId ?? null,
   }

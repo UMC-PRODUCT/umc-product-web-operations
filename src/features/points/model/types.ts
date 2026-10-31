@@ -10,6 +10,11 @@ export type MemberPartFilter = PartTagPart
 
 export type MemberStatus = "active"
 
+export type PointsMemberRole = {
+  color: RoleTagColor
+  label: string
+}
+
 export type PointsMember = {
   id: string
   name: string
@@ -25,6 +30,8 @@ export type PointsMember = {
   generationNumber: number | null
   role: RoleTagColor
   roleLabel: string
+  /** 표 운영 역할 열. 최대 2개 표시 후 나머지는 +N */
+  roles: readonly PointsMemberRole[]
   status: MemberStatus
   /** 상벌점 API 경로에 쓰는 챌린저 id. 목록 검색 결과에서 채운다. */
   challengerId?: number | null
