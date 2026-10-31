@@ -5,12 +5,13 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
-import { RoleTag, StatusTag, TextButton } from "@umc-product/react"
+import { StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
 import { MemberNetworkError } from "./MemberNetworkError"
 import { MemberPartTag } from "./MemberPartTag"
 import { MemberPermissionDenied } from "./MemberPermissionDenied"
+import { MemberRoleCell } from "./MemberRoleCell"
 import { MemberSearchEmpty } from "./MemberSearchEmpty"
 import { MemberTableSkeleton } from "./MemberTableSkeleton"
 
@@ -61,20 +62,25 @@ export function MemberTable({
           </div>
         ),
         meta: {
-          headerClass: "w-[240px] shrink-0 px-(--umc-spacing-padding-24)",
-          cellClass: "w-[240px] shrink-0 px-(--umc-spacing-padding-20)",
+          // Figma Operation/Table: 240+160+120+110+220+112+176=1138, + row px-10*2 = 1158
+          headerClass:
+            "w-[240px] min-w-[240px] max-w-[240px] shrink-0 overflow-hidden px-(--umc-spacing-padding-24)",
+          cellClass:
+            "w-[240px] min-w-[240px] max-w-[240px] shrink-0 overflow-hidden px-(--umc-spacing-padding-20)",
         } satisfies ColumnMeta,
       }),
       columnHelper.accessor("schoolLabel", {
         header: "학교",
         cell: (info) => (
-          <span className="text-body-2-regular text-neutral-default-900 block truncate">
+          <span className="text-body-2-regular text-neutral-default-900 block min-w-0 truncate">
             {info.getValue()}
           </span>
         ),
         meta: {
-          headerClass: "w-[160px] shrink-0 px-(--umc-spacing-padding-20)",
-          cellClass: "w-[160px] shrink-0 px-(--umc-spacing-padding-20)",
+          headerClass:
+            "w-[160px] min-w-[160px] max-w-[160px] shrink-0 overflow-hidden px-(--umc-spacing-padding-20)",
+          cellClass:
+            "w-[160px] min-w-[160px] max-w-[160px] shrink-0 overflow-hidden px-(--umc-spacing-padding-20)",
         } satisfies ColumnMeta,
       }),
       columnHelper.accessor("part", {
@@ -94,38 +100,34 @@ export function MemberTable({
         },
         meta: {
           headerClass:
-            "w-[140px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+            "w-[120px] min-w-[120px] max-w-[120px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
           cellClass:
-            "w-[140px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+            "w-[120px] min-w-[120px] max-w-[120px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
         } satisfies ColumnMeta,
       }),
       columnHelper.accessor("generation", {
         header: "기수",
         cell: (info) => (
-          <span className="text-body-2-regular text-neutral-default-900 block truncate">
+          <span className="text-body-2-regular text-neutral-default-900 block min-w-0 truncate">
             {info.getValue()}
           </span>
         ),
         meta: {
           headerClass:
-            "w-[120px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+            "w-[110px] min-w-[110px] max-w-[110px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
           cellClass:
-            "w-[120px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+            "w-[110px] min-w-[110px] max-w-[110px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
         } satisfies ColumnMeta,
       }),
       columnHelper.display({
         id: "role",
         header: "운영 역할",
-        cell: ({ row }) => (
-          <RoleTag color={row.original.role} size="sm">
-            {row.original.roleLabel}
-          </RoleTag>
-        ),
+        cell: ({ row }) => <MemberRoleCell roles={row.original.roles} />,
         meta: {
           headerClass:
-            "w-[150px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-24)",
+            "w-[220px] min-w-[220px] max-w-[220px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-24)",
           cellClass:
-            "w-[150px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+            "w-[220px] min-w-[220px] max-w-[220px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
         } satisfies ColumnMeta,
       }),
       columnHelper.accessor("status", {
@@ -133,9 +135,9 @@ export function MemberTable({
         cell: () => <StatusTag color="brand">활동</StatusTag>,
         meta: {
           headerClass:
-            "w-[140px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+            "w-[112px] min-w-[112px] max-w-[112px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
           cellClass:
-            "w-[140px] shrink-0 pl-[22px] pr-(--umc-spacing-padding-16)",
+            "w-[112px] min-w-[112px] max-w-[112px] shrink-0 overflow-hidden pl-[22px] pr-(--umc-spacing-padding-16)",
         } satisfies ColumnMeta,
       }),
       columnHelper.display({
@@ -155,9 +157,9 @@ export function MemberTable({
           </TextButton>
         ),
         meta: {
-          headerClass: "shrink-0",
+          headerClass: "w-[176px] min-w-[176px] max-w-[176px] shrink-0",
           cellClass:
-            "shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+            "w-[176px] min-w-[176px] max-w-[176px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
         } satisfies ColumnMeta,
       }),
     ],
@@ -187,67 +189,62 @@ export function MemberTable({
   }
 
   return (
-    <div className="w-full [scrollbar-width:none] overflow-x-auto rounded-(--umc-radius-12) [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-      <div className="min-w-[1158px]">
-        <div
-          className="bg-fill-primary-medium-100 text-body-3-medium text-neutral-default-900 flex items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
-          role="row"
-        >
-          <div className="flex h-7 items-center">
-            {table.getHeaderGroups().map((headerGroup) =>
-              headerGroup.headers.map((header) => {
-                const meta = header.column.columnDef.meta as
+    <div className="w-full overflow-hidden rounded-(--umc-radius-12)">
+      <div
+        className="bg-fill-primary-medium-100 text-body-3-medium text-neutral-default-900 flex w-full items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
+        role="row"
+      >
+        <div className="flex h-7 w-full items-center">
+          {table.getHeaderGroups().map((headerGroup) =>
+            headerGroup.headers.map((header) => {
+              const meta = header.column.columnDef.meta as
+                ColumnMeta | undefined
+              return (
+                <div
+                  className={meta?.headerClass ?? ""}
+                  key={header.id}
+                  role="columnheader"
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                </div>
+              )
+            }),
+          )}
+        </div>
+      </div>
+      <div
+        className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l"
+        role="rowgroup"
+      >
+        {table.getRowModel().rows.map((row, index, rows) => {
+          const isLast = index === rows.length - 1
+          return (
+            <div
+              className={`flex w-full items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12) ${isLast ? "rounded-b-(--umc-radius-12)" : ""}`}
+              key={row.id}
+              role="row"
+            >
+              {row.getVisibleCells().map((cell) => {
+                const meta = cell.column.columnDef.meta as
                   ColumnMeta | undefined
                 return (
                   <div
-                    className={meta?.headerClass ?? ""}
-                    key={header.id}
-                    role="columnheader"
+                    className={`flex items-center ${meta?.cellClass ?? ""}`}
+                    key={cell.id}
+                    role="cell"
                   >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </div>
                 )
-              }),
-            )}
-          </div>
-        </div>
-        <div
-          className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l"
-          role="rowgroup"
-        >
-          {table.getRowModel().rows.map((row, index, rows) => {
-            const isLast = index === rows.length - 1
-            return (
-              <div
-                className={`flex items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12) ${isLast ? "rounded-b-(--umc-radius-12)" : ""}`}
-                key={row.id}
-                role="row"
-              >
-                {row.getVisibleCells().map((cell) => {
-                  const meta = cell.column.columnDef.meta as
-                    ColumnMeta | undefined
-                  return (
-                    <div
-                      className={`flex items-center ${meta?.cellClass ?? ""}`}
-                      key={cell.id}
-                      role="cell"
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </div>
+              })}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
