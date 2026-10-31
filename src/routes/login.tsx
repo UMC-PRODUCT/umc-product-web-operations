@@ -40,9 +40,7 @@ function LoginPage() {
   const { redirect: redirectTo } = Route.useSearch()
   const returnTo = redirectTo ?? "/notices"
   const [phase, setPhase] = useState<"checking" | "form" | "error">("checking")
-  const [showOperatorNotice, setShowOperatorNotice] = useState(() =>
-    hasOperatorOnlyLoginNotice(),
-  )
+  const [showOperatorNotice] = useState(() => hasOperatorOnlyLoginNotice())
   const [busyLabel, setBusyLabel] = useState<string | null>(null)
 
   useEffect(() => {
@@ -93,21 +91,12 @@ function LoginPage() {
         }}
         onRelogin={() => {
           clearOperatorOnlyLoginNotice()
-          const client = getSsoClient()
-          const returnToLogin = `${window.location.origin}/login`
           setBusyLabel("로그아웃 중")
-          void (async () => {
-            if (client.config.loginMode === "auth-app") {
-              await client.logout({
-                global: true,
-                returnTo: returnToLogin,
-              })
-              return
-            }
-            await client.logout()
-            setBusyLabel(null)
-            setShowOperatorNotice(false)
-          })()
+          // SSO 세션까지 끊어야 다른 계정으로 로그인할 수 있다.
+          void getSsoClient().logout({
+            global: true,
+            returnTo: `${window.location.origin}/login`,
+          })
         }}
       />
     )
