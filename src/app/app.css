@@ -21,4 +21,31 @@ body {
     --umc-dialog-backdrop-bg: transparent;
     background-color: transparent !important;
   }
+
+  /* Web/Panel — Figma·상벌점 부여 기준 medium 딤 */
+  .umc-panel__backdrop {
+    --umc-panel-backdrop-bg: var(--umc-color-dimmed-medium);
+    background-color: var(--umc-color-dimmed-medium);
+  }
+
+  /*
+   * 상벌점 부여: 이탈 Dialog 중 Panel 딤 숨김 → Dialog용 Dimmed(medium)만 표시.
+   * body.award-discard-open 은 AwardPointsModal이 토글한다.
+   */
+  body.award-discard-open .umc-panel__backdrop {
+    --umc-panel-backdrop-bg: transparent;
+    background-color: transparent;
+  }
+
+  body.award-discard-open .award-discard-dimmed {
+    z-index: calc(var(--umc-z-dialog, 1000) + 2);
+  }
+
+  body.award-discard-open .umc-dialog__backdrop {
+    z-index: calc(var(--umc-z-dialog, 1000) + 2);
+  }
+
+  body.award-discard-open .umc-dialog__viewport {
+    z-index: calc(var(--umc-z-dialog, 1000) + 3);
+  }
 }
