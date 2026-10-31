@@ -93,7 +93,7 @@ export function NoticeDetailPage({
   const deleteDialogFocusStore = useRef<HTMLElement | null>(null)
 
   return (
-    <div className="flex w-full flex-col gap-(--umc-spacing-gap-32)">
+    <div className="flex w-full flex-col gap-(--umc-spacing-gap-32) pl-(--umc-spacing-padding-12)">
       {showImageLoadInlineToast ? (
         <NoticeDetailImageLoadInlineToast
           onLoadImages={startLoadImages}
@@ -231,7 +231,7 @@ export function NoticeDetailPage({
         }}
         confirmLabel="삭제하기"
         cancelLabel="돌아가기"
-        color="brand"
+        color="error"
         onConfirm={async () => {
           if (isDeleting) {
             return

@@ -8,9 +8,12 @@ describe("filterNotices", () => {
     const result = filterNotices(MOCK_NOTICES, {
       audience: "challenger",
       query: "",
+      chapterScope: null,
+      schoolScope: null,
       scopeStage: null,
       scope: null,
       part: null,
+      staffRecipient: null,
     })
 
     expect(result).toHaveLength(7)
@@ -23,9 +26,12 @@ describe("filterNotices", () => {
     const result = filterNotices(MOCK_NOTICES, {
       audience: "challenger",
       query: "없는제목",
+      chapterScope: null,
+      schoolScope: null,
       scopeStage: null,
       scope: null,
       part: null,
+      staffRecipient: null,
     })
 
     expect(result).toHaveLength(0)

@@ -9,9 +9,10 @@ import {
   type NoticeListTableEmptyProps,
 } from "./notice-list-table-empty"
 
-import type { Notice } from "../model/types"
+import type { Notice, NoticeAudience } from "../model/types"
 
 type NoticeListTableProps = {
+  audience: NoticeAudience
   emptyState?: NoticeListTableEmptyProps | null
   isError?: boolean
   isForbidden?: boolean
@@ -34,22 +35,22 @@ const COLUMNS: NoticeColumn[] = [
   {
     id: "required",
     header: "필독",
-    headerClass: "w-[140px] shrink-0 px-(--umc-spacing-padding-24) text-left",
-    bodyClass: "w-[140px] shrink-0 px-(--umc-spacing-padding-20)",
+    headerClass: "w-[80px] shrink-0 px-(--umc-spacing-padding-24) text-left",
+    bodyClass: "w-[80px] shrink-0 px-(--umc-spacing-padding-20)",
   },
   {
     id: "title",
     header: "제목",
-    headerClass: "min-w-[110px] flex-1 px-(--umc-spacing-padding-20) text-left",
+    headerClass: "min-w-[110px] flex-1 px-(--umc-spacing-padding-20)",
     bodyClass: "min-w-[110px] flex-1 px-(--umc-spacing-padding-20)",
   },
   {
     id: "target",
-    header: "대상",
+    header: "대상 (기수 · 지부 · 학교 · 파트)",
     headerClass:
-      "w-[160px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+      "w-[230px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
     bodyClass:
-      "w-[160px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
+      "w-[230px] shrink-0 pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
   },
   {
     id: "author",
@@ -77,6 +78,19 @@ const COLUMNS: NoticeColumn[] = [
   },
 ]
 
+const NOTICE_LIST_TARGET_COLUMN_HEADER: Record<NoticeAudience, string> = {
+  challenger: "대상 (기수 · 지부 · 학교 · 파트)",
+  staff: "대상 (기수 · 직책 · 학교 · 파트)",
+}
+
+function resolveNoticeListColumns(audience: NoticeAudience): NoticeColumn[] {
+  return COLUMNS.map((column) =>
+    column.id === "target"
+      ? { ...column, header: NOTICE_LIST_TARGET_COLUMN_HEADER[audience] }
+      : column,
+  )
+}
+
 const TITLE_TEXT_CLASS =
   "text-body-2-regular text-(--color-text-default) truncate"
 const BODY_TEXT_CLASS = "text-body-2-regular text-neutral-medium-600 truncate"
@@ -98,17 +112,17 @@ function Bone({ className }: { className?: string }) {
   )
 }
 
-function TableHeader() {
+function TableHeader({ columns }: { columns: NoticeColumn[] }) {
   return (
     <div
       className={cn(
-        "bg-fill-primary-weaker-hover-pressed text-body-3-medium text-neutral-default-900",
+        "bg-fill-primary-weaker-hover-pressed text-body-3-medium text-brand-strong-800",
         TABLE_HEADER_ROW_CLASS,
       )}
       role="row"
     >
       <div className="flex h-full w-full items-center">
-        {COLUMNS.map((column) => (
+        {columns.map((column) => (
           <div
             className={column.headerClass}
             key={column.id}
@@ -122,7 +136,13 @@ function TableHeader() {
   )
 }
 
-function SkeletonRow({ isLast }: { isLast: boolean }) {
+function SkeletonRow({
+  columns,
+  isLast,
+}: {
+  columns: NoticeColumn[]
+  isLast: boolean
+}) {
   return (
     <div
       className={cn(
@@ -131,24 +151,21 @@ function SkeletonRow({ isLast }: { isLast: boolean }) {
       )}
       role="row"
     >
-      <div className="flex h-full w-[140px] shrink-0 items-center px-(--umc-spacing-padding-24)">
-        <Bone className="h-6 w-[41px] shrink-0 shadow-(--umc-shadow-drop-neutral-3)" />
-      </div>
-      <div className="flex h-full min-w-[110px] flex-1 items-center px-(--umc-spacing-padding-20)">
-        <Bone className="h-[23px] min-w-0 flex-1" />
-      </div>
-      <div className="flex h-full w-[160px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
-        <Bone className="h-[23px] min-w-0 flex-1" />
-      </div>
-      <div className="flex h-full w-[120px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
-        <Bone className="h-[23px] min-w-0 flex-1" />
-      </div>
-      <div className="flex h-full w-[100px] shrink-0 items-center justify-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
-        <Bone className="h-[23px] w-[61px] shrink-0" />
-      </div>
-      <div className="flex h-full w-[80px] shrink-0 items-center pr-(--umc-spacing-padding-16) pl-(--umc-spacing-padding-20)">
-        <Bone className="h-[23px] min-w-0 flex-1" />
-      </div>
+      {columns.map((column) => (
+        <div
+          className={cn("flex h-full items-center", column.bodyClass)}
+          key={column.id}
+          role="cell"
+        >
+          {column.id === "required" ? (
+            <Bone className="h-6 w-[41px] shrink-0 shadow-(--umc-shadow-drop-neutral-3)" />
+          ) : column.id === "createdAt" ? (
+            <Bone className="h-[23px] w-[61px] shrink-0" />
+          ) : (
+            <Bone className="h-[23px] min-w-0 flex-1" />
+          )}
+        </div>
+      ))}
     </div>
   )
 }
@@ -198,6 +215,7 @@ function renderCell(
 }
 
 export function NoticeListTable({
+  audience,
   emptyState = null,
   isError = false,
   isForbidden = false,
@@ -206,13 +224,15 @@ export function NoticeListTable({
   onOpenNotice,
   onRetry,
 }: NoticeListTableProps) {
+  const columns = resolveNoticeListColumns(audience)
+
   if (isLoading) {
     return (
       <div
         aria-busy
         className="w-full overflow-hidden rounded-(--umc-radius-12)"
       >
-        <TableHeader />
+        <TableHeader columns={columns} />
 
         <div
           className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l bg-white"
@@ -220,6 +240,7 @@ export function NoticeListTable({
         >
           {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
             <SkeletonRow
+              columns={columns}
               isLast={index === SKELETON_ROW_COUNT - 1}
               key={`notice-skeleton-${index}`}
             />
@@ -246,7 +267,7 @@ export function NoticeListTable({
       aria-busy={false}
       className="w-full overflow-hidden rounded-(--umc-radius-12)"
     >
-      <TableHeader />
+      <TableHeader columns={columns} />
 
       <div
         className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l bg-white"
@@ -264,7 +285,7 @@ export function NoticeListTable({
               key={notice.id}
               role="row"
             >
-              {COLUMNS.map((column) => (
+              {columns.map((column) => (
                 <div
                   className={cn(
                     "flex h-full items-center",

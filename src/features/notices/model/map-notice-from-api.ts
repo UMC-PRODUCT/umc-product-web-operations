@@ -3,6 +3,7 @@ import {
   formatNoticeListDate,
   formatNoticeVotePeriod,
 } from "./format-notice-date"
+import { NOTICE_CREATE_STAFF_SCOPE_OPTIONS } from "./notice-create-form"
 import {
   formatGisuGenerationLabel,
   type GisuGenerationLookup,
@@ -15,6 +16,7 @@ import type {
   GetNoticeDetailResponse,
   GetNoticeSummaryResponse,
   NoticeAuthorInfo,
+  NoticeTab,
   NoticeTargetInfo,
 } from "../api/notice-api.types"
 import type { NoticeDetail, NoticePoll } from "./notice-detail.types"
@@ -70,6 +72,68 @@ function formatAuthorDisplay(
   return `${baseName} · ${roleParts.join(" · ")}`
 }
 
+function formatStaffRecipientLabel(tab: NoticeTab | undefined): string | null {
+  if (tab == null || tab === "CHALLENGER") {
+    return null
+  }
+
+  return (
+    NOTICE_CREATE_STAFF_SCOPE_OPTIONS.find((option) => option.value === tab)
+      ?.label ?? null
+  )
+}
+
+function formatTargetGisuLabel(
+  targetInfo: NoticeTargetInfo,
+  context?: NoticeTargetDisplayContext,
+): string {
+  if (targetInfo.targetGisuId != null) {
+    const gisuId = Number(targetInfo.targetGisuId)
+    return Number.isFinite(gisuId)
+      ? formatGisuGenerationLabel(gisuId, context?.gisuGenerationById)
+      : String(targetInfo.targetGisuId)
+  }
+
+  return "전체 기수"
+}
+
+function formatTargetSchoolLabel(
+  targetInfo: NoticeTargetInfo,
+  context?: NoticeTargetDisplayContext,
+): string | null {
+  if (targetInfo.targetSchoolId == null) {
+    return null
+  }
+
+  const schoolId = Number(targetInfo.targetSchoolId)
+  return Number.isFinite(schoolId)
+    ? formatScopedOrganizationLabel(schoolId, context?.schoolNameById, "학교")
+    : String(targetInfo.targetSchoolId)
+}
+
+function formatTargetChapterLabel(
+  targetInfo: NoticeTargetInfo,
+  context?: NoticeTargetDisplayContext,
+): string | null {
+  if (targetInfo.targetChapterId == null) {
+    return null
+  }
+
+  const chapterId = Number(targetInfo.targetChapterId)
+  return Number.isFinite(chapterId)
+    ? formatScopedOrganizationLabel(chapterId, context?.chapterNameById, "지부")
+    : String(targetInfo.targetChapterId)
+}
+
+function formatTargetPartsLabel(targetInfo: NoticeTargetInfo): string | null {
+  const targetParts = targetInfo.targetParts ?? []
+  if (targetParts.length === 0) {
+    return null
+  }
+
+  return targetParts.map((part) => NOTICE_PART_LABELS[part] ?? part).join(", ")
+}
+
 export function formatTargetDisplay(
   targetInfo: NoticeTargetInfo | null | undefined,
   context?: NoticeTargetDisplayContext,
@@ -78,53 +142,23 @@ export function formatTargetDisplay(
     return "UMC 전체"
   }
 
-  const parts: string[] = []
+  const gisuLabel = formatTargetGisuLabel(targetInfo, context)
+  const schoolLabel = formatTargetSchoolLabel(targetInfo, context)
+  const partsLabel = formatTargetPartsLabel(targetInfo)
 
-  if (targetInfo.targetGisuId != null) {
-    const gisuId = Number(targetInfo.targetGisuId)
-    parts.push(
-      Number.isFinite(gisuId)
-        ? formatGisuGenerationLabel(gisuId, context?.gisuGenerationById)
-        : String(targetInfo.targetGisuId),
+  if (targetInfo.targetNoticeTab !== "CHALLENGER") {
+    const staffRecipientLabel = formatStaffRecipientLabel(
+      targetInfo.targetNoticeTab,
     )
-  } else {
-    parts.push("전체 기수")
+    return [gisuLabel, staffRecipientLabel, schoolLabel, partsLabel]
+      .filter((segment): segment is string => segment != null && segment !== "")
+      .join(" · ")
   }
 
-  if (targetInfo.targetSchoolId != null) {
-    const schoolId = Number(targetInfo.targetSchoolId)
-    parts.push(
-      Number.isFinite(schoolId)
-        ? formatScopedOrganizationLabel(
-            schoolId,
-            context?.schoolNameById,
-            "학교",
-          )
-        : String(targetInfo.targetSchoolId),
-    )
-  }
-
-  if (targetInfo.targetChapterId != null) {
-    const chapterId = Number(targetInfo.targetChapterId)
-    parts.push(
-      Number.isFinite(chapterId)
-        ? formatScopedOrganizationLabel(
-            chapterId,
-            context?.chapterNameById,
-            "지부",
-          )
-        : String(targetInfo.targetChapterId),
-    )
-  }
-
-  const targetParts = targetInfo.targetParts ?? []
-  if (targetParts.length > 0) {
-    parts.push(
-      targetParts.map((part) => NOTICE_PART_LABELS[part] ?? part).join(", "),
-    )
-  }
-
-  return parts.join(" · ")
+  const chapterLabel = formatTargetChapterLabel(targetInfo, context)
+  return [gisuLabel, schoolLabel, chapterLabel, partsLabel]
+    .filter((segment): segment is string => segment != null && segment !== "")
+    .join(" · ")
 }
 
 function resolveAudience(

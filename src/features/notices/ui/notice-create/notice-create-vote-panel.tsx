@@ -79,7 +79,6 @@ function computeVoteCalendarPopoverPosition(input: {
     const maxTop = viewportHeight - popoverHeight - pad
 
     if (dateField === "start") {
-      // 시작일: 입력 아래 고정. 5주 등으로 아래가 잘리면 위로만 살짝 당김 (종료일처럼 위로 뒤집지 않음)
       top = Math.min(topBelow, maxTop)
       top = Math.max(pad, top)
     } else {
@@ -91,7 +90,6 @@ function computeVoteCalendarPopoverPosition(input: {
   return { left, top }
 }
 
-/** Figma 1192:24603 · DS TextField/Box/Field (TextFieldBox와 동일 DOM) */
 function VoteTextFieldClearButton({
   ariaLabel,
   onClick,
@@ -424,7 +422,6 @@ function VoteDateTimeRow({
             zIndex: VOTE_CALENDAR_POPOVER_Z_INDEX,
           }}
         >
-          {/* Figma 1220:18152 · Calendar — DS 단일 border/padding */}
           <Calendar
             className={cn("max-w-none shadow-(--umc-shadow-drop-neutral-2)")}
             markedDates={[]}
@@ -454,7 +451,6 @@ function VoteDateTimeRow({
         nativeLabel={false}
       >
         <div className="relative w-fit" ref={calendarAnchorRef}>
-          {/* Figma 1214:12269 · Text Field/Box/Date & Time · Type=Date */}
           <TextFieldBoxField
             className="!w-fit gap-(--umc-spacing-gap-6)"
             data-type={hasDate ? "text" : undefined}
@@ -681,7 +677,7 @@ export function NoticeCreateVotePanel({
         >
           <div className="flex shrink-0 items-start justify-between pt-(--umc-spacing-padding-32) pr-(--umc-spacing-padding-24) pl-(--umc-spacing-padding-32)">
             <h2
-              className="text-heading-2-semibold text-neutral-default-900 px-1"
+              className="text-heading-2-semibold text-neutral-default-900 px-(--umc-spacing-padding-4)"
               id={titleId}
             >
               투표 만들기

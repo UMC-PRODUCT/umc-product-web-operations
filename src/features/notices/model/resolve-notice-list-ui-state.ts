@@ -2,17 +2,20 @@ import { normalizeNoticeListFiltersForApi } from "./build-notice-list-params"
 import { parseNoticeScopeFilter } from "./notice-scope-filter"
 
 import type { NoticeListOrganizationOptions } from "./notice-list-organization-query"
-import type { NoticeAudience, NoticeListFilters } from "./types"
+import type {
+  NoticeAudience,
+  NoticeListFilters,
+  NoticeListQueryFilterFields,
+} from "./types"
 
 export type NoticeListTableEmptyState =
   | { variant: "registered" }
   | { variant: "search"; query: string }
   | { variant: "noMatch" }
 
-/** UI 1단계(범위 단계)만 고른 상태는 목록 API에 반영되지 않음 */
 export function hasAppliedNoticeListApiFilters(input: {
   audience: NoticeAudience
-  filters: Pick<NoticeListFilters, "query" | "scope" | "part" | "scopeStage">
+  filters: NoticeListQueryFilterFields
 }): boolean {
   const apiFilters = normalizeNoticeListFiltersForApi(input)
 
@@ -20,45 +23,86 @@ export function hasAppliedNoticeListApiFilters(input: {
     return true
   }
 
+  if (input.audience === "challenger") {
+    return (
+      apiFilters.chapterScope != null ||
+      apiFilters.schoolScope != null ||
+      apiFilters.part != null
+    )
+  }
+
+  if (input.filters.staffRecipient != null) {
+    return true
+  }
+
   return apiFilters.scopeStage != null
 }
 
-/** 운영진 탭 등에서 챌린저 전용 범위·파트 필터 (NT-L01 403) */
+/** 운영진 탭에서 챌린저 전용 필터 (NT-L01 403) */
 export function isNoticeListClientFilterForbidden(input: {
   audience: NoticeAudience
-  filters: Pick<NoticeListFilters, "scopeStage">
+  filters: Pick<
+    NoticeListFilters,
+    "chapterScope" | "schoolScope" | "scopeStage"
+  >
 }): boolean {
-  if (input.audience !== "challenger") {
+  if (input.audience === "challenger") {
     return input.filters.scopeStage != null
+  }
+
+  if (input.filters.chapterScope != null || input.filters.schoolScope != null) {
+    return true
+  }
+
+  // 운영진 UI에는 지부 범위가 없음 — chapter는 URL 잔여값일 뿐 403 대상 아님
+  if (input.filters.scopeStage === "chapter") {
+    return false
   }
 
   return false
 }
 
 export function isNoticeListScopeOutOfOrganization(input: {
-  filters: Pick<NoticeListFilters, "scope" | "scopeStage">
+  audience: NoticeAudience
+  filters: Pick<
+    NoticeListFilters,
+    "chapterScope" | "schoolScope" | "scope" | "scopeStage"
+  >
   organization: Pick<
     NoticeListOrganizationOptions,
     "chapters" | "schools"
   > | null
 }): boolean {
-  if (
-    !input.organization ||
-    input.filters.scope == null ||
-    (input.filters.scopeStage !== "chapter" &&
-      input.filters.scopeStage !== "school")
-  ) {
+  if (!input.organization) {
     return false
   }
 
-  const { chapterId, schoolId } = parseNoticeScopeFilter(input.filters.scope)
+  if (input.audience === "challenger") {
+    const { chapterId } = parseNoticeScopeFilter(input.filters.chapterScope)
+    const { schoolId } = parseNoticeScopeFilter(input.filters.schoolScope)
 
-  if (
-    chapterId != null &&
-    !input.organization.chapters.some((chapter) => chapter.id === chapterId)
-  ) {
-    return true
+    if (
+      chapterId != null &&
+      !input.organization.chapters.some((chapter) => chapter.id === chapterId)
+    ) {
+      return true
+    }
+
+    if (
+      schoolId != null &&
+      !input.organization.schools.some((school) => school.schoolId === schoolId)
+    ) {
+      return true
+    }
+
+    return false
   }
+
+  if (input.filters.scopeStage !== "school" || input.filters.scope == null) {
+    return false
+  }
+
+  const { schoolId } = parseNoticeScopeFilter(input.filters.scope)
 
   if (
     schoolId != null &&
@@ -72,7 +116,7 @@ export function isNoticeListScopeOutOfOrganization(input: {
 
 export function resolveNoticeListTableEmptyState(input: {
   audience: NoticeAudience
-  filters: Pick<NoticeListFilters, "query" | "scope" | "part" | "scopeStage">
+  filters: NoticeListQueryFilterFields
   hasLoadedList: boolean
   noticeCount: number
   registeredTotal: number

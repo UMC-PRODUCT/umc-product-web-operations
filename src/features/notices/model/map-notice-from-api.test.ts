@@ -86,6 +86,36 @@ describe("mapNoticeSummaryToNotice", () => {
     expect(notice.target).toContain("Neon")
     expect(notice.target).not.toContain("학교 #")
   })
+
+  it("includes staff recipient label in target display", () => {
+    const notice = mapNoticeSummaryToNotice(
+      {
+        id: 2,
+        title: "운영진 공지",
+        content: "c",
+        createdAt: "2026-10-20T05:00:00.000Z",
+        mustRead: false,
+        viewCount: 0,
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        targetInfo: {
+          targetNoticeTab: "SCHOOL_CORE",
+          targetGisuId: 6,
+          targetSchoolId: 19,
+        },
+      },
+      {
+        gisuGenerationById: buildGisuGenerationLookup([
+          { gisuId: 6, generation: 11 },
+        ]),
+        schoolNameById: new Map([[19, "숙명여자대학교"]]),
+      },
+    )
+
+    expect(notice.audience).toBe("staff")
+    expect(notice.target).toBe("11기 · 회장단 이상 · 숙명여자대학교")
+  })
 })
 
 describe("mapNoticeDetailResponse", () => {

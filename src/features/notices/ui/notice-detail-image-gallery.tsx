@@ -1,4 +1,4 @@
-import { ChevronRightIcon } from "@umc-product/icons"
+import { ChevronLeftIcon, ChevronRightIcon } from "@umc-product/icons"
 import { IconButton, ScrollFog } from "@umc-product/react"
 import {
   useCallback,
@@ -18,10 +18,11 @@ import type { NoticeImageAsset } from "../model/notice-detail.types"
 const IMAGE_TILE_SIZE_PX = 200
 const IMAGE_TILE_GAP_PX = 12
 const IMAGE_SCROLL_STEP_PX = IMAGE_TILE_SIZE_PX + IMAGE_TILE_GAP_PX
+const IMAGE_SCROLL_NAV_ICON_BUTTON_CLASS =
+  "absolute top-1/2 z-10 -translate-y-1/2 [--umc-icon-button-bg-pressed:var(--umc-color-icon-neutral-strong-600)] [--umc-icon-button-bg:var(--umc-color-icon-neutral-strong-600)]"
 
 type NoticeDetailImageGalleryProps = {
   images: NoticeImageAsset[]
-  /** Figma 580: 가로 스크롤 + 우측 페이드 (상세 카드 본문 폭) */
   variant?: "base" | "scroll"
 }
 
@@ -68,6 +69,7 @@ export function NoticeDetailImageGallery({
   variant = "scroll",
 }: NoticeDetailImageGalleryProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -90,12 +92,15 @@ export function NoticeDetailImageGallery({
   const updateScrollState = useCallback(() => {
     const element = scrollRef.current
     if (!element) {
+      setCanScrollLeft(false)
       setCanScrollRight(false)
       return
     }
     const hasOverflow = element.scrollWidth - element.clientWidth > 1
+    const atStart = element.scrollLeft <= 1
     const atEnd =
       element.scrollLeft + element.clientWidth >= element.scrollWidth - 1
+    setCanScrollLeft(hasOverflow && !atStart)
     setCanScrollRight(hasOverflow && !atEnd)
   }, [])
 
@@ -172,6 +177,13 @@ export function NoticeDetailImageGallery({
     })
   }
 
+  const scrollPrev = () => {
+    scrollRef.current?.scrollBy({
+      behavior: "smooth",
+      left: -IMAGE_SCROLL_STEP_PX,
+    })
+  }
+
   return (
     <>
       <div className="relative w-full min-w-0 self-stretch">
@@ -197,6 +209,25 @@ export function NoticeDetailImageGallery({
             />
           ))}
         </div>
+        {canScrollLeft ? (
+          <>
+            <ScrollFog
+              aria-hidden
+              className="pointer-events-none absolute top-0 left-0 h-[200px] w-[74px]"
+              side="left"
+            />
+            <IconButton
+              aria-label="이전 이미지 보기"
+              className={cn(IMAGE_SCROLL_NAV_ICON_BUTTON_CLASS, "left-[7px]")}
+              color="neutral"
+              icon={<ChevronLeftIcon aria-hidden size={24} />}
+              onClick={scrollPrev}
+              size="lg"
+              type="button"
+              variant="fill"
+            />
+          </>
+        ) : null}
         {canScrollRight ? (
           <>
             <ScrollFog
@@ -206,7 +237,7 @@ export function NoticeDetailImageGallery({
             />
             <IconButton
               aria-label="다음 이미지 보기"
-              className="absolute top-1/2 right-[7px] z-10 -translate-y-1/2 [--umc-icon-button-bg-pressed:var(--umc-color-icon-neutral-strong-600)] [--umc-icon-button-bg:var(--umc-color-icon-neutral-strong-600)]"
+              className={cn(IMAGE_SCROLL_NAV_ICON_BUTTON_CLASS, "right-[0px]")}
               color="neutral"
               icon={<ChevronRightIcon aria-hidden size={24} />}
               onClick={scrollNext}

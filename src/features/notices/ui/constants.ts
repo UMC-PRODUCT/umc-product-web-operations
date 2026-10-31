@@ -1,8 +1,7 @@
-/** Figma TextBox — 글자 수 카운터 (Label/2-Medium + text-disabled) */
+/** DS TextArea `.umc-text-area__counter`와 동일 (Body/2-Regular + placeholder) */
 export const NOTICE_CREATE_LENGTH_COUNTER_CLASS =
-  "text-label-2-medium text-disabled tabular-nums whitespace-nowrap"
+  "text-body-2-regular text-placeholder tabular-nums whitespace-nowrap"
 
-/** Figma NT-L01 필터 Select — 110px 고정 (472:9363) */
 export const NOTICE_FILTER_SELECT_WIDTH_CLASS = "w-auto shrink-0"
 
 /** Label/3-Medium + placeholder 컬러는 DS text-* 유틸 (Select `size="md"`와 동일 토큰) */

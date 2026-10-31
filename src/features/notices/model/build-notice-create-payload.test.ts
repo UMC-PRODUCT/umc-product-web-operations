@@ -45,9 +45,12 @@ describe("buildCreateNoticeRequests", () => {
       challengerEnabled: false,
       staffEnabled: true,
       staffScope: "CENTRAL_MEMBER" as const,
+      gisuMode: "specific" as const,
       orgMode: "chapter" as const,
       chapterId: 3,
       targetGisuId: 9,
+      title: "t",
+      content: "c",
     }
 
     const [request] = buildCreateNoticeRequests(form, 9, 10)
@@ -57,6 +60,52 @@ describe("buildCreateNoticeRequests", () => {
     expect(request!.targetInfo.targetChapterId).toBeUndefined()
     expect(request!.targetInfo.targetGisuId).toBe(9)
     expect(request!.targetInfo.targetSchoolId).toBeNull()
+    expect(request!.targetInfo.targetParts).toBeUndefined()
+  })
+
+  it("maps staff school scope only for SCHOOL_PART_LEADER tab", () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      challengerEnabled: false,
+      staffEnabled: true,
+      staffScope: "SCHOOL_PART_LEADER" as const,
+      gisuMode: "specific" as const,
+      orgMode: "school" as const,
+      schoolId: 19,
+      targetGisuId: 9,
+      parts: ["WEB"] satisfies NoticePart[],
+      title: "t",
+      content: "c",
+    }
+
+    const [request] = buildCreateNoticeRequests(form, 9, 11)
+    expect(request).toBeDefined()
+
+    expect(request!.targetInfo).toEqual({
+      targetNoticeTab: "SCHOOL_PART_LEADER",
+      targetGisuId: 9,
+      targetSchoolId: 19,
+      targetParts: ["WEB"],
+    })
+    expect(request!.targetInfo.targetChapterId).toBeUndefined()
+  })
+
+  it("does not send school on SCHOOL_CORE staff notice", () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      staffEnabled: true,
+      gisuMode: "specific" as const,
+      orgMode: "school" as const,
+      schoolId: 19,
+      staffScope: "SCHOOL_CORE" as const,
+      targetGisuId: 9,
+      title: "t",
+      content: "c",
+    }
+
+    const [request] = buildCreateNoticeRequests(form, 9, 11)
+    expect(request!.targetInfo.targetSchoolId).toBeNull()
+    expect(request!.targetInfo.targetParts).toBeUndefined()
   })
 
   it("uses session gisu when staff notice has all-gisu mode", () => {
@@ -66,6 +115,8 @@ describe("buildCreateNoticeRequests", () => {
       staffEnabled: true,
       gisuMode: "all" as const,
       targetGisuId: null,
+      title: "t",
+      content: "c",
     }
 
     const [request] = buildCreateNoticeRequests(form, 12, 11)
@@ -108,11 +159,15 @@ describe("buildCreateNoticeRequests", () => {
     expect(request!.targetInfo.targetParts).toEqual([])
   })
 
-  it("omits challenger part filters on central staff notice", () => {
+  it("sends staff part filters only on SCHOOL_PART_LEADER tab", () => {
     const form = {
       ...INITIAL_NOTICE_CREATE_FORM,
       staffEnabled: true,
       challengerEnabled: false,
+      staffScope: "SCHOOL_PART_LEADER" as const,
+      gisuMode: "specific" as const,
+      targetGisuId: 6,
+      orgMode: "umc" as const,
       parts: ["WEB"] satisfies NoticePart[],
       title: "t",
       content: "c",
@@ -121,7 +176,6 @@ describe("buildCreateNoticeRequests", () => {
     const [request] = buildCreateNoticeRequests(form, 6, 11)
     expect(request).toBeDefined()
 
-    expect(request!.targetInfo.targetNoticeTab).toBe("CENTRAL_MEMBER")
-    expect(request!.targetInfo.targetParts).toBeUndefined()
+    expect(request!.targetInfo.targetParts).toEqual(["WEB"])
   })
 })

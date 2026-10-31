@@ -1,4 +1,8 @@
-import { ChevronRightIcon, RemoveCircleIcon } from "@umc-product/icons"
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  RemoveCircleIcon,
+} from "@umc-product/icons"
 import { IconButton, ImageThumbnailEditor, ScrollFog } from "@umc-product/react"
 import {
   useCallback,
@@ -17,6 +21,8 @@ const IMAGE_TILE_SIZE_PX = 160
 const IMAGE_TILE_GAP_PX = 12
 const IMAGE_SCROLL_STEP_PX = IMAGE_TILE_SIZE_PX + IMAGE_TILE_GAP_PX
 const IMAGE_GALLERY_MAX_WIDTH_PX = 710
+const IMAGE_SCROLL_NAV_ICON_BUTTON_CLASS =
+  "absolute top-1/2 z-10 -translate-y-1/2 [--umc-icon-button-bg-pressed:var(--umc-color-icon-neutral-strong-600)] [--umc-icon-button-bg:var(--umc-color-icon-neutral-strong-600)]"
 
 /** Figma AddImage filled slot — light checkerboard tile */
 const NOTICE_CREATE_GALLERY_CHECKERBOARD_SRC =
@@ -160,6 +166,7 @@ export function NoticeCreateImageGallery({
   showEmptyPlaceholders = true,
 }: NoticeCreateImageGalleryProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
   const persistedCount = existingImages.length
@@ -168,17 +175,24 @@ export function NoticeCreateImageGallery({
   const placeholderCount = showEmptyPlaceholders
     ? MAX_NOTICE_IMAGES - totalImageCount - (showAddSlot ? 1 : 0)
     : 0
-  const tileCount = (showAddSlot ? 1 : 0) + totalImageCount + placeholderCount
+  const scrollTileCount = totalImageCount + placeholderCount
+  const scrollViewportWidthPx =
+    IMAGE_GALLERY_MAX_WIDTH_PX -
+    (showAddSlot ? IMAGE_TILE_SIZE_PX + IMAGE_TILE_GAP_PX : 0)
 
   const updateScrollState = useCallback(() => {
     const element = scrollRef.current
     if (!element) {
+      setCanScrollLeft(false)
       setCanScrollRight(false)
       return
     }
+
     const hasOverflow = element.scrollWidth - element.clientWidth > 1
+    const atStart = element.scrollLeft <= 1
     const atEnd =
       element.scrollLeft + element.clientWidth >= element.scrollWidth - 1
+    setCanScrollLeft(hasOverflow && !atStart)
     setCanScrollRight(hasOverflow && !atEnd)
   }, [])
 
@@ -217,76 +231,104 @@ export function NoticeCreateImageGallery({
     })
   }
 
-  const hasLikelyOverflow =
-    estimateGalleryScrollWidth(tileCount) > IMAGE_GALLERY_MAX_WIDTH_PX
+  const scrollPrev = () => {
+    scrollRef.current?.scrollBy({
+      behavior: "smooth",
+      left: -IMAGE_SCROLL_STEP_PX,
+    })
+  }
 
-  const showScrollChrome = hasLikelyOverflow && canScrollRight
+  const hasLikelyOverflow =
+    estimateGalleryScrollWidth(scrollTileCount) > scrollViewportWidthPx
 
   return (
-    <div className="relative w-full max-w-[710px] min-w-0">
-      <div
-        className={cn(
-          "flex w-full max-w-[710px] min-w-0",
-          "gap-(--umc-spacing-gap-12) overflow-x-auto overscroll-x-contain",
-          "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
-        )}
-        ref={scrollRef}
-      >
-        {showAddSlot ? (
-          <ImageThumbnailEditor
-            accept={[...IMAGE_ADD_ACCEPT]}
-            className="size-[160px] shrink-0"
-            description={IMAGE_ADD_DESCRIPTION}
-            label={IMAGE_ADD_LABEL}
-            maxSize={5 * 1024 * 1024}
-            onReject={() => {
-              onUploadReject?.()
-            }}
-            onValueChange={onAdd}
-            value={null}
-          />
-        ) : null}
-        {existingImages.map((image, index) => (
-          <NoticeCreateExistingImagePreview
-            image={image}
-            key={`${image.fileId}-${index}`}
-            onRemove={() => {
-              onRemoveExisting?.(index)
-            }}
-          />
-        ))}
-        {imageFiles.map((file, index) => (
-          <NoticeCreateImagePreview
-            file={file}
-            key={`${file.name}-${file.lastModified}-${index}`}
-            onRemove={() => {
-              onRemove(index)
-            }}
-          />
-        ))}
-        {Array.from({ length: placeholderCount }, (_, index) => (
-          <NoticeCreateImageCheckerboard key={`placeholder-${index}`} />
-        ))}
-      </div>
-      {showScrollChrome ? (
-        <>
-          <ScrollFog
-            aria-hidden
-            className="pointer-events-none absolute top-0 right-0 h-[160px] w-[74px]"
-            side="right"
-          />
-          <IconButton
-            aria-label="다음 이미지 보기"
-            className="absolute top-1/2 right-[7px] z-10 -translate-y-1/2 [--umc-icon-button-bg-pressed:var(--umc-color-icon-neutral-strong-600)] [--umc-icon-button-bg:var(--umc-color-icon-neutral-strong-600)]"
-            color="neutral"
-            icon={<ChevronRightIcon aria-hidden size={24} />}
-            onClick={scrollNext}
-            size="lg"
-            type="button"
-            variant="fill"
-          />
-        </>
+    <div className="flex w-full max-w-[710px] min-w-0 gap-(--umc-spacing-gap-12)">
+      {showAddSlot ? (
+        <ImageThumbnailEditor
+          accept={[...IMAGE_ADD_ACCEPT]}
+          className="size-[160px] shrink-0"
+          description={IMAGE_ADD_DESCRIPTION}
+          label={IMAGE_ADD_LABEL}
+          maxSize={5 * 1024 * 1024}
+          onReject={() => {
+            onUploadReject?.()
+          }}
+          onValueChange={onAdd}
+          value={null}
+        />
       ) : null}
+
+      <div className="relative min-w-0 flex-1">
+        <div
+          className={cn(
+            "flex min-w-0",
+            "gap-(--umc-spacing-gap-12) overflow-x-auto overscroll-x-contain",
+            "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          )}
+          ref={scrollRef}
+        >
+          {existingImages.map((image, index) => (
+            <NoticeCreateExistingImagePreview
+              image={image}
+              key={`${image.fileId}-${index}`}
+              onRemove={() => {
+                onRemoveExisting?.(index)
+              }}
+            />
+          ))}
+          {imageFiles.map((file, index) => (
+            <NoticeCreateImagePreview
+              file={file}
+              key={`${file.name}-${file.lastModified}-${index}`}
+              onRemove={() => {
+                onRemove(index)
+              }}
+            />
+          ))}
+          {Array.from({ length: placeholderCount }, (_, index) => (
+            <NoticeCreateImageCheckerboard key={`placeholder-${index}`} />
+          ))}
+        </div>
+
+        {hasLikelyOverflow && canScrollLeft ? (
+          <>
+            <ScrollFog
+              aria-hidden
+              className="pointer-events-none absolute top-0 left-0 h-[160px] w-[74px]"
+              side="left"
+            />
+            <IconButton
+              aria-label="이전 이미지 보기"
+              className={cn(IMAGE_SCROLL_NAV_ICON_BUTTON_CLASS, "left-[0px]")}
+              color="neutral"
+              icon={<ChevronLeftIcon aria-hidden size={24} />}
+              onClick={scrollPrev}
+              size="lg"
+              type="button"
+              variant="fill"
+            />
+          </>
+        ) : null}
+        {hasLikelyOverflow && canScrollRight ? (
+          <>
+            <ScrollFog
+              aria-hidden
+              className="pointer-events-none absolute top-0 right-0 h-[160px] w-[74px]"
+              side="right"
+            />
+            <IconButton
+              aria-label="다음 이미지 보기"
+              className={cn(IMAGE_SCROLL_NAV_ICON_BUTTON_CLASS, "right-[0px]")}
+              color="neutral"
+              icon={<ChevronRightIcon aria-hidden size={24} />}
+              onClick={scrollNext}
+              size="lg"
+              type="button"
+              variant="fill"
+            />
+          </>
+        ) : null}
+      </div>
     </div>
   )
 }
