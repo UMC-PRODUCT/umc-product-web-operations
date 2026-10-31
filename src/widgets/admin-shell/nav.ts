@@ -10,14 +10,7 @@ export type AdminSection = "notices" | "activity" | "recruiting"
 export const HEADER_NAV_ITEMS: NavItem[] = [
   { label: "공지", href: "/notices" },
   { label: "활동 관리", href: "/activity" },
-  { label: "리크루팅", href: "/recruiting" },
 ]
-
-export const GENERATION_OPTIONS = [
-  { value: "11", label: "11기" },
-  { value: "10", label: "10기" },
-  { value: "9", label: "9기" },
-] as const
 
 export function resolveAdminSection(pathname: string): AdminSection {
   if (pathname === "/notices" || pathname.startsWith("/notices/")) {
@@ -50,8 +43,8 @@ export function getSideNavItems(
   switch (section) {
     case "notices":
       return [
-        { label: "공지목록", href: "/notices" },
-        { label: "공지작성", href: "/notices/new" },
+        { label: "공지 목록", href: "/notices", icon: peopleIcon },
+        { label: "공지 작성", href: "/notices/new", icon: peopleIcon },
       ]
     case "activity":
       return [
@@ -77,7 +70,27 @@ export function getPageBreadcrumbs(
           title: "공지작성",
           breadcrumbs: [
             { label: "공지", href: "/notices" },
-            { label: "공지작성" },
+            { label: "공지 작성" },
+          ],
+        }
+      }
+      if (/^\/notices\/[^/]+\/edit$/.test(pathname)) {
+        return {
+          title: "공지 수정",
+          breadcrumbs: [
+            { label: "공지", href: "/notices" },
+            { label: "공지 목록", href: "/notices" },
+            { label: "공지 수정" },
+          ],
+        }
+      }
+      if (/^\/notices\/[^/]+$/.test(pathname)) {
+        return {
+          title: "공지 상세",
+          breadcrumbs: [
+            { label: "공지", href: "/notices" },
+            { label: "공지 목록", href: "/notices" },
+            { label: "공지 상세" },
           ],
         }
       }
@@ -85,7 +98,7 @@ export function getPageBreadcrumbs(
         title: "공지목록",
         breadcrumbs: [
           { label: "공지", href: "/notices" },
-          { label: "공지목록" },
+          { label: "공지 목록" },
         ],
       }
     case "activity":

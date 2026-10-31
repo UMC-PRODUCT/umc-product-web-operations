@@ -1,14 +1,27 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, getRouteApi } from "@tanstack/react-router"
+
+import { NoticeCreatePage } from "@/features/notices"
+import { canCreateNotice } from "@/features/notices/model/notice-session"
+import { useSelectedGisu } from "@/shared/model/selected-gisu"
+
+import { toNoticeOperatorSession } from "./-notice-session"
 
 export const Route = createFileRoute("/_admin/notices/new")({
-  component: NoticeCreatePage,
+  component: NoticeCreateRoute,
 })
 
-function NoticeCreatePage() {
-  return (
-    <section className="flex flex-col gap-2">
-      <h1 className="text-xl font-semibold">공지작성</h1>
-      <p className="text-teal-grey-600 text-sm">새 공지를 작성합니다.</p>
-    </section>
-  )
+const adminRouteApi = getRouteApi("/_admin")
+
+function NoticeCreateRoute() {
+  const { session } = adminRouteApi.useRouteContext()
+  const { gisuId: selectedGisuId } = useSelectedGisu()
+  const noticeSession = toNoticeOperatorSession(session, {
+    gisuId: selectedGisuId,
+  })
+
+  if (!canCreateNotice(noticeSession)) {
+    return null
+  }
+
+  return <NoticeCreatePage session={noticeSession} />
 }

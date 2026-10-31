@@ -15,11 +15,16 @@ import { Route as AdminIndexRouteImport } from './routes/_admin/index'
 import { Route as AdminActivityRouteRouteImport } from './routes/_admin/activity/route'
 import { Route as AdminNoticesRouteRouteImport } from './routes/_admin/notices/route'
 import { Route as AdminRecruitingRouteRouteImport } from './routes/_admin/recruiting/route'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminActivityIndexRouteImport } from './routes/_admin/activity/index'
 import { Route as AdminActivityPointsRouteImport } from './routes/_admin/activity/points'
 import { Route as AdminNoticesIndexRouteImport } from './routes/_admin/notices/index'
+import { Route as AdminNoticesNoticeIdRouteImport } from './routes/_admin/notices/$noticeId'
 import { Route as AdminNoticesNewRouteImport } from './routes/_admin/notices/new'
 import { Route as AdminRecruitingIndexRouteImport } from './routes/_admin/recruiting/index'
+import { Route as AdminActivityPointsIndexRouteImport } from './routes/_admin/activity/points.index'
+import { Route as AdminActivityPointsMemberIdRouteImport } from './routes/_admin/activity/points.$memberId'
+import { Route as AdminNoticesNoticeIdEditRouteImport } from './routes/_admin/notices/$noticeId.edit'
 
 const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/_admin',
@@ -50,6 +55,11 @@ const AdminRecruitingRouteRoute = AdminRecruitingRouteRouteImport.update({
   path: '/recruiting',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminActivityIndexRoute = AdminActivityIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -65,6 +75,11 @@ const AdminNoticesIndexRoute = AdminNoticesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminNoticesRouteRoute,
 } as any)
+const AdminNoticesNoticeIdRoute = AdminNoticesNoticeIdRouteImport.update({
+  id: '/$noticeId',
+  path: '/$noticeId',
+  getParentRoute: () => AdminNoticesRouteRoute,
+} as any)
 const AdminNoticesNewRoute = AdminNoticesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -75,6 +90,24 @@ const AdminRecruitingIndexRoute = AdminRecruitingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRecruitingRouteRoute,
 } as any)
+const AdminActivityPointsIndexRoute =
+  AdminActivityPointsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AdminActivityPointsRoute,
+  } as any)
+const AdminActivityPointsMemberIdRoute =
+  AdminActivityPointsMemberIdRouteImport.update({
+    id: '/$memberId',
+    path: '/$memberId',
+    getParentRoute: () => AdminActivityPointsRoute,
+  } as any)
+const AdminNoticesNoticeIdEditRoute =
+  AdminNoticesNoticeIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AdminNoticesNoticeIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AdminIndexRoute
@@ -82,20 +115,29 @@ export interface FileRoutesByFullPath {
   '/activity': typeof AdminActivityRouteRouteWithChildren
   '/notices': typeof AdminNoticesRouteRouteWithChildren
   '/recruiting': typeof AdminRecruitingRouteRouteWithChildren
-  '/activity/points': typeof AdminActivityPointsRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/activity/points': typeof AdminActivityPointsRouteWithChildren
+  '/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/notices/new': typeof AdminNoticesNewRoute
   '/activity/': typeof AdminActivityIndexRoute
   '/notices/': typeof AdminNoticesIndexRoute
   '/recruiting/': typeof AdminRecruitingIndexRoute
+  '/activity/points/$memberId': typeof AdminActivityPointsMemberIdRoute
+  '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
+  '/activity/points/': typeof AdminActivityPointsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AdminIndexRoute
-  '/activity/points': typeof AdminActivityPointsRoute
+  '/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/notices/new': typeof AdminNoticesNewRoute
   '/activity': typeof AdminActivityIndexRoute
   '/notices': typeof AdminNoticesIndexRoute
   '/recruiting': typeof AdminRecruitingIndexRoute
+  '/activity/points/$memberId': typeof AdminActivityPointsMemberIdRoute
+  '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
+  '/activity/points': typeof AdminActivityPointsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,12 +146,17 @@ export interface FileRoutesById {
   '/_admin/activity': typeof AdminActivityRouteRouteWithChildren
   '/_admin/notices': typeof AdminNoticesRouteRouteWithChildren
   '/_admin/recruiting': typeof AdminRecruitingRouteRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/_admin/': typeof AdminIndexRoute
-  '/_admin/activity/points': typeof AdminActivityPointsRoute
+  '/_admin/activity/points': typeof AdminActivityPointsRouteWithChildren
+  '/_admin/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/_admin/notices/new': typeof AdminNoticesNewRoute
   '/_admin/activity/': typeof AdminActivityIndexRoute
   '/_admin/notices/': typeof AdminNoticesIndexRoute
   '/_admin/recruiting/': typeof AdminRecruitingIndexRoute
+  '/_admin/activity/points/$memberId': typeof AdminActivityPointsMemberIdRoute
+  '/_admin/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
+  '/_admin/activity/points/': typeof AdminActivityPointsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,20 +166,29 @@ export interface FileRouteTypes {
     | '/activity'
     | '/notices'
     | '/recruiting'
+    | '/auth/callback'
     | '/activity/points'
+    | '/notices/$noticeId'
     | '/notices/new'
     | '/activity/'
     | '/notices/'
     | '/recruiting/'
+    | '/activity/points/$memberId'
+    | '/notices/$noticeId/edit'
+    | '/activity/points/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/auth/callback'
     | '/'
-    | '/activity/points'
+    | '/notices/$noticeId'
     | '/notices/new'
     | '/activity'
     | '/notices'
     | '/recruiting'
+    | '/activity/points/$memberId'
+    | '/notices/$noticeId/edit'
+    | '/activity/points'
   id:
     | '__root__'
     | '/_admin'
@@ -140,17 +196,23 @@ export interface FileRouteTypes {
     | '/_admin/activity'
     | '/_admin/notices'
     | '/_admin/recruiting'
+    | '/auth/callback'
     | '/_admin/'
     | '/_admin/activity/points'
+    | '/_admin/notices/$noticeId'
     | '/_admin/notices/new'
     | '/_admin/activity/'
     | '/_admin/notices/'
     | '/_admin/recruiting/'
+    | '/_admin/activity/points/$memberId'
+    | '/_admin/notices/$noticeId/edit'
+    | '/_admin/activity/points/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -197,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecruitingRouteRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_admin/activity/': {
       id: '/_admin/activity/'
       path: '/'
@@ -218,6 +287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNoticesIndexRouteImport
       parentRoute: typeof AdminNoticesRouteRoute
     }
+    '/_admin/notices/$noticeId': {
+      id: '/_admin/notices/$noticeId'
+      path: '/$noticeId'
+      fullPath: '/notices/$noticeId'
+      preLoaderRoute: typeof AdminNoticesNoticeIdRouteImport
+      parentRoute: typeof AdminNoticesRouteRoute
+    }
     '/_admin/notices/new': {
       id: '/_admin/notices/new'
       path: '/new'
@@ -232,28 +308,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecruitingIndexRouteImport
       parentRoute: typeof AdminRecruitingRouteRoute
     }
+    '/_admin/activity/points/': {
+      id: '/_admin/activity/points/'
+      path: '/'
+      fullPath: '/activity/points/'
+      preLoaderRoute: typeof AdminActivityPointsIndexRouteImport
+      parentRoute: typeof AdminActivityPointsRoute
+    }
+    '/_admin/activity/points/$memberId': {
+      id: '/_admin/activity/points/$memberId'
+      path: '/$memberId'
+      fullPath: '/activity/points/$memberId'
+      preLoaderRoute: typeof AdminActivityPointsMemberIdRouteImport
+      parentRoute: typeof AdminActivityPointsRoute
+    }
+    '/_admin/notices/$noticeId/edit': {
+      id: '/_admin/notices/$noticeId/edit'
+      path: '/edit'
+      fullPath: '/notices/$noticeId/edit'
+      preLoaderRoute: typeof AdminNoticesNoticeIdEditRouteImport
+      parentRoute: typeof AdminNoticesNoticeIdRoute
+    }
   }
 }
 
+interface AdminActivityPointsRouteChildren {
+  AdminActivityPointsMemberIdRoute: typeof AdminActivityPointsMemberIdRoute
+  AdminActivityPointsIndexRoute: typeof AdminActivityPointsIndexRoute
+}
+
+const AdminActivityPointsRouteChildren: AdminActivityPointsRouteChildren = {
+  AdminActivityPointsMemberIdRoute: AdminActivityPointsMemberIdRoute,
+  AdminActivityPointsIndexRoute: AdminActivityPointsIndexRoute,
+}
+
+const AdminActivityPointsRouteWithChildren =
+  AdminActivityPointsRoute._addFileChildren(AdminActivityPointsRouteChildren)
+
 interface AdminActivityRouteRouteChildren {
-  AdminActivityPointsRoute: typeof AdminActivityPointsRoute
+  AdminActivityPointsRoute: typeof AdminActivityPointsRouteWithChildren
   AdminActivityIndexRoute: typeof AdminActivityIndexRoute
 }
 
 const AdminActivityRouteRouteChildren: AdminActivityRouteRouteChildren = {
-  AdminActivityPointsRoute: AdminActivityPointsRoute,
+  AdminActivityPointsRoute: AdminActivityPointsRouteWithChildren,
   AdminActivityIndexRoute: AdminActivityIndexRoute,
 }
 
 const AdminActivityRouteRouteWithChildren =
   AdminActivityRouteRoute._addFileChildren(AdminActivityRouteRouteChildren)
 
+interface AdminNoticesNoticeIdRouteChildren {
+  AdminNoticesNoticeIdEditRoute: typeof AdminNoticesNoticeIdEditRoute
+}
+
+const AdminNoticesNoticeIdRouteChildren: AdminNoticesNoticeIdRouteChildren = {
+  AdminNoticesNoticeIdEditRoute: AdminNoticesNoticeIdEditRoute,
+}
+
+const AdminNoticesNoticeIdRouteWithChildren =
+  AdminNoticesNoticeIdRoute._addFileChildren(AdminNoticesNoticeIdRouteChildren)
+
 interface AdminNoticesRouteRouteChildren {
+  AdminNoticesNoticeIdRoute: typeof AdminNoticesNoticeIdRouteWithChildren
   AdminNoticesNewRoute: typeof AdminNoticesNewRoute
   AdminNoticesIndexRoute: typeof AdminNoticesIndexRoute
 }
 
 const AdminNoticesRouteRouteChildren: AdminNoticesRouteRouteChildren = {
+  AdminNoticesNoticeIdRoute: AdminNoticesNoticeIdRouteWithChildren,
   AdminNoticesNewRoute: AdminNoticesNewRoute,
   AdminNoticesIndexRoute: AdminNoticesIndexRoute,
 }
@@ -293,6 +416,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AdminRouteRoute: AdminRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

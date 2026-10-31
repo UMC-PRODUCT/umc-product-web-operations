@@ -1,29 +1,128 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { Button, TextField } from "@umc-product/react"
+import { createFileRoute } from "@tanstack/react-router"
+import { lazy, Suspense, useEffect, useState } from "react"
+
+import {
+  clearOperatorOnlyLoginNotice,
+  hasOperatorOnlyLoginNotice,
+  OperatorOnlyNotice,
+} from "@/features/auth"
+import { getSsoClient } from "@/shared/auth/sso-client"
+import { AuthBusyScreen, LoadingSpinner } from "@/shared/ui/loading-spinner"
+
+const DevLoginForm = import.meta.env.DEV
+  ? lazy(() =>
+      import("@/lib/auth-client/react").then((module) => ({
+        default: module.DevLoginForm,
+      })),
+    )
+  : null
+
+type LoginSearch = {
+  redirect?: string
+}
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  validateSearch: (search: Record<string, unknown>): LoginSearch => {
+    const redirectTo = search.redirect
+    if (
+      typeof redirectTo === "string" &&
+      redirectTo.startsWith("/") &&
+      !redirectTo.startsWith("//")
+    ) {
+      return { redirect: redirectTo }
+    }
+    return {}
+  },
 })
 
 function LoginPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <form
-        className="flex w-full max-w-sm flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault()
+  const { redirect: redirectTo } = Route.useSearch()
+  const returnTo = redirectTo ?? "/notices"
+  const [phase, setPhase] = useState<"checking" | "form" | "error">("checking")
+  const [showOperatorNotice] = useState(() => hasOperatorOnlyLoginNotice())
+  const [busyLabel, setBusyLabel] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (showOperatorNotice || busyLabel) {
+      return
+    }
+
+    const client = getSsoClient()
+    if (client.config.loginMode === "auth-app") {
+      void client.startLogin(returnTo)
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const signedIn = await client.hasSsoSession()
+        if (cancelled) {
+          return
+        }
+        if (signedIn) {
+          await client.startLogin(returnTo)
+          return
+        }
+        setPhase("form")
+      } catch {
+        if (!cancelled) {
+          setPhase("error")
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [returnTo, showOperatorNotice, busyLabel])
+
+  if (busyLabel) {
+    return <AuthBusyScreen label={busyLabel} />
+  }
+
+  if (showOperatorNotice) {
+    return (
+      <OperatorOnlyNotice
+        onBack={() => {
+          clearOperatorOnlyLoginNotice()
+          window.history.back()
         }}
-      >
-        <h1 className="text-2xl font-semibold">로그인</h1>
-        <TextField label="이메일" placeholder="admin@umc.com" type="email" />
-        <TextField label="비밀번호" placeholder="••••••••" type="password" />
-        <Button size="md" type="submit">
-          로그인
-        </Button>
-        <Link className="text-sm text-teal-600 underline" to="/">
-          대시보드로 돌아가기
-        </Link>
-      </form>
-    </div>
-  )
+        onRelogin={() => {
+          clearOperatorOnlyLoginNotice()
+          setBusyLabel("로그아웃 중")
+          // SSO 세션까지 끊어야 다른 계정으로 로그인할 수 있다.
+          void getSsoClient().logout({
+            global: true,
+            returnTo: `${window.location.origin}/login`,
+          })
+        }}
+      />
+    )
+  }
+
+  if (phase === "form" && import.meta.env.DEV && DevLoginForm) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <Suspense fallback={<LoadingSpinner label="로그인 중" />}>
+          <DevLoginForm
+            onSubmit={({ email, password }) =>
+              getSsoClient().devLogin(email, password, returnTo)
+            }
+          />
+        </Suspense>
+      </div>
+    )
+  }
+
+  if (phase === "error") {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <p role="alert">로그인 상태를 확인하지 못했습니다.</p>
+      </div>
+    )
+  }
+
+  return <AuthBusyScreen label="로그인 중" />
 }

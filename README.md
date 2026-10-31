@@ -77,8 +77,8 @@ pnpm dev
 
 - 개발 서버: Vite HMR
 - 기본 화면: `/` (AdminShell), `/login`
-- API: 브라우저에서 `/api/*` 요청 → `vite.config.ts` 프록시 → `http://localhost:8080`  
-  (백엔드 URL이 정해지면 `server.proxy["/api"].target`만 바꾸면 됩니다.)
+- API: 브라우저 `/api/*` → Vite 프록시 → 기본 `https://api-dev.university.neordinary.com`  
+  로컬 백엔드는 `.env`에 `VITE_DEV_API_PROXY_TARGET=http://localhost:8080` 후 dev 서버 재시작.
 
 경로 alias: `@/` → `src/`
 

@@ -1,0 +1,18 @@
+@layer components {
+  .notice-create-publish-dialog--submitting .umc-dialog__actions {
+    pointer-events: none;
+  }
+
+  .notice-create-publish-dialog--submitting
+    .umc-dialog__actions
+    .umc-button[data-color="brand"] {
+    --umc-button-bg: var(--umc-color-fill-primary-weak-hover-pressed);
+    --umc-button-fg: var(--umc-color-fill-primary-weaker-50);
+  }
+
+  .notice-create-publish-dialog--submitting
+    .umc-dialog__actions
+    .umc-button[data-color="neutral"] {
+    opacity: 0.5;
+  }
+}

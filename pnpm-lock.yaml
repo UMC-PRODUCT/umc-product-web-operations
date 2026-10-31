@@ -21,14 +21,14 @@ importers:
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@umc-product/design-tokens':
-        specifier: ^0.1.0
-        version: 0.1.1(tailwindcss@4.3.3)
+        specifier: ^0.11.1
+        version: 0.11.1(tailwindcss@4.3.3)
       '@umc-product/icons':
-        specifier: ^0.1.0
-        version: 0.1.1(react@19.3.0)
+        specifier: ^0.11.1
+        version: 0.11.1(react@19.3.0)
       '@umc-product/react':
-        specifier: ^0.1.0
-        version: 0.1.1(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
+        specifier: ^0.11.1
+        version: 0.11.1(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
       axios:
         specifier: 1.13.5
         version: 1.13.5
@@ -54,8 +54,8 @@ importers:
         specifier: ^3.2.1
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.3.0)(react@19.3.0)(redux@5.0.1)
       tailwind-merge:
-        specifier: ^2.5.0
-        version: 2.6.1
+        specifier: ^3.7.0
+        version: 3.7.0
       zod:
         specifier: ^4.3.4
         version: 4.6.7
@@ -237,8 +237,8 @@ packages:
     resolution: {integrity: sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/runtime@8.0.7':
-    resolution: {integrity: sha512-k0hagDDq/6w4v+0Sp4wFvIz/yswH5O7Va6aRTnD7N62Tnborp4X+YB+H3XUcWVSR4aE47WPEXiIIZchBs0GmYg==}
+  '@babel/runtime@8.0.10':
+    resolution: {integrity: sha512-0QyWQOIhl2onOgg96BuOYV+oCgLINVDPC8RkVPCiQhLILVqpefDUmcY+aAsW6vp7fcuTZL6SXXlFrSDCTFIu1w==}
 
   '@babel/template@7.29.7':
     resolution: {integrity: sha512-puq+Gf35oI24FeN11LkoUQFqv9uwNeWpxXZi/Ji3rRIoKAzKnxRaZ+Gkj0vKS9ZCiTESfng1N9LyOyXvo+m+Gg==}
@@ -1412,18 +1412,18 @@ packages:
     resolution: {integrity: sha512-zozlN0UA32bSG2zkKAgQyRYSbEISVoyU6vvkKYo2aSny74D8Jh4e+POkJ6Lk0dlezZi5x7TtD+88Xb06IB8nhg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@umc-product/design-tokens@0.1.1':
-    resolution: {integrity: sha512-FNmnEOu8u8gKuqYaTt9RWedSz8fPBGi+2W5joSlgoPe+Mum/fh8/DpJdzIpe8hYjLg17ltloaKw7CdG78wmRNg==, tarball: https://npm.pkg.github.com/download/@umc-product/design-tokens/0.1.1/a616f16d0f80ca1a14e74dd906c5955168027dbd}
+  '@umc-product/design-tokens@0.11.1':
+    resolution: {integrity: sha512-zF2INlsnkwr9Gu4TYuDk2LmyFftlHSI8StteD0uTAndhVG2KiaAA+3ROEYYzLTBDIdMY/n5NhENunPJqFZXb8w==, tarball: https://npm.pkg.github.com/download/@umc-product/design-tokens/0.11.1/707a682a3dc027ef0d75d03f3d0460ae5b213f67}
     peerDependencies:
       tailwindcss: ^4.0.0
 
-  '@umc-product/icons@0.1.1':
-    resolution: {integrity: sha512-F3Pj2JFVSSe64zr1qEOD5fVagjApHQrf/ub2L0E9bQflRNScG+goAnuChHE85zZ+J38NGshIaLlhZHnnqp7MIQ==, tarball: https://npm.pkg.github.com/download/@umc-product/icons/0.1.1/82add47ceecb9efe591e01250e82c7c21e35de91}
+  '@umc-product/icons@0.11.1':
+    resolution: {integrity: sha512-FwEWQB3o0cC4DZ1pJqgQoXw7WVx2/5VyOMoK3wx3+YjdfBaPvyIBihaBxd+GKmbfTRVf3/iycAD1MFxv2u3Cag==, tarball: https://npm.pkg.github.com/download/@umc-product/icons/0.11.1/df6cc7deeae29e35339518a2d3458486ae2e8320}
     peerDependencies:
       react: ^19.0.0
 
-  '@umc-product/react@0.1.1':
-    resolution: {integrity: sha512-hsLQZITp/NvY5PNiRNtnGDqZ9sq7ZHieppRn746cfNxN2A8cqmxsG1XgXEb5jDdHJ/ymWyJuY9am1XDw/w8FBQ==, tarball: https://npm.pkg.github.com/download/@umc-product/react/0.1.1/452760ef0a71c56d6494d9e27ed45af451a91a82}
+  '@umc-product/react@0.11.1':
+    resolution: {integrity: sha512-76pzM2V3+CUL4MGlrIcNluZEyDCIqxyHZvkvGHBIhONFcKl6WEmLwhyUxlD7HRIsvRsAqPGlLHucDy+ty72N9g==, tarball: https://npm.pkg.github.com/download/@umc-product/react/0.11.1/32cddc47e93284e5224cd85fac0a8efaf2d5ceaf}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
@@ -3037,8 +3037,8 @@ packages:
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
 
-  tailwind-merge@2.6.1:
-    resolution: {integrity: sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ==}
+  tailwind-merge@3.7.0:
+    resolution: {integrity: sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA==}
 
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
@@ -3478,7 +3478,7 @@ snapshots:
 
   '@babel/runtime@7.29.10': {}
 
-  '@babel/runtime@8.0.7': {}
+  '@babel/runtime@8.0.10': {}
 
   '@babel/template@7.29.7':
     dependencies:
@@ -3505,7 +3505,7 @@ snapshots:
 
   '@base-ui/react@1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@babel/runtime': 8.0.7
+      '@babel/runtime': 8.0.10
       '@base-ui/utils': 0.5.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@floating-ui/react-dom': 2.1.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@floating-ui/utils': 0.2.12
@@ -3519,7 +3519,7 @@ snapshots:
 
   '@base-ui/utils@0.5.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@babel/runtime': 8.0.7
+      '@babel/runtime': 8.0.10
       '@floating-ui/utils': 0.2.12
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
@@ -3948,7 +3948,7 @@ snapshots:
       immer: 11.1.21
       redux: 5.0.1
       redux-thunk: 3.1.0(redux@5.0.1)
-      reselect: 5.2.0
+      reselect: 5.3.0
     optionalDependencies:
       react: 19.3.0
       react-redux: 9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1)
@@ -4582,21 +4582,21 @@ snapshots:
       '@typescript-eslint/types': 8.71.2
       eslint-visitor-keys: 5.0.1
 
-  '@umc-product/design-tokens@0.1.1(tailwindcss@4.3.3)':
+  '@umc-product/design-tokens@0.11.1(tailwindcss@4.3.3)':
     dependencies:
       pretendard: 1.3.9
       tailwindcss: 4.3.3
 
-  '@umc-product/icons@0.1.1(react@19.3.0)':
+  '@umc-product/icons@0.11.1(react@19.3.0)':
     dependencies:
       react: 19.3.0
 
-  '@umc-product/react@0.1.1(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
+  '@umc-product/react@0.11.1(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
     dependencies:
       '@base-ui/react': 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@fontsource/orbitron': 5.3.0
-      '@umc-product/design-tokens': 0.1.1(tailwindcss@4.3.3)
-      '@umc-product/icons': 0.1.1(react@19.3.0)
+      '@umc-product/design-tokens': 0.11.1(tailwindcss@4.3.3)
+      '@umc-product/icons': 0.11.1(react@19.3.0)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:
@@ -6046,7 +6046,7 @@ snapshots:
 
   symbol-tree@3.2.4: {}
 
-  tailwind-merge@2.6.1: {}
+  tailwind-merge@3.7.0: {}
 
   tailwindcss@4.3.3: {}
 
