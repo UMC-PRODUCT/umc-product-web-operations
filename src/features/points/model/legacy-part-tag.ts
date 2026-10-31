@@ -11,8 +11,10 @@ export const LEGACY_PART_FILLED_BG: Record<MemberSearchPart, string> = {
   ADMIN: "#eee3fc",
   DESIGN: "#ffe0f1",
   WEB: "#fff0c2",
+  WEB_PRODUCT_ENGINEER: "#fff0c2",
   ANDROID: "#daf1e5",
   IOS: "#e0e8ff",
+  MOBILE_PRODUCT_ENGINEER: "#daf1e5",
   SPRINGBOOT: "#ede3d9",
   NODEJS: "#ede3d9",
 }

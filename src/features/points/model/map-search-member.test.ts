@@ -139,8 +139,39 @@ describe("challenger search mapping", () => {
     expect(toOrganizationId("7")).toBe(7)
     expect(toOrganizationId(null)).toBeUndefined()
     expect(toMemberSearchPart("design")).toBe("DESIGN")
-    expect(toMemberSearchPart("web-pe")).toBe("WEB")
+    expect(toMemberSearchPart("web-pe")).toBe("WEB_PRODUCT_ENGINEER")
+    expect(toMemberSearchPart("mobile-pe")).toBe("MOBILE_PRODUCT_ENGINEER")
     expect(toMemberSearchPart(null)).toBeUndefined()
+  })
+
+  it("maps modern PE part enums onto Web/Mobile PE tags", () => {
+    expect(
+      toPointsMember({
+        memberId: 1,
+        name: "웹페",
+        generation: 11,
+        part: "WEB_PRODUCT_ENGINEER",
+        isAdminInActiveGisu: false,
+      }),
+    ).toMatchObject({
+      part: "web-pe",
+      sourcePart: "WEB_PRODUCT_ENGINEER",
+      partLabel: "Web PE",
+    })
+
+    expect(
+      toPointsMember({
+        memberId: 2,
+        name: "모페",
+        generation: 11,
+        part: "MOBILE_PRODUCT_ENGINEER",
+        isAdminInActiveGisu: false,
+      }),
+    ).toMatchObject({
+      part: "mobile-pe",
+      sourcePart: "MOBILE_PRODUCT_ENGINEER",
+      partLabel: "Mobile PE",
+    })
   })
 })
 
