@@ -278,6 +278,54 @@ echo ":tada: chore: umc-product-web-operations 초기 스캐폴드 구성" | pnp
 
 ---
 
+## 버전 관리
+
+버전은 [Semantic Versioning](https://semver.org/lang/ko/)을 따르고, 변경 이력은 루트 `CHANGELOG.md`([Keep a Changelog](https://keepachangelog.com/ko/1.1.0/))에 적습니다. `package.json`의 `version`과 Git 태그 `vX.Y.Z`를 맞춥니다.
+
+### 버전 기준
+
+| 올릴 자리                      | 언제               |
+| ------------------------------ | ------------------ |
+| **패치** (`0.1.0` → `0.1.1`)   | 버그 수정, QA 반영 |
+| **마이너** (`0.1.0` → `0.2.0`) | 새 화면·기능       |
+| **메이저** (`0.x` → `1.0.0`)   | 정식 오픈·큰 개편  |
+
+`0.x`는 정식 오픈 전 구간입니다. 첫 정식 오픈 때 `1.0.0`으로 올립니다.
+
+### 릴리즈 절차
+
+작업은 **develop**에서 준비합니다. 태그·`main` 푸시는 담당자가 수행합니다.
+
+1. develop에서 버전만 올린다 (태그는 아직 만들지 않음).
+
+   ```bash
+   pnpm version patch --no-git-tag-version   # 또는 minor / major
+   ```
+
+2. `CHANGELOG.md`의 `[Unreleased]` 내용을 새 버전 섹션(`## [X.Y.Z] - YYYY-MM-DD`)으로 옮기고, 파일 하단 비교 링크를 갱신한다.
+
+3. 변경을 커밋한다 (commitlint에 `release` type이 없으므로 `chore` 사용).
+
+   ```bash
+   git add package.json CHANGELOG.md
+   git commit -m "🔖 chore: vX.Y.Z 릴리즈"
+   ```
+
+4. develop → **main** 머지 후, **main**의 머지 커밋에 태그를 붙이고 푸시한다.
+
+   ```bash
+   git checkout main
+   git pull
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
+5. GitHub **Releases**에서 해당 태그로 릴리즈를 만든다 (`Generate release notes` 사용).
+
+배포·슬랙 등 공지에는 **버전 번호**와 **Release 링크**를 함께 적습니다.
+
+---
+
 ## 코드를 어디에 둘까 (FSD)
 
 의존 방향은 **위에서 아래만** 허용합니다.
