@@ -11,6 +11,7 @@ import type {
 export type NoticeListOrganizationOptions = {
   chapters: NoticeListChapterOption[]
   schools: NoticeListSchoolOption[]
+  schoolsByChapterId: ReadonlyMap<number, NoticeListSchoolOption[]>
 }
 
 export function noticeListOrganizationQueryKey(gisuId: number | null) {
@@ -21,12 +22,12 @@ export async function fetchNoticeListOrganizationOptions(
   gisuId: number | null,
 ): Promise<NoticeListOrganizationOptions> {
   if (gisuId == null) {
-    return { chapters: [], schools: [] }
+    return { chapters: [], schools: [], schoolsByChapterId: new Map() }
   }
 
   const gisu = await fetchActiveGisuOrganization(gisuId)
   if (!gisu) {
-    return { chapters: [], schools: [] }
+    return { chapters: [], schools: [], schoolsByChapterId: new Map() }
   }
 
   return normalizeGisuOrganizationLists({

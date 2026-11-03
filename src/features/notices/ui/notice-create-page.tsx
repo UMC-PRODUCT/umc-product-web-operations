@@ -6,6 +6,12 @@ import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
+import { isNoticeCentralUnrestrictedCreateContext } from "../model/notice-central-create-access"
+import {
+  applyNoticeChapterPresidentCreateFormLock,
+  isNoticeChapterPresidentChallengerContext,
+  resolveNoticeChapterPresidentChallengerLock,
+} from "../model/notice-chapter-president-access"
 import { isNoticeCreateFormDirty } from "../model/notice-create-dirty"
 import {
   INITIAL_NOTICE_CREATE_FORM,
@@ -23,6 +29,15 @@ import {
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
   NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE,
 } from "../model/notice-outcomes"
+import {
+  applyNoticeSchoolExecutiveChallengerCreateLock,
+  NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
+  resolveNoticeSchoolExecutiveLock,
+} from "../model/notice-school-executive-access"
+import {
+  isNoticeSchoolStaffContext,
+  resolveNoticeSchoolStaffLock,
+} from "../model/notice-school-staff-access"
 import { submitNoticeCreate } from "../model/submit-notice-create"
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
 import { NoticeCreatePublishDialogErrorToast } from "./notice-create/notice-create-publish-dialog-error-toast"
@@ -40,14 +55,19 @@ import {
   showNoticeImageUploadFailureToast,
 } from "./show-notice-error-toast"
 
+import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
 import type { NoticeCreateVoteDraft } from "../model/notice-create-vote-draft"
 import type { NoticeOperatorSession } from "../model/notice-session"
 
 type NoticeCreatePageProps = {
+  adminSession: NoticeAdminAccessContext
   session: NoticeOperatorSession
 }
 
-export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
+export function NoticeCreatePage({
+  adminSession,
+  session,
+}: NoticeCreatePageProps) {
   const navigate = useNavigate()
   const toast = useToast()
   const [form, setForm] = useState<NoticeCreateFormState>(
@@ -127,13 +147,158 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
     })
   }, [session.gisuId])
 
+  const chapterPresidentChallengerOnly = useMemo(
+    () => isNoticeChapterPresidentChallengerContext(adminSession),
+    [adminSession],
+  )
+
+  const centralUnrestrictedCreate = useMemo(
+    () => isNoticeCentralUnrestrictedCreateContext(adminSession),
+    [adminSession],
+  )
+
+  const chapterPresidentCreateLock = useMemo(() => {
+    const resolved = resolveNoticeChapterPresidentChallengerLock(
+      adminSession,
+      organizationQuery.data,
+    )
+    if (resolved == null || session.gisuId == null) {
+      return null
+    }
+
+    return {
+      chapterId: resolved.chapterId,
+      targetGisuId: session.gisuId,
+    }
+  }, [adminSession, organizationQuery.data, session.gisuId])
+
   useEffect(() => {
+    if (!chapterPresidentChallengerOnly) {
+      return
+    }
+
+    setForm((current) => {
+      if (current.challengerEnabled && !current.staffEnabled) {
+        return current
+      }
+
+      return {
+        ...current,
+        challengerEnabled: true,
+        staffEnabled: false,
+      }
+    })
+  }, [chapterPresidentChallengerOnly])
+
+  useEffect(() => {
+    if (chapterPresidentCreateLock == null) {
+      return
+    }
+
+    setForm((current) => {
+      if (!current.challengerEnabled) {
+        return current
+      }
+
+      const next = applyNoticeChapterPresidentCreateFormLock({
+        form: { ...current, staffEnabled: false },
+        ...chapterPresidentCreateLock,
+      })
+
+      if (
+        next.gisuMode === current.gisuMode &&
+        next.targetGisuId === current.targetGisuId &&
+        next.orgMode === current.orgMode &&
+        next.chapterId === current.chapterId &&
+        next.schoolId === current.schoolId
+      ) {
+        return current
+      }
+
+      return next
+    })
+  }, [chapterPresidentCreateLock])
+
+  const schoolExecutiveCreateLock = useMemo(() => {
+    if (chapterPresidentCreateLock != null || session.gisuId == null) {
+      return null
+    }
+
+    const resolved =
+      resolveNoticeSchoolExecutiveLock(adminSession, organizationQuery.data) ??
+      resolveNoticeSchoolStaffLock(adminSession, organizationQuery.data)
+    if (resolved == null) {
+      return null
+    }
+
+    return {
+      schoolId: resolved.schoolId,
+      targetGisuId: session.gisuId,
+    }
+  }, [
+    adminSession,
+    chapterPresidentCreateLock,
+    organizationQuery.data,
+    session.gisuId,
+  ])
+
+  useEffect(() => {
+    if (
+      chapterPresidentCreateLock != null ||
+      schoolExecutiveCreateLock != null
+    ) {
+      return
+    }
+
     setForm((current) => ({
       ...current,
       chapterId: null,
       schoolId: null,
     }))
-  }, [contextGisuId])
+  }, [chapterPresidentCreateLock, contextGisuId, schoolExecutiveCreateLock])
+
+  useEffect(() => {
+    if (schoolExecutiveCreateLock == null) {
+      return
+    }
+
+    setForm((current) => {
+      let next = applyNoticeSchoolExecutiveChallengerCreateLock({
+        form: current,
+        ...schoolExecutiveCreateLock,
+      })
+
+      if (
+        current.staffEnabled &&
+        current.staffScope !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE
+      ) {
+        next = {
+          ...next,
+          staffScope: NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
+        }
+      }
+
+      if (
+        next.gisuMode === current.gisuMode &&
+        next.targetGisuId === current.targetGisuId &&
+        next.orgMode === current.orgMode &&
+        next.chapterId === current.chapterId &&
+        next.schoolId === current.schoolId &&
+        next.staffScope === current.staffScope
+      ) {
+        return current
+      }
+
+      return next
+    })
+  }, [schoolExecutiveCreateLock])
+
+  const schoolStaffPartsRequired = useMemo(
+    () =>
+      isNoticeSchoolStaffContext(adminSession) &&
+      schoolExecutiveCreateLock != null,
+    [adminSession, schoolExecutiveCreateLock],
+  )
 
   useEffect(() => {
     setForm((current) => {
@@ -258,6 +423,7 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
 
     try {
       const outcome = await submitNoticeCreate({
+        adminSession,
         form,
         session,
         operationGisuId: contextGisuId,
@@ -321,7 +487,12 @@ export function NoticeCreatePage({ session }: NoticeCreatePageProps) {
 
       <div className="flex w-full items-start gap-(--umc-spacing-gap-24)">
         <NoticeCreateFormFields
+          centralUnrestrictedCreate={centralUnrestrictedCreate}
+          chapterPresidentChallengerOnly={chapterPresidentChallengerOnly}
+          chapterPresidentCreateLock={chapterPresidentCreateLock}
           form={form}
+          schoolExecutiveCreateLock={schoolExecutiveCreateLock}
+          schoolStaffPartsRequired={schoolStaffPartsRequired}
           isOrganizationLoading={
             organizationQuery.isLoading || gisuListQuery.isLoading
           }
