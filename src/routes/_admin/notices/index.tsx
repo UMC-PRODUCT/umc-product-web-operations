@@ -114,6 +114,7 @@ function NoticesPage() {
       listScopeStage={scopeStage}
       listStaffRecipient={staffRecipient}
       publishOutcome={publishOutcome}
+      adminSession={session}
       session={toNoticeOperatorSession(session, { gisuId: selectedGisuId })}
     />
   )

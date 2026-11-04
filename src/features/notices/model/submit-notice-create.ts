@@ -28,8 +28,13 @@ import {
   isNoticeCreateLinkUrl,
   NOTICE_CREATE_LINK_INVALID_MESSAGE,
 } from "./notice-create-link"
+import {
+  isNoticeSchoolStaffContext,
+  validateNoticeSchoolStaffCreateParts,
+} from "./notice-school-staff-access"
 import { validateStaffNoticeCreateForm } from "./notice-staff-target-rules"
 
+import type { NoticeAdminAccessContext } from "./notice-admin-access-context"
 import type { NoticeCreateVoteDraft } from "./notice-create-vote-draft"
 import type { NoticeOperatorSession } from "./notice-session"
 
@@ -41,6 +46,9 @@ export type SubmitNoticeCreateOutcome =
 
 export function validateNoticeCreateForm(
   form: NoticeCreateFormState,
+  options?: {
+    schoolStaffPartsRequired?: boolean
+  },
 ): string | null {
   if (!form.challengerEnabled && !form.staffEnabled) {
     return "공지 종류를 하나 이상 선택해 주세요"
@@ -70,6 +78,12 @@ export function validateNoticeCreateForm(
   const staffValidationMessage = validateStaffNoticeCreateForm(form)
   if (staffValidationMessage) {
     return staffValidationMessage
+  }
+  if (options?.schoolStaffPartsRequired) {
+    const partsValidationMessage = validateNoticeSchoolStaffCreateParts(form)
+    if (partsValidationMessage) {
+      return partsValidationMessage
+    }
   }
   if (
     form.challengerEnabled &&
@@ -108,6 +122,10 @@ async function attachNoticeContent(
 }
 
 export async function submitNoticeCreate(input: {
+  adminSession?: Pick<
+    NoticeAdminAccessContext,
+    "isSuperAdmin" | "scope" | "roleTypes"
+  >
   form: NoticeCreateFormState
   session: NoticeOperatorSession
   /** 목록/작성 UI에서 선택한 조회 기수 (헤더 또는 폼 특정 기수) */
@@ -116,7 +134,11 @@ export async function submitNoticeCreate(input: {
   targetGeneration?: number | null
   voteDraft?: NoticeCreateVoteDraft | null
 }): Promise<SubmitNoticeCreateOutcome> {
-  const validationMessage = validateNoticeCreateForm(input.form)
+  const validationMessage = validateNoticeCreateForm(input.form, {
+    schoolStaffPartsRequired:
+      input.adminSession != null &&
+      isNoticeSchoolStaffContext(input.adminSession),
+  })
   if (validationMessage) {
     return { kind: "validation_error", message: validationMessage }
   }
