@@ -206,83 +206,21 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/lib/auth-client/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/**"],
-              message: "auth-client는 앱 코드를 import하지 않습니다.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ["src/lib/auth-client/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "react",
-              message: "React 의존 코드는 react/ 아래에 둡니다.",
-            },
-            {
-              name: "react-dom",
-              message: "React 의존 코드는 react/ 아래에 둡니다.",
-            },
-          ],
-          patterns: [
-            {
-              group: ["@/**"],
-              message: "auth-client는 앱 코드를 import하지 않습니다.",
-            },
-            {
-              group: ["../*", "../*/**"],
-              message: "auth-client 폴더 밖으로 나가지 않습니다.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ["src/lib/auth-client/react/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/**"],
-              message: "auth-client는 앱 코드를 import하지 않습니다.",
-            },
-            {
-              group: ["../../*", "../../**"],
-              message: "auth-client 폴더 밖으로 나가지 않습니다.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/lib/auth-client/**"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              group: ["@/lib/auth-client/**", "!@/lib/auth-client/react"],
+              group: [
+                "@/lib/auth-client",
+                "@/lib/auth-client/**",
+                "@umc-product/auth-client/**",
+                "!@umc-product/auth-client/react",
+              ],
               message:
-                "auth-client는 @/lib/auth-client 또는 @/lib/auth-client/react 만 import합니다.",
+                "auth-client는 @umc-product/auth-client 또는 @umc-product/auth-client/react 만 import합니다.",
             },
           ],
         },

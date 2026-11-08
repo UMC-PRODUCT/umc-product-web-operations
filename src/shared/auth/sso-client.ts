@@ -1,8 +1,8 @@
-import { createAuthClient } from "@/lib/auth-client"
+import { createAuthClient } from "@umc-product/auth-client"
 
 import { readSsoRuntimeEnv, resolveSsoEnv } from "./resolve-sso-env"
 
-import type { AuthClient } from "@/lib/auth-client"
+import type { AuthClient } from "@umc-product/auth-client"
 
 let client: AuthClient | null = null
 

@@ -1,12 +1,21 @@
-import { resolveAuthConfig } from "@/lib/auth-client"
+import { resolveAuthConfig } from "@umc-product/auth-client"
 
-import type { AuthClientConfig, SsoStage } from "@/lib/auth-client"
+import type {
+  AuthClientConfig,
+  ResolveAuthConfigInput,
+  SsoStage,
+} from "@umc-product/auth-client"
 
 export type SsoRuntimeEnv = {
   /** localhost에서만 의미 있음. 기본 http://localhost:5174 */
   authAppUrl?: string
   /** localhost에서만 의미 있음. 기본 auth-app */
   loginMode?: string
+  /**
+   * 유사시 stage별 API·인증 앱 URL 덮어쓰기.
+   * 평소에는 쓰지 않고, 패키지 `SSO_STAGES` 배포 전 임시 대응용.
+   */
+  stageUrls?: ResolveAuthConfigInput["stageUrls"]
 }
 
 /** 이 백오피스가 SSO를 허용하는 origin (scheme + host + port). */
@@ -28,9 +37,13 @@ export function resolveSsoEnv(
 ): AuthClientConfig {
   return resolveAuthConfig({
     clientIds: CLIENT_ID,
-    local: runtime,
+    local: {
+      authAppUrl: runtime.authAppUrl,
+      loginMode: runtime.loginMode,
+    },
     origin,
     origins: ADMIN_ORIGINS,
+    stageUrls: runtime.stageUrls,
   })
 }
 

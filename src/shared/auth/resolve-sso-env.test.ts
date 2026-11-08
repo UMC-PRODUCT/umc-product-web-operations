@@ -1,6 +1,5 @@
+import { UnregisteredOriginError } from "@umc-product/auth-client"
 import { describe, expect, it } from "vitest"
-
-import { UnregisteredOriginError } from "@/lib/auth-client"
 
 import { resolveSsoEnv } from "./resolve-sso-env"
 
@@ -37,5 +36,19 @@ describe("resolveSsoEnv", () => {
     expect(() => resolveSsoEnv("https://evil.example")).toThrow(
       UnregisteredOriginError,
     )
+  })
+
+  it("passes stageUrls through to resolveAuthConfig", () => {
+    expect(
+      resolveSsoEnv("https://dev.admin.university.neordinary.com", {
+        stageUrls: {
+          dev: { apiBaseUrl: "https://api-hotfix.example.com" },
+        },
+      }),
+    ).toMatchObject({
+      apiBaseUrl: "https://api-hotfix.example.com",
+      authAppUrl: "https://dev.auth.university.neordinary.com",
+      clientId: "backoffice",
+    })
   })
 })
