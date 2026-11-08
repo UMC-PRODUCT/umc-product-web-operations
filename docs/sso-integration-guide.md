@@ -4,7 +4,7 @@
 
 패키지로 분리할 코드 경계·업로드 전 정리 항목은 [인증 패키지 분리 경계](./auth-client-package-boundary.md)를 먼저 보면 좋습니다.
 
-지금 이 레포에서는 공통 로그인 코드가 `src/lib/auth-client`에 있습니다. 나중에 `@umc-product/auth-client` 같은 패키지로 분리되면 import 경로만 바뀌고, 아래 흐름과 API는 그대로 쓰는 것을 목표로 합니다. 실제 사용 예시는 이 백오피스의 `src/shared/auth`, `src/routes/login.tsx`, `src/routes/auth/callback.tsx`, `src/shared/api/client.ts`를 보면 됩니다.
+공통 SSO 클라이언트는 GitHub Packages의 `@umc-product/auth-client`입니다. 실제 사용 예시는 이 백오피스의 `src/shared/auth`, `src/routes/login.tsx`, `src/routes/auth/callback.tsx`, `src/shared/api/client.ts`를 보면 됩니다.
 
 ---
 
@@ -35,10 +35,9 @@ redirect URI는 클라이언트가 **현재 origin + `callbackPath`** 로 직접
 공통 모듈의 진입점은 `createAuthClient`입니다. 앱에서는 보통 파일을 하나 두고, 앱이 뜨는 동안 **같은 인스턴스 하나**만 쓰도록 싱글톤으로 감쌉니다. 이 레포에서는 `src/shared/auth/sso-client.ts`의 `getSsoClient()`가 그 역할입니다.
 
 ```ts
-import { createAuthClient, resolveAuthConfig } from "@/lib/auth-client"
-// 패키지화 후: import { ... } from "@umc-product/auth-client"
+import { createAuthClient, resolveAuthConfig } from "@umc-product/auth-client"
 
-import type { AuthClient, SsoStage } from "@/lib/auth-client"
+import type { AuthClient, SsoStage } from "@umc-product/auth-client"
 
 /** 이 앱이 SSO를 허용하는 origin → stage */
 const ORIGINS: Record<string, SsoStage> = {
@@ -97,7 +96,7 @@ origin 표와 `clientId` 표는 **앱마다 다릅니다.** 이 백오피스의 
 
 `loginMode`가 `auth-app`이면 로그인 페이지에 들어오자마자 `startLogin(returnTo)`만 호출하면 됩니다. 그러면 PKCE용 code verifier와 state를 만들고, 인증 앱의 authorize URL로 브라우저를 이동시킵니다. 사용자는 인증 앱에서 로그인한 뒤 다시 이 앱의 `/auth/callback`으로 돌아옵니다.
 
-`direct` 모드(로컬)에서는 조금 다릅니다. 이미 SSO 쪽 세션 쿠키가 있으면 `hasSsoSession()`이 참이므로 곧바로 `startLogin`을 호출하면 됩니다. 세션이 없으면 개발용 이메일·비밀번호 폼을 보여 주고, 제출 시 `devLogin(email, password, returnTo)`를 호출합니다. 이 함수가 이메일 로그인을 한 뒤 이어서 authorize 흐름을 시작합니다. 폼 UI는 `src/lib/auth-client/react`의 `DevLoginForm`을 그대로 써도 됩니다.
+`direct` 모드(로컬)에서는 조금 다릅니다. 이미 SSO 쪽 세션 쿠키가 있으면 `hasSsoSession()`이 참이므로 곧바로 `startLogin`을 호출하면 됩니다. 세션이 없으면 개발용 이메일·비밀번호 폼을 보여 주고, 제출 시 `devLogin(email, password, returnTo)`를 호출합니다. 이 함수가 이메일 로그인을 한 뒤 이어서 authorize 흐름을 시작합니다. 폼 UI는 `@umc-product/auth-client/react`의 `DevLoginForm`을 그대로 써도 됩니다.
 
 이 레포의 전체 흐름은 `src/routes/login.tsx`에 있습니다.
 
@@ -217,7 +216,7 @@ refresh token은 탭끼리 공유(localStorage)하고 access token은 탭마다 
 
 ## 이 레포에서 참고할 코드
 
-공통으로 가져갈 후보는 `src/lib/auth-client` 전체입니다. 개발 로그인 폼은 그 안의 `react` 폴더에 있습니다.
+공통 클라이언트는 `@umc-product/auth-client`이며, 개발 로그인 폼은 `@umc-product/auth-client/react`입니다.
 
 앱이 직접 유지하는 쪽은 `src/shared/auth/sso-client.ts`(싱글톤), `src/shared/auth/resolve-sso-env.ts`(이 백오피스 origin·clientId 표), `src/app/route-error.tsx`(등록되지 않은 origin 안내), `src/routes/login.tsx`, `src/routes/auth/callback.tsx`, `src/shared/api/client.ts`(axios 연동)입니다. 운영진 인가와 `/me` 매핑은 `src/features/auth`와 `src/routes/_admin/route.tsx`에 있으며, 다른 앱이 그대로 가져가면 안 되는 백오피스 전용 코드입니다.
 

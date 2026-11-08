@@ -11,7 +11,7 @@ import { AuthBusyScreen, LoadingSpinner } from "@/shared/ui/loading-spinner"
 
 const DevLoginForm = import.meta.env.DEV
   ? lazy(() =>
-      import("@/lib/auth-client/react").then((module) => ({
+      import("@umc-product/auth-client/react").then((module) => ({
         default: module.DevLoginForm,
       })),
     )

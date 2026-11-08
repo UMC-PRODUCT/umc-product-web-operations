@@ -1,6 +1,6 @@
+import { isAuthEndpoint } from "@umc-product/auth-client"
 import { isAxiosError } from "axios"
 
-import { isAuthEndpoint } from "@/lib/auth-client"
 import { getSsoClient } from "@/shared/auth/sso-client"
 
 import { createApiClient, resolveApiBaseURL } from "./create-api-client"

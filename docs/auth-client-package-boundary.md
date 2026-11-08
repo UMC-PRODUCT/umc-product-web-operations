@@ -1,6 +1,6 @@
 # 인증 패키지 분리 경계
 
-이 문서는 `src/lib/auth-client`를 `@umc-product/auth-client`(가칭) 패키지로 올리기 **전에**, 무엇을 패키지에 넣고 무엇을 각 앱에 남겨야 하는지를 정리한다.
+이 문서는 `@umc-product/auth-client` 패키지 경계를 정리한다. 공통 SSO 클라이언트는 GitHub Packages(`@umc-product/auth-client@0.1.1`)로 배포됐고, 이 백오피스는 패키지 의존으로 사용한다.
 
 실사용 연동 절차는 [SSO 로그인 연동 가이드](./sso-integration-guide.md)를 본다. 이 문서는 **소유권·경계·업로드 전 정리 항목**에 초점을 둔다.
 
@@ -21,20 +21,10 @@
 ## 2. 현재 코드가 어디에 있는지
 
 ```
-src/lib/auth-client/          ← 패키지 후보 (공통 SSO 클라이언트)
-  api-error.ts
-  create-auth-client.ts
-  endpoints.ts                SSO API 경로, isAuthEndpoint
-  http.ts
-  pkce.ts
-  stages.ts                   stage별 API·인증 앱 URL, resolveAuthConfig
-  storage-keys.ts
-  types.ts
-  index.ts
-  react/
-    dev-login-form.tsx
-    index.ts
-  *.test.ts(x)
+@umc-product/auth-client      ← 공통 SSO 클라이언트 (별도 레포·GitHub Packages)
+  api-error, create-auth-client, endpoints, http, pkce,
+  stages (resolveAuthConfig), storage-keys, types
+  react/DevLoginForm
 
 src/shared/auth/              ← 앱 어댑터 (백오피스 전용 설정)
   sso-client.ts               싱글톤 생성
@@ -60,7 +50,7 @@ src/features/auth/            ← 백오피스 도메인 (운영진·기수·안
 
 ---
 
-## 3. 패키지에 넣을 것 (`src/lib/auth-client`)
+## 3. 패키지에 넣을 것 (`@umc-product/auth-client`)
 
 ### 3.1 포함 범위
 
@@ -265,7 +255,7 @@ axios 인스턴스, baseURL, `skipAuth`는 앱 HTTP 스택의 일부이므로 �
 - [ ] `peerDependencies`: `react`, (필요 시) `react-dom` 버전
 - [ ] 서버의 refresh token 회전·재사용 감지 정책 확인 (탭 간 갱신 잠금의 전제)
 - [ ] `AuthLocation`·`renewLock` 테스트 더블 요구사항을 README에 명시
-- [ ] 이 레포 import를 `@umc-product/auth-client`로 교체하는 마이그레이션 PR 계획
+- [x] 이 레포 import를 `@umc-product/auth-client`로 교체 (feat/#36)
 
 ### 7.2 패키지에 넣지 말 것 (재확인)
 
@@ -289,7 +279,7 @@ routes/_admin/route.tsx          # 인가
 features/auth/*                  # 운영 도메인
 ```
 
-`src/lib/auth-client`는 패키지 의존으로 대체되고, 로컬 폴더는 삭제하거나 workspace 링크만 남긴다.
+`src/lib/auth-client`는 삭제했고, `@umc-product/auth-client` 의존으로 대체했다.
 
 ---
 
@@ -300,7 +290,7 @@ features/auth/*                  # 운영 도메인
 | [auth-client-package-boundary.md](./auth-client-package-boundary.md) (본 문서) | 패키지 작성·리뷰어 | 무엇을 분리할지, 앱 책임은 무엇인지              |
 | [sso-integration-guide.md](./sso-integration-guide.md)                         | 앱 연동 개발자     | 어떻게 `createAuthClient`를 붙이는지 단계별 절차 |
 
-연동 가이드의 “공통 vs 앱” 요약은 본 문서 기준을 따른다. 패키지명이 확정되면 두 문서의 import 경로 예시를 함께 갱신한다.
+연동 가이드의 “공통 vs 앱” 요약은 본 문서 기준을 따른다. import는 `@umc-product/auth-client` / `@umc-product/auth-client/react`를 쓴다.
 
 ---
 

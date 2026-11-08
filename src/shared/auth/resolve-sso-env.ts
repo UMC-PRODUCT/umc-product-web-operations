@@ -1,6 +1,6 @@
-import { resolveAuthConfig } from "@/lib/auth-client"
+import { resolveAuthConfig } from "@umc-product/auth-client"
 
-import type { AuthClientConfig, SsoStage } from "@/lib/auth-client"
+import type { AuthClientConfig, SsoStage } from "@umc-product/auth-client"
 
 export type SsoRuntimeEnv = {
   /** localhost에서만 의미 있음. 기본 http://localhost:5174 */

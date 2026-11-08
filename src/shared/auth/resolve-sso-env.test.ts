@@ -1,6 +1,5 @@
+import { UnregisteredOriginError } from "@umc-product/auth-client"
 import { describe, expect, it } from "vitest"
-
-import { UnregisteredOriginError } from "@/lib/auth-client"
 
 import { resolveSsoEnv } from "./resolve-sso-env"
 
