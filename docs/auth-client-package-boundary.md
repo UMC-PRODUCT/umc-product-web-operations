@@ -1,8 +1,8 @@
 # 인증 패키지 분리 경계
 
-이 문서는 `@umc-product/auth-client` 패키지 경계를 정리한다. 공통 SSO 클라이언트는 GitHub Packages(`@umc-product/auth-client@0.1.1`)로 배포됐고, 이 백오피스는 패키지 의존으로 사용한다.
+이 문서는 `@umc-product/auth-client` 패키지 경계를 정리한다. 공통 SSO 클라이언트는 GitHub Packages(`@umc-product/auth-client@0.1.3`)로 배포됐고, 이 백오피스는 패키지 의존으로 사용한다.
 
-실사용 연동 절차는 [SSO 로그인 연동 가이드](./sso-integration-guide.md)를 본다. 이 문서는 **소유권·경계·업로드 전 정리 항목**에 초점을 둔다.
+실사용 연동 절차의 정본은 패키지 레포 [활용 가이드](https://github.com/UMC-PRODUCT/umc-product-auth-client/blob/main/docs/usage.md)이고, 이 백오피스 기준 풀이는 [SSO 로그인 연동 가이드](./sso-integration-guide.md)다. 이 문서는 **소유권·경계·유지 체크리스트**에 초점을 둔다.
 
 ---
 
@@ -56,18 +56,18 @@ src/features/auth/            ← 백오피스 도메인 (운영진·기수·안
 
 다음을 **그대로** 패키지 소스로 옮기는 것이 목표다.
 
-| 모듈                             | 역할                                                                       |
-| -------------------------------- | -------------------------------------------------------------------------- |
-| `createAuthClient`               | SSO 클라이언트 팩토리. PKCE, authorize, token, renew, logout, session 정리 |
-| `ApiError` / `isAuthCodeRestart` | 공통 에러 타입·콜백 재시작 코드 판별                                       |
-| `types`                          | `AuthClient`, `AuthClientConfig`, `LoginMode` 등 공개 타입                 |
-| `pkce`                           | code verifier/challenge                                                    |
-| `http` / `readApiResult`         | SSO API envelope 파싱                                                      |
-| `endpoints` / `isAuthEndpoint`   | SSO API 경로. 401이 나도 갱신하면 안 되는 인증 API 판별                    |
-| `stages` / `resolveAuthConfig`   | local·dev·prod의 API·인증 앱 URL 표와, 앱 origin 표로 설정을 만드는 헬퍼   |
-| `storage-keys`                   | `{storagePrefix}.*` 스토리지 키 (기본 `umc.sso`)                           |
-| `react/DevLoginForm`             | `loginMode: "direct"` 로컬 개발용 이메일·비밀번호 폼 (인라인 스타일만)     |
-| 관련 단위 테스트                 | 패키지 레포로 함께 이동                                                    |
+| 모듈                             | 역할                                                                              |
+| -------------------------------- | --------------------------------------------------------------------------------- |
+| `createAuthClient`               | SSO 클라이언트 팩토리. PKCE, authorize, token, renew, logout, session 정리        |
+| `ApiError` / `isAuthCodeRestart` | 공통 에러 타입·콜백 재시작 코드 판별                                              |
+| `types`                          | `AuthClient`, `AuthClientConfig`, `LoginMode` 등 공개 타입                        |
+| `pkce`                           | code verifier/challenge                                                           |
+| `http` / `readApiResult`         | SSO API envelope 파싱                                                             |
+| `endpoints` / `isAuthEndpoint`   | SSO API 경로. 401이 나도 갱신하면 안 되는 인증 API 판별                           |
+| `stages` / `resolveAuthConfig`   | local·dev·prod URL 표 + 앱 origin 표 헬퍼. 유사시 `stageUrls`로 URL override 가능 |
+| `storage-keys`                   | `{storagePrefix}.*` 스토리지 키 (기본 `umc.sso`)                                  |
+| `react/DevLoginForm`             | `loginMode: "direct"` 로컬 개발용 이메일·비밀번호 폼 (인라인 스타일만)            |
+| 관련 단위 테스트                 | 패키지 레포로 함께 이동                                                           |
 
 ### 3.2 패키지가 책임지는 동작
 
@@ -166,12 +166,13 @@ export { DevLoginForm }
 
 ### 4.3 HTTP 클라이언트 연동
 
-| 방식               | 설명                                                                                                          |
-| ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `createApiFetch()` | 패키지 제공. fetch만 쓰는 새 앱에 적합                                                                        |
-| axios 인터셉터     | **앱이 직접** 붙인다. 이 레포는 `src/shared/api/client.ts`에서 Bearer 주입 + 401 시 `recoverFromUnauthorized` |
+| 구분                                        | 담당       | 설명                                                                                                         |
+| ------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| SSO 프로토콜 (authorize/token/renew/logout) | **패키지** | `createAuthClient` 내부 fetch. 앱 axios로 재구현하지 않는다.                                                 |
+| 인증 fetch (`createApiFetch`)               | **패키지** | Bearer + 401 복구까지 패키지가 처리. SSO 세션에 묶인 호출·fetch 전용 앱용.                                   |
+| 서비스·도메인 API                           | **앱**     | axios 등 자율. 이 레포는 `src/shared/api/client.ts`에서 토큰 부착·`recoverFromUnauthorized`만 패키지에 위임. |
 
-axios 인스턴스, baseURL, `skipAuth`는 앱 HTTP 스택의 일부이므로 패키지에 넣지 않는다. 다만 "어떤 경로가 인증 API인지"는 패키지가 알고 있으므로, 401 재시도에서 제외할 요청은 앱이 경로를 직접 적지 말고 `isAuthEndpoint(url)`로 판별한다.
+axios 인스턴스, baseURL, `skipAuth`는 앱 HTTP 스택이므로 패키지에 넣지 않는다. 401 재시도에서 제외할 인증 API는 `isAuthEndpoint(url)`로 판별한다. 유사시 URL만 바꿔야 하면 `resolveAuthConfig({ stageUrls })`로 `SSO_STAGES`를 덮어쓴다.
 
 ### 4.4 인가·도메인 세션 (백오피스 `features/auth`)
 
@@ -245,58 +246,56 @@ axios 인스턴스, baseURL, `skipAuth`는 앱 HTTP 스택의 일부이므로 �
 
 ---
 
-## 7. 업로드 전에 정리하면 좋은 것
+## 7. 유지 체크리스트
 
-패키지로 올리기 직전, 아래를 합의·정리하는 것을 권장한다.
+패키지 분리·첫 연동은 끝난 상태다. 이후 변경·리뷰 때 아래만 보면 된다.
 
-### 7.1 반드시 확인할 것
+### 7.1 패키지 쪽 (이미 반영된 것 / 유지)
 
-- [ ] 공개 export 목록 확정 (`index` / `react` subpath)
-- [ ] `peerDependencies`: `react`, (필요 시) `react-dom` 버전
-- [ ] 서버의 refresh token 회전·재사용 감지 정책 확인 (탭 간 갱신 잠금의 전제)
-- [ ] `AuthLocation`·`renewLock` 테스트 더블 요구사항을 README에 명시
-- [x] 이 레포 import를 `@umc-product/auth-client`로 교체 (feat/#36)
+- [x] 공개 export: `@umc-product/auth-client`, `@umc-product/auth-client/react`
+- [x] `peerDependencies`: `react` (optional)
+- [x] 이 레포 import를 `@umc-product/auth-client`로 교체 (feat/#36, `0.1.3`)
+- [ ] 서버 refresh token 회전·재사용 감지 정책이 바뀌면 탭 간 갱신 잠금 전제를 다시 확인
+- [ ] `AuthLocation`·`renewLock` 테스트 더블 요구사항을 패키지 README/usage에 유지
+- [ ] 유사시 URL만 바꿀 때는 `stageUrls` override, 상시 변경은 `SSO_STAGES` + 패키지 bump
 
 ### 7.2 패키지에 넣지 말 것 (재확인)
 
-- [ ] `resolve-sso-env`의 백오피스 origin·`clientId` 표 (stage URL 표 `SSO_STAGES`는 패키지에 있다)
-- [ ] `features/auth` 운영진·기수·안내 플래그
-- [ ] axios `client.ts`
-- [ ] `login` / `callback` / `_admin` 라우트 컴포넌트
-- [ ] `LoadingSpinner` 등 제품 UI
+- [x] `resolve-sso-env`의 백오피스 origin·`clientId` 표 (`SSO_STAGES` / `stageUrls`만 패키지)
+- [x] `features/auth` 운영진·기수·안내 플래그
+- [x] axios `client.ts` (서비스 API는 앱 자율)
+- [x] `login` / `callback` / `_admin` 라우트 컴포넌트
+- [x] `LoadingSpinner` 등 제품 UI
 
-### 7.3 이 레포에 남을 얇은 어댑터
-
-패키지 분리 후에도 백오피스에는 대략 다음만 남는다.
+### 7.3 이 레포에 남은 얇은 어댑터
 
 ```
-shared/auth/resolve-sso-env.ts   # origin 표·clientId 표
+shared/auth/resolve-sso-env.ts   # origin 표·clientId 표 (+ optional stageUrls)
 shared/auth/sso-client.ts        # createAuthClient 싱글톤
-shared/api/client.ts             # axios 연동
+shared/api/client.ts             # 도메인 axios + 토큰/갱신 위임
 routes/login.tsx
 routes/auth/callback.tsx
 routes/_admin/route.tsx          # 인가
 features/auth/*                  # 운영 도메인
 ```
 
-`src/lib/auth-client`는 삭제했고, `@umc-product/auth-client` 의존으로 대체했다.
-
 ---
 
 ## 8. 기존 가이드와의 관계
 
-| 문서                                                                           | 읽는 사람          | 내용                                             |
-| ------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------ |
-| [auth-client-package-boundary.md](./auth-client-package-boundary.md) (본 문서) | 패키지 작성·리뷰어 | 무엇을 분리할지, 앱 책임은 무엇인지              |
-| [sso-integration-guide.md](./sso-integration-guide.md)                         | 앱 연동 개발자     | 어떻게 `createAuthClient`를 붙이는지 단계별 절차 |
+| 문서                                                                                                   | 읽는 사람             | 내용                                         |
+| ------------------------------------------------------------------------------------------------------ | --------------------- | -------------------------------------------- |
+| [auth-client usage.md](https://github.com/UMC-PRODUCT/umc-product-auth-client/blob/main/docs/usage.md) | 앱 연동 개발자        | 설치·싱글톤·로그인/콜백·HTTP 역할 (**정본**) |
+| [sso-integration-guide.md](./sso-integration-guide.md)                                                 | 이 백오피스 연동·리뷰 | 같은 절차의 백오피스 예시                    |
+| [auth-client-package-boundary.md](./auth-client-package-boundary.md) (본 문서)                         | 패키지/앱 경계 리뷰   | 무엇을 패키지·앱에 둘지                      |
 
-연동 가이드의 “공통 vs 앱” 요약은 본 문서 기준을 따른다. import는 `@umc-product/auth-client` / `@umc-product/auth-client/react`를 쓴다.
+“공통 vs 앱” 요약은 본 문서 기준을 따른다. import는 `@umc-product/auth-client` / `@umc-product/auth-client/react`를 쓴다.
 
 ---
 
 ## 9. 요약
 
-- **패키지**: SSO 로그인·토큰·갱신·로그아웃·PKCE·stage URL 표·인증 API 판별·(개발용) DevLoginForm.
-- **앱**: origin/`clientId` 표, `/login`·콜백 라우트, HTTP 클라이언트 연동, **인가·제품 UX·도메인 API**.
+- **패키지**: SSO 로그인·토큰·갱신·로그아웃·PKCE·`SSO_STAGES`(+ optional `stageUrls`)·인증 API 판별·`createApiFetch`·(개발용) DevLoginForm.
+- **앱**: origin/`clientId` 표, `/login`·콜백 라우트, **서비스 API HTTP(axios 등)**, **인가·제품 UX·도메인 API**.
 - 백오피스의 `features/auth`, `_admin` 가드, 비운영진 안내는 **패키지 후보가 아니다**.
-- 업로드 전 공개 API·peer 의존성과 서버 refresh 회전 정책을 먼저 확인한다.
+- 서버 refresh 정책이 바뀌면 패키지 갱신 잠금 전제를 다시 확인한다.

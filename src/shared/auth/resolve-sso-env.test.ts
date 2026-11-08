@@ -37,4 +37,18 @@ describe("resolveSsoEnv", () => {
       UnregisteredOriginError,
     )
   })
+
+  it("passes stageUrls through to resolveAuthConfig", () => {
+    expect(
+      resolveSsoEnv("https://dev.admin.university.neordinary.com", {
+        stageUrls: {
+          dev: { apiBaseUrl: "https://api-hotfix.example.com" },
+        },
+      }),
+    ).toMatchObject({
+      apiBaseUrl: "https://api-hotfix.example.com",
+      authAppUrl: "https://dev.auth.university.neordinary.com",
+      clientId: "backoffice",
+    })
+  })
 })

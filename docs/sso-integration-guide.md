@@ -2,9 +2,9 @@
 
 이 문서는 다른 UMC 웹 앱에서 공통 SSO 로그인을 붙일 때, **무엇을 가져가고 무엇을 앱에서 직접 만들어야 하는지**를 설명합니다.
 
-패키지로 분리할 코드 경계·업로드 전 정리 항목은 [인증 패키지 분리 경계](./auth-client-package-boundary.md)를 먼저 보면 좋습니다.
-
-공통 SSO 클라이언트는 GitHub Packages의 `@umc-product/auth-client`입니다. 실제 사용 예시는 이 백오피스의 `src/shared/auth`, `src/routes/login.tsx`, `src/routes/auth/callback.tsx`, `src/shared/api/client.ts`를 보면 됩니다.
+공통 SSO 클라이언트는 GitHub Packages의 `@umc-product/auth-client`입니다.  
+패키지 쪽 연동 절차의 정본은 [auth-client 활용 가이드](https://github.com/UMC-PRODUCT/umc-product-auth-client/blob/main/docs/usage.md)이고, 이 문서는 백오피스 기준으로 같은 흐름을 풀어 쓴 것입니다.  
+무엇을 패키지에 두고 앱에 둘지는 [인증 패키지 분리 경계](./auth-client-package-boundary.md)를 보면 됩니다. 실제 코드 예시는 `src/shared/auth`, `src/routes/login.tsx`, `src/routes/auth/callback.tsx`, `src/shared/api/client.ts`를 참고하세요.
 
 ---
 
@@ -167,14 +167,18 @@ router.history.replace(result.returnTo)
 
 로그인이 되어도 비즈니스 API는 알아서 인증되지 않습니다. 요청마다 access token을 `Authorization: Bearer ...`로 넣어야 합니다.
 
-공통 모듈에는 `createApiFetch()`가 있습니다. 이 래퍼는 Bearer를 붙이고, 401이 나면 refresh로 토큰을 갱신한 뒤 한 번 더 시도합니다. 새 앱이고 fetch만 쓴다면 이 방법이 가장 단순합니다.
+역할을 이렇게 나눕니다.
+
+- **SSO 프로토콜**(authorize / token / renew / logout)은 패키지 `createAuthClient`가 fetch로 처리합니다. 앱 axios로 다시 만들지 않습니다.
+- **인증이 붙은 범용 fetch**가 필요하면 패키지 `createApiFetch()`를 씁니다 (Bearer + 401 복구 포함).
+- **서비스·도메인 API**(공지, 멤버 등)는 앱이 axios 등으로 **자율**로 구성합니다. 이 백오피스가 그 예입니다.
 
 ```ts
 const apiFetch = getSsoClient().createApiFetch()
 const me = await apiFetch<MyType>("/api/v2/member/me")
 ```
 
-이미 axios 인스턴스가 있다면, 이 레포처럼 인터셉터로 붙이면 됩니다. 요청 직전에 `getAccessToken()`을 넣고, 응답이 401이면 `recoverFromUnauthorized()`로 새 토큰을 받은 뒤 같은 요청을 다시 보냅니다. 다만 토큰 갱신·SSO·로그아웃 API 자체에서 401이 난 경우에는 무한 루프를 막기 위해 재시도하지 않아야 합니다. 경로를 직접 적지 말고 `isAuthEndpoint(url)`로 판별하세요. 자세한 구현은 `src/shared/api/client.ts`를 참고하면 됩니다. 이 파일은 baseURL을 모듈 로드 시점이 아니라 첫 요청 때 정합니다. 등록되지 않은 origin에서 import만으로 앱이 죽지 않게 하려는 것입니다.
+도메인 API용 axios는 요청 직전에 `getAccessToken()`을 넣고, 응답이 401이면 `recoverFromUnauthorized()`로 새 토큰을 받은 뒤 같은 요청을 다시 보냅니다. 토큰 갱신·SSO·로그아웃 API 자체의 401은 무한 루프를 막기 위해 재시도하지 않습니다. 경로는 `isAuthEndpoint(url)`로 판별하세요. 구현은 `src/shared/api/client.ts`를 참고하면 됩니다. 이 파일은 baseURL을 모듈 로드 시점이 아니라 첫 요청 때 정합니다. 등록되지 않은 origin에서 import만으로 앱이 죽지 않게 하려는 것입니다.
 
 refresh token은 탭끼리 공유(localStorage)하고 access token은 탭마다 메모리에 둡니다. 서버가 refresh token을 회전시키므로, 클라이언트는 Web Locks API로 탭 간 갱신을 한 번에 하나씩만 돌리고 잠금을 얻은 뒤 최신 refresh token을 다시 읽습니다. 다른 탭에서 로그아웃해 refresh token이 지워지면 이 탭의 access token도 버립니다.
 
