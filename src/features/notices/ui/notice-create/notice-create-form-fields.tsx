@@ -12,6 +12,11 @@ import { cn } from "@/shared/lib/cn"
 
 import { mapNoticeCreateVoteDraftToPoll } from "../../model/map-notice-create-vote-draft-to-poll"
 import {
+  applyCentralChallengerDisabledTargetReset,
+  applyCentralStaffDisabledTargetReset,
+} from "../../model/notice-central-create-access"
+import { applyNoticeChapterPresidentCreateFormLock } from "../../model/notice-chapter-president-access"
+import {
   NOTICE_CREATE_STAFF_SCOPE_OPTIONS,
   NOTICE_CREATE_TITLE_MAX_LENGTH,
   type NoticeCreateFormState,
@@ -20,6 +25,10 @@ import {
   type NoticeCreateStaffScope,
 } from "../../model/notice-create-form"
 import { getNoticeCreateLinkDraftValidation } from "../../model/notice-create-link"
+import {
+  applyNoticeSchoolExecutiveChallengerCreateLock,
+  NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
+} from "../../model/notice-school-executive-access"
 import {
   canNoticeCreateUseChapterOrg,
   canNoticeCreateUsePartSelection,
@@ -90,7 +99,25 @@ type OrganizationOptions = {
 
 type NoticeFormMode = "create" | "edit"
 
+type NoticeChapterPresidentCreateLock = {
+  chapterId: number
+  targetGisuId: number
+}
+
+type NoticeSchoolExecutiveCreateLock = {
+  schoolId: number
+  targetGisuId: number
+}
+
 type NoticeCreateFormFieldsProps = {
+  /** 슈퍼·중앙: 챌린저 해제 시 대상 필터 초기화 */
+  centralUnrestrictedCreate?: boolean
+  /** 지부장: 챌린저 대상 공지만 작성 (체크 고정) */
+  chapterPresidentChallengerOnly?: boolean
+  chapterPresidentCreateLock?: NoticeChapterPresidentCreateLock | null
+  schoolExecutiveCreateLock?: NoticeSchoolExecutiveCreateLock | null
+  /** 교내 파트장·기타 운영진: 챌린저/운영진 공지 시 파트 필수 */
+  schoolStaffPartsRequired?: boolean
   form: NoticeCreateFormState
   isOrganizationLoading: boolean
   mode?: NoticeFormMode
@@ -130,6 +157,11 @@ function FormRow({
 }
 
 export function NoticeCreateFormFields({
+  centralUnrestrictedCreate = false,
+  chapterPresidentChallengerOnly = false,
+  chapterPresidentCreateLock = null,
+  schoolExecutiveCreateLock = null,
+  schoolStaffPartsRequired = false,
   form,
   isOrganizationLoading,
   mode = "create",
@@ -157,6 +189,15 @@ export function NoticeCreateFormFields({
     mode === "edit" && attachedVotePoll != null ? "edit" : "create"
   const isEditMode = mode === "edit"
   const lockAudienceAndTarget = isEditMode
+  const chapterPresidentLocked = chapterPresidentCreateLock != null
+  const chapterPresidentAudienceLocked = chapterPresidentChallengerOnly
+  const schoolExecutiveLocked = schoolExecutiveCreateLock != null
+  const chapterPresidentChallengerActive =
+    chapterPresidentLocked && form.challengerEnabled
+  const schoolExecutiveStaffActive = schoolExecutiveLocked && form.staffEnabled
+  const schoolExecutiveTargetActive = schoolExecutiveLocked
+  const targetGisuLocked =
+    chapterPresidentChallengerActive || schoolExecutiveTargetActive
   const titleInvalid = showRequiredFieldErrors && !form.title.trim()
   const titleLength = form.title.length
   const titleAtMax = titleLength >= NOTICE_CREATE_TITLE_MAX_LENGTH
@@ -175,19 +216,33 @@ export function NoticeCreateFormFields({
       NOTICE_CREATE_GISU_MODE_OPTIONS.map((option) => ({
         ...option,
         disabled:
-          form.staffEnabled &&
-          !form.challengerEnabled &&
-          option.value === "all",
+          (targetGisuLocked && option.value === "all") ||
+          (form.staffEnabled &&
+            !form.challengerEnabled &&
+            option.value === "all"),
       })),
-    [form.challengerEnabled, form.staffEnabled],
+    [form.challengerEnabled, form.staffEnabled, targetGisuLocked],
   )
 
   const orgModeOptions = useMemo(() => {
     const disableChapterAndSchool = form.gisuMode === "all"
+    const challengerChapterSchoolExclusive = form.challengerEnabled
 
     return NOTICE_CREATE_ORG_MODE_OPTIONS.map((option) => ({
       ...option,
       disabled:
+        (chapterPresidentChallengerActive &&
+          (option.value === "umc" || option.value === "school")) ||
+        (schoolExecutiveLocked &&
+          (option.value === "umc" || option.value === "chapter")) ||
+        (challengerChapterSchoolExclusive &&
+          option.value === "school" &&
+          form.orgMode === "chapter" &&
+          form.chapterId != null) ||
+        (challengerChapterSchoolExclusive &&
+          option.value === "chapter" &&
+          form.orgMode === "school" &&
+          form.schoolId != null) ||
         (disableChapterAndSchool &&
           (option.value === "chapter" || option.value === "school")) ||
         (option.value === "chapter" && !canNoticeCreateUseChapterOrg(form)) ||
@@ -195,9 +250,22 @@ export function NoticeCreateFormFields({
           form.staffEnabled &&
           !canStaffNoticeUseSchoolOrg(form.staffScope)),
     }))
-  }, [form])
+  }, [chapterPresidentChallengerActive, form, schoolExecutiveLocked])
 
-  const showPartSelection = canNoticeCreateUsePartSelection(form)
+  const staffScopeOptions = useMemo(
+    () =>
+      NOTICE_CREATE_STAFF_SCOPE_OPTIONS.map((option) => ({
+        ...option,
+        disabled:
+          schoolExecutiveStaffActive &&
+          option.value !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
+      })),
+    [schoolExecutiveStaffActive],
+  )
+
+  const showPartSelection =
+    canNoticeCreateUsePartSelection(form) ||
+    (schoolStaffPartsRequired && (form.challengerEnabled || form.staffEnabled))
 
   const applyStaffScopeChange = (staffScope: NoticeCreateStaffScope) => {
     const patch: Partial<NoticeCreateFormState> = { staffScope }
@@ -266,11 +334,56 @@ export function NoticeCreateFormFields({
         <div className="flex flex-col gap-(--umc-spacing-gap-16)">
           <div className="flex items-center gap-(--umc-spacing-gap-8)">
             <Checkbox
-              checked={form.challengerEnabled}
-              color={form.challengerEnabled ? "brand" : "neutral"}
+              checked={
+                chapterPresidentAudienceLocked ? true : form.challengerEnabled
+              }
+              color={
+                chapterPresidentAudienceLocked || form.challengerEnabled
+                  ? "brand"
+                  : "neutral"
+              }
+              disabled={
+                !chapterPresidentAudienceLocked && lockAudienceAndTarget
+              }
               labelPlacement="end"
+              readOnly={chapterPresidentAudienceLocked}
               onCheckedChange={(checked) => {
+                if (chapterPresidentAudienceLocked) {
+                  return
+                }
+
                 const challengerEnabled = checked === true
+
+                if (
+                  chapterPresidentLocked &&
+                  chapterPresidentCreateLock != null &&
+                  challengerEnabled
+                ) {
+                  onChange({
+                    ...applyNoticeChapterPresidentCreateFormLock({
+                      form: { ...form, challengerEnabled: true },
+                      ...chapterPresidentCreateLock,
+                    }),
+                    challengerEnabled: true,
+                  })
+                  return
+                }
+
+                if (
+                  schoolExecutiveLocked &&
+                  schoolExecutiveCreateLock != null &&
+                  challengerEnabled
+                ) {
+                  onChange({
+                    ...applyNoticeSchoolExecutiveChallengerCreateLock({
+                      form: { ...form, challengerEnabled: true },
+                      ...schoolExecutiveCreateLock,
+                    }),
+                    challengerEnabled: true,
+                  })
+                  return
+                }
+
                 if (
                   challengerEnabled &&
                   form.gisuMode === "all" &&
@@ -284,6 +397,17 @@ export function NoticeCreateFormFields({
                   })
                   return
                 }
+
+                if (
+                  !challengerEnabled &&
+                  centralUnrestrictedCreate &&
+                  !chapterPresidentLocked &&
+                  !schoolExecutiveLocked
+                ) {
+                  onChange(applyCentralChallengerDisabledTargetReset(form))
+                  return
+                }
+
                 onChange({ challengerEnabled })
               }}
               size="lg"
@@ -298,12 +422,36 @@ export function NoticeCreateFormFields({
             <Checkbox
               checked={form.staffEnabled}
               color={form.staffEnabled ? "brand" : "neutral"}
+              disabled={chapterPresidentAudienceLocked || lockAudienceAndTarget}
               labelPlacement="end"
               onCheckedChange={(checked) => {
+                if (chapterPresidentAudienceLocked) {
+                  return
+                }
+
                 const staffEnabled = checked === true
+
+                if (
+                  schoolExecutiveLocked &&
+                  staffEnabled &&
+                  schoolExecutiveCreateLock != null
+                ) {
+                  onChange({
+                    gisuMode: "specific",
+                    orgMode: "school",
+                    chapterId: null,
+                    schoolId: schoolExecutiveCreateLock.schoolId,
+                    staffEnabled: true,
+                    staffScope: NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
+                    targetGisuId: schoolExecutiveCreateLock.targetGisuId,
+                  })
+                  return
+                }
+
                 if (
                   staffEnabled &&
                   !form.challengerEnabled &&
+                  !schoolExecutiveLocked &&
                   (form.orgMode === "chapter" || form.gisuMode === "all")
                 ) {
                   onChange({
@@ -315,6 +463,17 @@ export function NoticeCreateFormFields({
                   })
                   return
                 }
+
+                if (
+                  !staffEnabled &&
+                  centralUnrestrictedCreate &&
+                  !chapterPresidentLocked &&
+                  !schoolExecutiveLocked
+                ) {
+                  onChange(applyCentralStaffDisabledTargetReset(form))
+                  return
+                }
+
                 onChange({ staffEnabled })
               }}
               size="lg"
@@ -337,9 +496,16 @@ export function NoticeCreateFormFields({
               <OptionButtonGroup
                 aria-label="운영진 범위"
                 onValueChange={(value) => {
+                  if (
+                    schoolExecutiveLocked &&
+                    value !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE
+                  ) {
+                    return
+                  }
+
                   applyStaffScopeChange(value as NoticeCreateStaffScope)
                 }}
-                options={NOTICE_CREATE_STAFF_SCOPE_OPTIONS}
+                options={staffScopeOptions}
                 size="sm"
                 type="single"
                 value={form.staffScope}
@@ -359,6 +525,10 @@ export function NoticeCreateFormFields({
             <OptionButtonGroup
               aria-label="기수 범위"
               onValueChange={(value) => {
+                if (targetGisuLocked) {
+                  return
+                }
+
                 const gisuMode = value as NoticeCreateGisuMode
                 if (gisuMode === "all") {
                   onChange({
@@ -382,8 +552,12 @@ export function NoticeCreateFormFields({
               <Select
                 aria-label="대상 기수"
                 className="w-auto shrink-0"
-                disabled={isOrganizationLoading}
+                disabled={isOrganizationLoading || targetGisuLocked}
                 onValueChange={(value) => {
+                  if (targetGisuLocked) {
+                    return
+                  }
+
                   onChange({
                     targetGisuId: value ? Number(value) : null,
                   })
@@ -408,6 +582,10 @@ export function NoticeCreateFormFields({
             <OptionButtonGroup
               aria-label="조직 범위"
               onValueChange={(value) => {
+                if (chapterPresidentChallengerActive || schoolExecutiveLocked) {
+                  return
+                }
+
                 onChange({
                   orgMode: value as NoticeCreateOrgMode,
                   chapterId: null,
@@ -425,10 +603,18 @@ export function NoticeCreateFormFields({
               <Select
                 aria-label="지부"
                 className="w-auto shrink-0"
-                disabled={isOrganizationLoading}
+                disabled={
+                  isOrganizationLoading || chapterPresidentChallengerActive
+                }
                 onValueChange={(value) => {
+                  if (chapterPresidentChallengerActive) {
+                    return
+                  }
+
                   onChange({
                     chapterId: value ? Number(value) : null,
+                    orgMode: "chapter",
+                    schoolId: null,
                   })
                 }}
                 options={chapterSelectOptions}
@@ -444,9 +630,15 @@ export function NoticeCreateFormFields({
               <Select
                 aria-label="학교"
                 className="w-auto shrink-0"
-                disabled={isOrganizationLoading}
+                disabled={isOrganizationLoading || schoolExecutiveLocked}
                 onValueChange={(value) => {
+                  if (schoolExecutiveLocked) {
+                    return
+                  }
+
                   onChange({
+                    chapterId: null,
+                    orgMode: "school",
                     schoolId: value ? Number(value) : null,
                   })
                 }}

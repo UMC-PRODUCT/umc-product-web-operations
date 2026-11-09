@@ -23,5 +23,5 @@ function NoticeCreateRoute() {
     return null
   }
 
-  return <NoticeCreatePage session={noticeSession} />
+  return <NoticeCreatePage adminSession={session} session={noticeSession} />
 }

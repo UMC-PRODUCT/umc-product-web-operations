@@ -5,6 +5,7 @@ import { Button, Pagination, Tab, TabList, Tabs } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { normalizeNoticeListFiltersForApi } from "../model/build-notice-list-params"
+import { resolveNoticeChapterPresidentChallengerLock } from "../model/notice-chapter-president-access"
 import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
 import { resolveNoticeCreatePartOptions } from "../model/notice-create-part-options"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
@@ -20,6 +21,16 @@ import {
   parseNoticeListFiltersFromSearch,
 } from "../model/notice-list-route-search"
 import {
+  isNoticeSchoolExecutiveContext,
+  NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS,
+  resolveNoticeSchoolExecutiveLock,
+} from "../model/notice-school-executive-access"
+import {
+  NOTICE_SCHOOL_STAFF_STAFF_FIXED_RECIPIENT,
+  NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS,
+  resolveNoticeSchoolStaffLock,
+} from "../model/notice-school-staff-access"
+import {
   canCreateNotice,
   type NoticeOperatorSession,
 } from "../model/notice-session"
@@ -34,6 +45,7 @@ import { NoticeListTable } from "./notice-list-table"
 import { useNoticeListOutcomeToasts } from "./use-notice-list-outcome-toasts"
 
 import type { NoticePart } from "../api/notice-api.types"
+import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
 import type { NoticeCreateStaffScope } from "../model/notice-create-form"
 import type {
   NoticeDeleteOutcome,
@@ -54,6 +66,7 @@ type NoticeListPageProps = {
   listScope?: string
   listScopeStage?: NoticeScopeStage
   listStaffRecipient?: NoticeCreateStaffScope
+  adminSession: NoticeAdminAccessContext
   session: NoticeOperatorSession
   /** TODO: API 연동 시 제거. 삭제 성공 Toast 시뮬레이션용 */
   deleteOutcome?: NoticeDeleteOutcome
@@ -182,6 +195,7 @@ export function NoticeListPage({
   listScope,
   listScopeStage,
   listStaffRecipient,
+  adminSession,
   session,
   deleteOutcome,
   imageRegisterOutcome,
@@ -347,6 +361,107 @@ export function NoticeListPage({
     noticeListOrganizationQueryOptions(session.gisuId),
   )
 
+  const chapterPresidentContext = useMemo(
+    () =>
+      resolveNoticeChapterPresidentChallengerLock(
+        adminSession,
+        organizationQuery.data,
+      ),
+    [adminSession, organizationQuery.data],
+  )
+
+  const schoolExecutiveLock = useMemo(
+    () =>
+      resolveNoticeSchoolExecutiveLock(adminSession, organizationQuery.data),
+    [adminSession, organizationQuery.data],
+  )
+
+  const schoolStaffLock = useMemo(
+    () => resolveNoticeSchoolStaffLock(adminSession, organizationQuery.data),
+    [adminSession, organizationQuery.data],
+  )
+
+  const schoolScopedOrganizationLock = schoolExecutiveLock ?? schoolStaffLock
+
+  const chapterPresidentChallengerLock =
+    audience === "challenger" ? chapterPresidentContext : null
+
+  const schoolExecutiveChallengerLock =
+    audience === "challenger" ? schoolScopedOrganizationLock : null
+
+  const schoolExecutiveStaffLock =
+    audience === "staff" ? schoolScopedOrganizationLock : null
+
+  const schoolStaffStaffFiltersActive =
+    audience === "staff" &&
+    schoolStaffLock != null &&
+    !isNoticeSchoolExecutiveContext(adminSession)
+
+  const staffRecipientScopeAllowlist = useMemo(() => {
+    if (schoolStaffStaffFiltersActive) {
+      return NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS
+    }
+
+    if (
+      schoolExecutiveStaffLock != null &&
+      isNoticeSchoolExecutiveContext(adminSession)
+    ) {
+      return NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS
+    }
+
+    return null
+  }, [adminSession, schoolExecutiveStaffLock, schoolStaffStaffFiltersActive])
+
+  const staffFixedStaffRecipient = schoolStaffStaffFiltersActive
+    ? NOTICE_SCHOOL_STAFF_STAFF_FIXED_RECIPIENT
+    : null
+
+  const staffListFiltersDisabled =
+    audience === "staff" && chapterPresidentContext != null
+
+  const challengerLockedChapterScope =
+    chapterPresidentChallengerLock?.chapterScope ??
+    schoolExecutiveChallengerLock?.chapterScope ??
+    null
+
+  const challengerListSchoolOptions = useMemo(() => {
+    if (chapterPresidentChallengerLock != null) {
+      return chapterPresidentChallengerLock.schoolOptions
+    }
+
+    if (schoolExecutiveChallengerLock != null) {
+      return [
+        {
+          schoolId: schoolExecutiveChallengerLock.schoolId,
+          schoolName: schoolExecutiveChallengerLock.schoolName,
+        },
+      ]
+    }
+
+    return organizationQuery.data?.schools ?? []
+  }, [
+    chapterPresidentChallengerLock,
+    organizationQuery.data?.schools,
+    schoolExecutiveChallengerLock,
+  ])
+
+  useEffect(() => {
+    if (challengerLockedChapterScope == null) {
+      return
+    }
+
+    setFilters((current) => {
+      if (
+        current.chapterScope == null ||
+        current.chapterScope === challengerLockedChapterScope
+      ) {
+        return current
+      }
+
+      return { ...current, chapterScope: null }
+    })
+  }, [challengerLockedChapterScope])
+
   const listQuery = useQuery(
     noticeListQueryOptions({
       audience,
@@ -497,6 +612,14 @@ export function NoticeListPage({
           isOrganizationLoading={
             organizationQuery.isLoading || gisuListQuery.isLoading
           }
+          challengerLockedSchoolScope={
+            schoolExecutiveChallengerLock?.schoolScope ?? null
+          }
+          lockedChapterScope={challengerLockedChapterScope}
+          staffListFiltersDisabled={staffListFiltersDisabled}
+          staffFixedStaffRecipient={staffFixedStaffRecipient}
+          staffLockedSchoolScope={schoolExecutiveStaffLock?.schoolScope ?? null}
+          staffRecipientScopeAllowlist={staffRecipientScopeAllowlist}
           partOptions={partFilterOptions}
           onChapterScopeChange={(chapterScope) => {
             setFilters((current) => ({ ...current, chapterScope }))
@@ -524,7 +647,7 @@ export function NoticeListPage({
           onStaffRecipientChange={(staffRecipient) => {
             setFilters((current) => ({ ...current, staffRecipient }))
           }}
-          schoolOptions={organizationQuery.data?.schools ?? []}
+          schoolOptions={challengerListSchoolOptions}
         />
 
         <div className="flex w-full flex-col items-center gap-(--umc-spacing-gap-20)">

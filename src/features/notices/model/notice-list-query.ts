@@ -217,6 +217,7 @@ export async function fetchNoticeListPage(input: {
           ({
             chapters: [],
             schools: [],
+            schoolsByChapterId: new Map(),
           }) satisfies Awaited<
             ReturnType<typeof fetchNoticeListOrganizationOptions>
           >,

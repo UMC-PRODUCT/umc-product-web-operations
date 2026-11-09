@@ -41,6 +41,9 @@ describe("normalizeGisuOrganizationLists", () => {
 
     expect(result.chapters).toEqual([{ id: 1, name: "서울" }])
     expect(result.schools).toEqual([{ schoolId: 2, schoolName: "중앙대학교" }])
+    expect(result.schoolsByChapterId.get(1)).toEqual([
+      { schoolId: 2, schoolName: "중앙대학교" },
+    ])
   })
 })
 

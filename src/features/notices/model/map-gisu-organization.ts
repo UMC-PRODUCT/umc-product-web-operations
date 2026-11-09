@@ -71,6 +71,7 @@ export function normalizeGisuOrganizationLists(input: {
 }): {
   chapters: NoticeListChapterOption[]
   schools: NoticeListSchoolOption[]
+  schoolsByChapterId: Map<number, NoticeListSchoolOption[]>
 } {
   const chapterList = Array.isArray(input.chapters) ? input.chapters : []
   const schoolList = Array.isArray(input.schools) ? input.schools : []
@@ -111,9 +112,51 @@ export function normalizeGisuOrganizationLists(input: {
     schools.map((school) => [school.schoolId, school]),
   )
 
+  const schoolsByChapterId = new Map<number, NoticeListSchoolOption[]>()
+
+  for (const rawChapter of chapterList) {
+    const chapter = normalizeChapterOption(rawChapter)
+    if (!chapter) {
+      continue
+    }
+
+    if (!rawChapter || typeof rawChapter !== "object") {
+      continue
+    }
+
+    const nestedSchools = (rawChapter as Record<string, unknown>).schools
+    if (!Array.isArray(nestedSchools)) {
+      continue
+    }
+
+    const chapterSchools: NoticeListSchoolOption[] = []
+    for (const rawSchool of nestedSchools) {
+      const school = normalizeSchoolOption(rawSchool)
+      if (school) {
+        chapterSchools.push(school)
+      }
+    }
+
+    if (chapterSchools.length > 0) {
+      schoolsByChapterId.set(chapter.id, chapterSchools)
+    }
+  }
+
+  const normalizedChapters = [...uniqueChapters.values()]
+  const normalizedSchools = [...uniqueSchools.values()]
+
+  if (
+    normalizedChapters.length === 1 &&
+    !schoolsByChapterId.has(normalizedChapters[0]!.id) &&
+    normalizedSchools.length > 0
+  ) {
+    schoolsByChapterId.set(normalizedChapters[0]!.id, normalizedSchools)
+  }
+
   return {
-    chapters: [...uniqueChapters.values()],
-    schools: [...uniqueSchools.values()],
+    chapters: normalizedChapters,
+    schools: normalizedSchools,
+    schoolsByChapterId,
   }
 }
 

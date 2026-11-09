@@ -1,4 +1,5 @@
 import { createFileRoute, isRedirect, redirect } from "@tanstack/react-router"
+import { ApiError } from "@umc-product/auth-client"
 import { isAxiosError } from "axios"
 
 import {
@@ -10,7 +11,6 @@ import {
   isOperator,
   markOperatorOnlyLoginNotice,
 } from "@/features/auth"
-import { ApiError } from "@/lib/auth-client"
 import { getSsoClient } from "@/shared/auth/sso-client"
 import { AuthBusyScreen } from "@/shared/ui/loading-spinner"
 import { AdminShell } from "@/widgets/admin-shell/AdminShell"

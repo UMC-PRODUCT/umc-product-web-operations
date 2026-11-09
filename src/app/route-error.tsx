@@ -1,6 +1,5 @@
 import { ErrorComponent } from "@tanstack/react-router"
-
-import { UnregisteredOriginError } from "@/lib/auth-client"
+import { UnregisteredOriginError } from "@umc-product/auth-client"
 
 import type { ErrorComponentProps } from "@tanstack/react-router"
 
