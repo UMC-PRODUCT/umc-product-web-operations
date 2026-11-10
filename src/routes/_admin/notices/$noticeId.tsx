@@ -106,7 +106,12 @@ function NoticeDetailRoute() {
   }
 
   const { notice } = loaderData
-  const canManageNotice = isNoticeAuthor(notice, session, viewerAuthor)
+  const canManageNotice = isNoticeAuthor(
+    notice,
+    session,
+    viewerAuthor,
+    adminSession.name,
+  )
 
   return (
     <NoticeDetailPage
