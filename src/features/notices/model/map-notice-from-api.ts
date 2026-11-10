@@ -10,6 +10,7 @@ import {
 } from "./notice-gisu-generation"
 import { NOTICE_PART_LABELS } from "./notice-part-options"
 import { recomputePollPercents } from "./notice-poll-vote"
+import { parseNoticeMemberId } from "./notice-viewer"
 import { resolveNoticeVoteUiStatus } from "./resolve-notice-vote-ui-status"
 
 import type {
@@ -216,7 +217,9 @@ export function mapNoticeSummaryToNotice(
   summary: GetNoticeSummaryResponse,
   context?: NoticeTargetDisplayContext,
 ): Notice {
-  const authorMemberId = summary.authorMemberId ?? summary.author?.memberId
+  const authorMemberId =
+    parseNoticeMemberId(summary.authorMemberId) ??
+    parseNoticeMemberId(summary.author?.memberId)
 
   return {
     id: String(summary.id),
