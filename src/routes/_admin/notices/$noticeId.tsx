@@ -8,7 +8,7 @@ import {
 import { NoticeDetailPage } from "@/features/notices"
 import { loadNoticeDetail } from "@/features/notices/model/load-notice-detail"
 import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
-import { isNoticeAuthor } from "@/features/notices/model/notice-viewer"
+import { canManageNoticeDetail } from "@/features/notices/model/notice-viewer"
 import { NoticeDetailStatusView } from "@/features/notices/ui/notice-detail-status-view"
 import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
@@ -106,7 +106,7 @@ function NoticeDetailRoute() {
   }
 
   const { notice } = loaderData
-  const canManageNotice = isNoticeAuthor(
+  const canManageNotice = canManageNoticeDetail(
     notice,
     session,
     viewerAuthor,

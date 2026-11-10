@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  canManageNoticeDetail,
   isNoticeAuthor,
   MOCK_NOTICE_VIEWER_AUTHOR,
   parseNoticeMemberId,
@@ -56,6 +57,26 @@ describe("isNoticeAuthor", () => {
         { id: 2 },
         undefined,
         "홍길동",
+      ),
+    ).toBe(false)
+  })
+})
+
+describe("canManageNoticeDetail", () => {
+  it("allows SUPER_ADMIN even when not the author", () => {
+    expect(
+      canManageNoticeDetail(
+        { author: "다른 사람", authorMemberId: 9 },
+        { id: 1, isSuperAdmin: true },
+      ),
+    ).toBe(true)
+  })
+
+  it("still requires authorship for non-super-admin", () => {
+    expect(
+      canManageNoticeDetail(
+        { author: "다른 사람", authorMemberId: 9 },
+        { id: 1, isSuperAdmin: false },
       ),
     ).toBe(false)
   })
