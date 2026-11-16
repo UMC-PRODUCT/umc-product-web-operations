@@ -15,15 +15,12 @@ import { onlyInDev } from "@/shared/lib/dev-only"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 
-import type { DeleteNoticeOutcome } from "@/features/notices/model/mock-delete-notice"
 import type { NoticeImageLoadState } from "@/features/notices/model/notice-detail.types"
 import type { NoticeAudience } from "@/features/notices/model/types"
 
 type NoticeDetailSearch = {
   /** 목록으로 돌아갈 때 복원할 탭(챌린저/운영진) */
   listAudience?: NoticeAudience
-  /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
-  deleteOutcome?: DeleteNoticeOutcome
   /** TODO: API 연동 시 제거. `pending` | `loading` | `success` */
   imageLoadState?: NoticeImageLoadState
   /** QA: `loading`에서 mock success 자동 전환 끔 */
@@ -55,12 +52,6 @@ function parseImageLoadState(
 export const Route = createFileRoute("/_admin/notices/$noticeId")({
   validateSearch: (search: Record<string, unknown>): NoticeDetailSearch => ({
     listAudience: parseNoticeListAudienceOptional(search.listAudience),
-    deleteOutcome: onlyInDev(
-      search.deleteOutcome === "network_error" ||
-        search.deleteOutcome === "success"
-        ? search.deleteOutcome
-        : undefined,
-    ),
     imageLoadState: onlyInDev(parseImageLoadState(search)),
     imageLoadPause: onlyInDev(
       search.imageLoadPause === "1" || search.imageLoadPause === true
@@ -87,8 +78,7 @@ function NoticeDetailRoute() {
   const session = toNoticeOperatorSession(adminSession, {
     gisuId: selectedGisuId,
   })
-  const { deleteOutcome, imageLoadPause, imageLoadState, listAudience } =
-    Route.useSearch()
+  const { imageLoadPause, imageLoadState, listAudience } = Route.useSearch()
 
   if (isEditRoute) {
     return <Outlet />
@@ -108,7 +98,6 @@ function NoticeDetailRoute() {
   return (
     <NoticeDetailPage
       canManageNotice={canManageNotice}
-      deleteOutcome={deleteOutcome}
       imageLoadPause={imageLoadPause}
       imageLoadState={imageLoadState}
       listAudience={listAudience}

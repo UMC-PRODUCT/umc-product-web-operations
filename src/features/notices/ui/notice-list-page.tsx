@@ -46,18 +46,11 @@ import {
 } from "../model/resolve-notice-list-ui-state"
 import { NoticeListFiltersBar } from "./notice-list-filters"
 import { NoticeListTable } from "./notice-list-table"
-import { useNoticeListOutcomeToasts } from "./use-notice-list-outcome-toasts"
 
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeListFilterFields } from "../model/normalize-notice-list-filters"
 import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
 import type { NoticeCreateStaffScope } from "../model/notice-create-form"
-import type {
-  NoticeDeleteOutcome,
-  NoticeImageRegisterOutcome,
-  NoticeListLoadOutcome,
-  NoticePublishOutcome,
-} from "../model/notice-outcomes"
 import type { NoticeScopeStage } from "../model/notice-scope-stage"
 import type { Notice, NoticeAudience, NoticeListFilters } from "../model/types"
 
@@ -73,14 +66,6 @@ type NoticeListPageProps = {
   listStaffRecipient?: NoticeCreateStaffScope
   adminSession: NoticeAdminAccessContext
   session: NoticeOperatorSession
-  /** TODO: API 연동 시 제거. 삭제 성공 Toast 시뮬레이션용 */
-  deleteOutcome?: NoticeDeleteOutcome
-  /** TODO: API 연동 시 제거. 이미지 등록 성공 Toast 시뮬레이션용 */
-  imageRegisterOutcome?: NoticeImageRegisterOutcome
-  /** TODO: API 연동 시 제거. 목록 조회 결과 시뮬레이션용 */
-  listOutcome?: NoticeListLoadOutcome
-  /** TODO: API 연동 시 제거. 등록 성공 Toast 시뮬레이션용 */
-  publishOutcome?: NoticePublishOutcome
 }
 
 const DEFAULT_FILTERS: Omit<NoticeListFilters, "audience"> = {
@@ -94,7 +79,6 @@ const DEFAULT_FILTERS: Omit<NoticeListFilters, "audience"> = {
 }
 
 function resolveListLoadState(
-  mockOutcome: NoticeListLoadOutcome | undefined,
   queryResult: NoticeListQueryResult | undefined,
   isFetching: boolean,
 ): {
@@ -104,26 +88,6 @@ function resolveListLoadState(
   notices: Notice[]
   registeredTotal: number
 } {
-  if (mockOutcome === "network_error") {
-    return {
-      isError: true,
-      isForbidden: false,
-      isLoading: false,
-      notices: [],
-      registeredTotal: 0,
-    }
-  }
-
-  if (mockOutcome === "forbidden") {
-    return {
-      isError: false,
-      isForbidden: true,
-      isLoading: false,
-      notices: [],
-      registeredTotal: 0,
-    }
-  }
-
   if (!queryResult) {
     return {
       isError: false,
@@ -202,17 +166,8 @@ export function NoticeListPage({
   listStaffRecipient,
   adminSession,
   session,
-  deleteOutcome,
-  imageRegisterOutcome,
-  listOutcome,
-  publishOutcome,
 }: NoticeListPageProps) {
   const navigate = useNavigate()
-  useNoticeListOutcomeToasts({
-    deleteOutcome,
-    imageRegisterOutcome,
-    publishOutcome,
-  })
   const audience = parseNoticeListAudience(audienceFromRoute)
   const showCreateNoticeButton = canCreateNotice(session)
   const routeListState = useMemo(
@@ -479,7 +434,6 @@ export function NoticeListPage({
   )
 
   const listState = resolveListLoadState(
-    listOutcome,
     listQuery.data,
     listQuery.isFetching && !listQuery.data,
   )

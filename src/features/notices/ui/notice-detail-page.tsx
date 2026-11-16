@@ -28,9 +28,7 @@ import {
 import { showNoticeErrorToast } from "./show-notice-error-toast"
 import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
 import { useNoticeDetailImageLoadFlow } from "./use-notice-detail-image-load-flow"
-import { useNoticeDetailImageRegisterSuccessToast } from "./use-notice-detail-image-register-success-toast"
 
-import type { DeleteNoticeOutcome } from "../model/mock-delete-notice"
 import type {
   NoticeDetail,
   NoticeImageLoadState,
@@ -45,8 +43,6 @@ function buildNoticeListReturnSearch(input: { audience: NoticeAudience }) {
 
 type NoticeDetailPageProps = {
   canManageNotice?: boolean
-  /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
-  deleteOutcome?: DeleteNoticeOutcome
   listAudience?: NoticeAudience
   notice: NoticeDetail
   /** TODO: API 연동 시 제거. mock loading → success 자동 전환 끔 */
@@ -61,7 +57,6 @@ type NoticeDetailPageProps = {
  */
 export function NoticeDetailPage({
   canManageNotice = false,
-  deleteOutcome,
   imageLoadPause,
   listAudience,
   notice,
@@ -80,8 +75,6 @@ export function NoticeDetailPage({
     imageLoadState,
     noticeId: notice.id,
   })
-
-  useNoticeDetailImageRegisterSuccessToast({ imageLoadState })
 
   const showImageLoadInlineToast =
     imageLoadState === "pending" || imageLoadState === "loading"
@@ -240,11 +233,6 @@ export function NoticeDetailPage({
           }
 
           try {
-            if (deleteOutcome === "network_error") {
-              showNoticeErrorToast(toast, NOTICE_DELETE_FAILURE_TOAST_MESSAGE)
-              return
-            }
-
             await deleteMutation.mutateAsync(Number(notice.id))
             deleteDialogFocusStore.current = null
             setIsDeleteDialogOpen(false)

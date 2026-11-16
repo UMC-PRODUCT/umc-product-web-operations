@@ -7,18 +7,11 @@ import {
   parseNoticeListFiltersFromSearch,
   parseNoticeListPage,
 } from "@/features/notices/model/notice-list-route-search"
-import { onlyInDev } from "@/shared/lib/dev-only"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 
 import type { NoticePart } from "@/features/notices/api/notice-api.types"
 import type { NoticeCreateStaffScope } from "@/features/notices/model/notice-create-form"
-import type {
-  NoticeDeleteOutcome,
-  NoticeImageRegisterOutcome,
-  NoticeListLoadOutcome,
-  NoticePublishOutcome,
-} from "@/features/notices/model/notice-outcomes"
 import type { NoticeScopeStage } from "@/features/notices/model/notice-scope-stage"
 import type { NoticeAudience } from "@/features/notices/model/types"
 
@@ -33,13 +26,6 @@ type NoticesSearch = {
   part?: NoticePart
   staffRecipient?: NoticeCreateStaffScope
   page?: number
-  deleteOutcome?: NoticeDeleteOutcome
-  /** TODO: API 연동 시 제거. 이미지 등록 성공 Toast 시뮬레이션용 */
-  imageRegisterOutcome?: NoticeImageRegisterOutcome
-  /** TODO: API 연동 시 제거. 목록 조회 결과 시뮬레이션용 */
-  listOutcome?: NoticeListLoadOutcome
-  /** TODO: API 연동 시 제거. 등록 성공 Toast 시뮬레이션용 */
-  publishOutcome?: NoticePublishOutcome
 }
 
 export const Route = createFileRoute("/_admin/notices/")({
@@ -60,23 +46,6 @@ export const Route = createFileRoute("/_admin/notices/")({
       part: filters.part ?? undefined,
       staffRecipient: filters.staffRecipient ?? undefined,
       page: page > 1 ? page : undefined,
-      deleteOutcome: onlyInDev(
-        search.deleteOutcome === "success" ? search.deleteOutcome : undefined,
-      ),
-      imageRegisterOutcome: onlyInDev(
-        search.imageRegisterOutcome === "success"
-          ? search.imageRegisterOutcome
-          : undefined,
-      ),
-      listOutcome: onlyInDev(
-        search.listOutcome === "network_error" ||
-          search.listOutcome === "forbidden"
-          ? search.listOutcome
-          : undefined,
-      ),
-      publishOutcome: onlyInDev(
-        search.publishOutcome === "success" ? search.publishOutcome : undefined,
-      ),
     }
   },
   component: NoticesPage,
@@ -89,12 +58,8 @@ function NoticesPage() {
   const {
     audience,
     chapterScope,
-    deleteOutcome,
-    imageRegisterOutcome,
-    listOutcome,
     page,
     part,
-    publishOutcome,
     q,
     schoolScope,
     scope,
@@ -107,10 +72,7 @@ function NoticesPage() {
   return (
     <NoticeListPage
       audience={audience}
-      deleteOutcome={deleteOutcome}
-      imageRegisterOutcome={imageRegisterOutcome}
       listChapterScope={chapterScope}
-      listOutcome={listOutcome}
       listPage={parseNoticeListPage(page)}
       listPart={part}
       routeListQuery={q}
@@ -118,7 +80,6 @@ function NoticesPage() {
       listScope={scope}
       listScopeStage={scopeStage}
       listStaffRecipient={staffRecipient}
-      publishOutcome={publishOutcome}
       adminSession={session}
       session={toNoticeOperatorSession(session, { gisuId: selectedGisuId })}
     />
