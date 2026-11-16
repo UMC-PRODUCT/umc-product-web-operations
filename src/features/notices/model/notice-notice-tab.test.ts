@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest"
 import { canAccessStaffNoticeTab, resolveNoticeTab } from "./notice-notice-tab"
 
 describe("canAccessStaffNoticeTab", () => {
-  it("denies chapter president alone", () => {
+  it("allows chapter president (maps to central staff tab)", () => {
     expect(
       canAccessStaffNoticeTab({
         isSuperAdmin: false,
         roleTypes: ["CHAPTER_PRESIDENT"],
       }),
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it("allows central and school staff roles", () => {
@@ -29,12 +29,21 @@ describe("canAccessStaffNoticeTab", () => {
 })
 
 describe("resolveNoticeTab", () => {
-  it("does not map chapter president staff tab to CENTRAL_MEMBER", () => {
+  it("maps chapter president staff tab to CENTRAL_MEMBER", () => {
     expect(
       resolveNoticeTab("staff", {
         isSuperAdmin: false,
         roleTypes: ["CHAPTER_PRESIDENT"],
       }),
-    ).toBe("CHALLENGER")
+    ).toBe("CENTRAL_MEMBER")
+  })
+
+  it("prefers CENTRAL_MEMBER over SCHOOL_CORE when chapter and school roles coexist", () => {
+    expect(
+      resolveNoticeTab("staff", {
+        isSuperAdmin: false,
+        roleTypes: ["CHAPTER_PRESIDENT", "SCHOOL_PRESIDENT"],
+      }),
+    ).toBe("CENTRAL_MEMBER")
   })
 })
