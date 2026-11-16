@@ -19,6 +19,7 @@ import {
 } from "./notice-api-error"
 import { buildGisuGenerationLookup } from "./notice-gisu-generation"
 import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
+import { canAccessStaffNoticeTab } from "./notice-notice-tab"
 
 import type { QueryClient } from "@tanstack/react-query"
 
@@ -168,6 +169,10 @@ export async function fetchNoticeListPage(input: {
   page: number
   session: NoticeOperatorSession
 }): Promise<NoticeListQueryResult> {
+  if (input.audience === "staff" && !canAccessStaffNoticeTab(input.session)) {
+    return { kind: "forbidden" }
+  }
+
   const request = buildNoticeListRequest({
     audience: input.audience,
     filters: input.filters,
