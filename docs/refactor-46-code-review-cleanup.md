@@ -38,7 +38,7 @@
 
 지부장의 지부 추정은 매칭에 실패했을 때 `chapters[0]`으로 아무 지부나 잠근 것처럼 보이는 경로가 있었습니다. 틀린 지부로 잠긴 UI는 지부를 열어 두는 fail-open보다 위험하다고 보고, `not-applicable` / `locked` / `unresolved` 세 상태로 나눴습니다. `unresolved`이면 작성 화면은 안내 문구와 함께 게시를 비활성화하고, 목록에서는 잘못된 지부 락을 걸지 않습니다. 세션에 chapter `organizationId`가 안정적으로 내려오면 `unresolved`는 근본적으로 줄어들 여지가 있으며, 이는 백엔드 협의 영역으로 남겨 두었습니다.
 
-지부장이 운영진 탭에서 `CENTRAL_MEMBER` 대상처럼 `noticeTab`을 요청하던 경로도 고쳤습니다. `CHAPTER_PRESIDENT`를 중앙 역할 집합에서 제외하고, 지부장 단독 계정은 운영진 탭을 forbidden으로 처리합니다. 명세상 지부장은 중앙 운영진 대상 공지를 열람할 수 없기 때문입니다.
+지부장(`CHAPTER_PRESIDENT`)의 운영진 탭 `noticeTab`은 develop과 같이 `CENTRAL_MEMBER`로 유지합니다. 겸임(학교 회장 등)이어도 중앙 역할 매칭이 학교 회장단(`SCHOOL_CORE`)보다 우선합니다. (한때 중앙 역할에서 제외했다가 제품 동작에 맞춰 되돌렸습니다.)
 
 ### 공지 상세 preload와 조회수
 
