@@ -17,11 +17,10 @@ type GisuListRawItem = {
 
 type GisuListPage = {
   content?: GisuListRawItem[] | null
-  hasNext?: boolean | null
 }
 
-const GISU_PAGE_SIZE = 20
-const MAX_GISU_PAGES = 10
+/** 기수 수가 적어 size를 크게 잡아 1회 조회한다. */
+const GISU_LIST_SIZE = 200
 
 export function toGisuListItems(
   content: readonly GisuListRawItem[] | null | undefined,
@@ -45,23 +44,13 @@ export function toGisuListItems(
 }
 
 export async function fetchGisuList() {
-  const items: GisuListItem[] = []
-  let page = 0
-  let hasNext = true
-
-  while (hasNext && page < MAX_GISU_PAGES) {
-    const { data } = await api.get<unknown>("/v1/gisu", {
-      params: {
-        page,
-        size: GISU_PAGE_SIZE,
-        sort: "generation,desc",
-      },
-    })
-    const result = unwrapApiResult<GisuListPage>(data)
-    items.push(...toGisuListItems(result.content))
-    hasNext = result.hasNext === true
-    page += 1
-  }
-
-  return items
+  const { data } = await api.get<unknown>("/v1/gisu", {
+    params: {
+      page: 0,
+      size: GISU_LIST_SIZE,
+      sort: "generation,desc",
+    },
+  })
+  const result = unwrapApiResult<GisuListPage>(data)
+  return toGisuListItems(result.content)
 }
