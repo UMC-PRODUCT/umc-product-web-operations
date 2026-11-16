@@ -28,6 +28,7 @@ import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
   NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE,
+  NOTICE_PUBLISH_TOAST_MESSAGE,
 } from "../model/notice-outcomes"
 import {
   applyNoticeSchoolExecutiveChallengerCreateLock,
@@ -54,6 +55,7 @@ import {
   showNoticeErrorToast,
   showNoticeImageUploadFailureToast,
 } from "./show-notice-error-toast"
+import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
 
 import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
 import type { NoticeCreateVoteDraft } from "../model/notice-create-vote-draft"
@@ -436,9 +438,10 @@ export function NoticeCreatePage({
         publishDialogFocusStore.current = null
         setPublishDialogOpen(false)
         allowLeaveRef.current = true
+        showNoticePrimarySuccessToast(toast, NOTICE_PUBLISH_TOAST_MESSAGE)
         await navigate({
           to: "/notices",
-          search: { publishOutcome: "success" },
+          search: {},
         })
         return
       }

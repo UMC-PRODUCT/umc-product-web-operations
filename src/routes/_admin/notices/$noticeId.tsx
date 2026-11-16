@@ -10,6 +10,7 @@ import { loadNoticeDetail } from "@/features/notices/model/load-notice-detail"
 import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
 import { canManageNoticeDetail } from "@/features/notices/model/notice-viewer"
 import { NoticeDetailStatusView } from "@/features/notices/ui/notice-detail-status-view"
+import { onlyInDev } from "@/shared/lib/dev-only"
 import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { toNoticeOperatorSession } from "./-notice-session"
@@ -56,18 +57,23 @@ function parseImageLoadState(
 export const Route = createFileRoute("/_admin/notices/$noticeId")({
   validateSearch: (search: Record<string, unknown>): NoticeDetailSearch => ({
     listAudience: parseNoticeListAudienceOptional(search.listAudience),
-    deleteOutcome:
+    deleteOutcome: onlyInDev(
       search.deleteOutcome === "network_error" ||
-      search.deleteOutcome === "success"
+        search.deleteOutcome === "success"
         ? search.deleteOutcome
         : undefined,
-    imageLoadState: parseImageLoadState(search),
-    imageLoadPause:
-      search.imageLoadPause === "1" || search.imageLoadPause === true,
-    viewerAuthor:
+    ),
+    imageLoadState: onlyInDev(parseImageLoadState(search)),
+    imageLoadPause: onlyInDev(
+      search.imageLoadPause === "1" || search.imageLoadPause === true
+        ? true
+        : undefined,
+    ),
+    viewerAuthor: onlyInDev(
       typeof search.viewerAuthor === "string" && search.viewerAuthor.length > 0
         ? search.viewerAuthor
         : undefined,
+    ),
   }),
   loader: async ({ params }) => loadNoticeDetail(params.noticeId),
   component: NoticeDetailRoute,

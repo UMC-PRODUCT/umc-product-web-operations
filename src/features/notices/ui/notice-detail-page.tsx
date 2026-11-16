@@ -9,7 +9,10 @@ import { deleteNoticeById } from "../model/delete-notice"
 import { isNoticeNetworkError } from "../model/notice-api-error"
 import { syncNoticeViewCountInListCaches } from "../model/notice-list-query"
 import { parseNoticeListAudience } from "../model/notice-list-route-search"
-import { NOTICE_DELETE_FAILURE_TOAST_MESSAGE } from "../model/notice-outcomes"
+import {
+  NOTICE_DELETE_FAILURE_TOAST_MESSAGE,
+  NOTICE_DELETE_TOAST_MESSAGE,
+} from "../model/notice-outcomes"
 import { NoticeDetailBody } from "./notice-detail-body"
 import { NoticeDetailImageGallery } from "./notice-detail-image-gallery"
 import { NoticeDetailImageLoadInlineToast } from "./notice-detail-image-load-inline-toast"
@@ -23,6 +26,7 @@ import {
   restoreNoticeDialogFocus,
 } from "./notice-dialog-focus"
 import { showNoticeErrorToast } from "./show-notice-error-toast"
+import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
 import { useNoticeDetailImageLoadFlow } from "./use-notice-detail-image-load-flow"
 import { useNoticeDetailImageRegisterSuccessToast } from "./use-notice-detail-image-register-success-toast"
 
@@ -33,13 +37,9 @@ import type {
 } from "../model/notice-detail.types"
 import type { NoticeAudience } from "../model/types"
 
-function buildNoticeListReturnSearch(input: {
-  audience: NoticeAudience
-  deleteOutcome?: "success"
-}) {
+function buildNoticeListReturnSearch(input: { audience: NoticeAudience }) {
   return {
     audience: input.audience,
-    ...(input.deleteOutcome ? { deleteOutcome: input.deleteOutcome } : {}),
   }
 }
 
@@ -247,10 +247,10 @@ export function NoticeDetailPage({
             await deleteNoticeById(Number(notice.id))
             deleteDialogFocusStore.current = null
             setIsDeleteDialogOpen(false)
+            showNoticePrimarySuccessToast(toast, NOTICE_DELETE_TOAST_MESSAGE)
             void navigate({
               search: buildNoticeListReturnSearch({
                 audience: returnAudience,
-                deleteOutcome: "success",
               }),
               to: "/notices",
             })

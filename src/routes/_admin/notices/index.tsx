@@ -6,6 +6,7 @@ import {
   parseNoticeListFiltersFromSearch,
   parseNoticeListPage,
 } from "@/features/notices/model/notice-list-route-search"
+import { onlyInDev } from "@/shared/lib/dev-only"
 import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { toNoticeOperatorSession } from "./-notice-session"
@@ -59,19 +60,23 @@ export const Route = createFileRoute("/_admin/notices/")({
       part: filters.part ?? undefined,
       staffRecipient: filters.staffRecipient ?? undefined,
       page: page > 1 ? page : undefined,
-      deleteOutcome:
+      deleteOutcome: onlyInDev(
         search.deleteOutcome === "success" ? search.deleteOutcome : undefined,
-      imageRegisterOutcome:
+      ),
+      imageRegisterOutcome: onlyInDev(
         search.imageRegisterOutcome === "success"
           ? search.imageRegisterOutcome
           : undefined,
-      listOutcome:
+      ),
+      listOutcome: onlyInDev(
         search.listOutcome === "network_error" ||
-        search.listOutcome === "forbidden"
+          search.listOutcome === "forbidden"
           ? search.listOutcome
           : undefined,
-      publishOutcome:
+      ),
+      publishOutcome: onlyInDev(
         search.publishOutcome === "success" ? search.publishOutcome : undefined,
+      ),
     }
   },
   component: NoticesPage,

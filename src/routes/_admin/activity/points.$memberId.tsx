@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { MemberDetailPage } from "@/features/points"
+import { onlyInDev } from "@/shared/lib/dev-only"
 
 import type { AwardPointOutcome } from "@/features/points/model/mock-award-point"
 import type { DeletePointHistoryOutcome } from "@/features/points/model/mock-delete-point-history"
@@ -8,9 +9,9 @@ import type { DeletePointHistoryOutcome } from "@/features/points/model/mock-del
 type MemberDetailSearch = {
   state?: "error" | "forbidden"
   challengerId?: number
-  /** 쿼리로 삭제 결과를 흉내 낼 때만 사용한다. */
+  /** 쿼리로 삭제 결과를 흉내 낼 때만 사용한다. (개발 모드 전용) */
   deleteOutcome?: DeletePointHistoryOutcome
-  /** 쿼리로 부여 결과를 흉내 낼 때만 사용한다. */
+  /** 쿼리로 부여 결과를 흉내 낼 때만 사용한다. (개발 모드 전용) */
   awardOutcome?: AwardPointOutcome
 }
 
@@ -30,23 +31,26 @@ function readChallengerId(value: unknown): number | undefined {
 
 export const Route = createFileRoute("/_admin/activity/points/$memberId")({
   validateSearch: (search: Record<string, unknown>): MemberDetailSearch => ({
-    state:
+    state: onlyInDev(
       search.state === "error" || search.state === "forbidden"
         ? search.state
         : undefined,
+    ),
     challengerId: readChallengerId(search.challengerId),
-    deleteOutcome:
+    deleteOutcome: onlyInDev(
       search.deleteOutcome === "network_error" ||
-      search.deleteOutcome === "already_deleted" ||
-      search.deleteOutcome === "success"
+        search.deleteOutcome === "already_deleted" ||
+        search.deleteOutcome === "success"
         ? search.deleteOutcome
         : undefined,
-    awardOutcome:
+    ),
+    awardOutcome: onlyInDev(
       search.awardOutcome === "network_error" ||
-      search.awardOutcome === "forbidden" ||
-      search.awardOutcome === "success"
+        search.awardOutcome === "forbidden" ||
+        search.awardOutcome === "success"
         ? search.awardOutcome
         : undefined,
+    ),
   }),
   component: MemberDetailRoute,
 })
