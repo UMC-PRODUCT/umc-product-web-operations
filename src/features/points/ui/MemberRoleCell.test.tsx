@@ -6,10 +6,10 @@ import { MemberRoleCell } from "./MemberRoleCell"
 import type { PointsMemberRole } from "../model/types"
 
 const roles: PointsMemberRole[] = [
-  { color: "brand", label: "회장" },
-  { color: "brand", label: "부회장" },
-  { color: "brand", label: "파트장" },
-  { color: "brand", label: "총무" },
+  { color: "campus", label: "회장" },
+  { color: "campus", label: "부회장" },
+  { color: "campus", label: "파트장" },
+  { color: "campus", label: "총무" },
 ]
 
 describe("MemberRoleCell", () => {
