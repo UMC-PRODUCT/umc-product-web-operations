@@ -145,7 +145,7 @@ FSD 레이어 경계를 **래칫(ratchet)** 방식으로 검사하는 스크립�
 - **lateral**(같은 레이어 슬라이스 간 수평 결합)은 baseline 수치를 넘으면 실패합니다.  
   새 프로젝트 baseline은 `0`입니다.
 
-`pnpm lint`만으로는 warn이라 놓칠 수 있는 구조 위반을, 커밋/PR 전에 확실히 막을 때 사용합니다.
+`boundaries/dependencies`는 ESLint에서 `error`이므로 `pnpm lint`도 위반 시 실패합니다. 이 스크립트는 upward/lateral을 나눠 집계하는 보조 검사입니다.
 
 #### `pnpm format`
 
@@ -174,6 +174,15 @@ Vitest를 **한 번만** 실행하고 종료합니다.
 
 미사용 **파일·의존성·바이너리**를 검사합니다 (`knip.json`).  
 의도적으로 export만 남겨 둔 심볼까지 전부 실패시키지는 않습니다. CI의 Knip 단계와 동일한 범위를 봅니다.
+
+#### `pnpm gen:api`
+
+OpenAPI 스펙에서 `src/types/api.d.ts`를 생성합니다 (`scripts/gen-api.mjs`, [openapi-typescript](https://openapi-ts.dev/)).
+
+- 스펙 위치: `pnpm gen:api <파일|URL>` > `OPENAPI_SPEC` 환경변수 > `.tmp/openapi.json`(git 제외).
+- 개발 서버 `/v3/api-docs`는 인증이 필요해 JSON을 내려받아 `.tmp/openapi.json`에 둔 뒤 실행합니다.
+- 생성 파일은 ESLint·Prettier·knip 대상에서 제외하며 직접 수정하지 않습니다.
+- 현재는 생성만 합니다. 기존 손으로 쓴 API 타입(`features/*/api`)은 점진적으로 `components["schemas"]`로 교체합니다.
 
 #### `pnpm exec commitlint` (메시지 사전 검증)
 

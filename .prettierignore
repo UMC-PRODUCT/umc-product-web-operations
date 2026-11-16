@@ -4,3 +4,4 @@ pnpm-lock.yaml
 src/routeTree.gen.ts
 coverage
 .tanstack
+src/types/api.d.ts
