@@ -23,7 +23,7 @@ import { Route as AdminNoticesNoticeIdRouteImport } from './routes/_admin/notice
 import { Route as AdminNoticesNewRouteImport } from './routes/_admin/notices/new'
 import { Route as AdminRecruitingIndexRouteImport } from './routes/_admin/recruiting/index'
 import { Route as AdminActivityPointsIndexRouteImport } from './routes/_admin/activity/points.index'
-import { Route as AdminActivityPointsMemberIdRouteImport } from './routes/_admin/activity/points.$memberId'
+import { Route as AdminActivityPointsChallengerIdRouteImport } from './routes/_admin/activity/points.$challengerId'
 import { Route as AdminNoticesNoticeIdEditRouteImport } from './routes/_admin/notices/$noticeId.edit'
 
 const AdminRouteRoute = AdminRouteRouteImport.update({
@@ -96,10 +96,10 @@ const AdminActivityPointsIndexRoute =
     path: '/',
     getParentRoute: () => AdminActivityPointsRoute,
   } as any)
-const AdminActivityPointsMemberIdRoute =
-  AdminActivityPointsMemberIdRouteImport.update({
-    id: '/$memberId',
-    path: '/$memberId',
+const AdminActivityPointsChallengerIdRoute =
+  AdminActivityPointsChallengerIdRouteImport.update({
+    id: '/$challengerId',
+    path: '/$challengerId',
     getParentRoute: () => AdminActivityPointsRoute,
   } as any)
 const AdminNoticesNoticeIdEditRoute =
@@ -122,7 +122,7 @@ export interface FileRoutesByFullPath {
   '/activity/': typeof AdminActivityIndexRoute
   '/notices/': typeof AdminNoticesIndexRoute
   '/recruiting/': typeof AdminRecruitingIndexRoute
-  '/activity/points/$memberId': typeof AdminActivityPointsMemberIdRoute
+  '/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
   '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/activity/points/': typeof AdminActivityPointsIndexRoute
 }
@@ -135,7 +135,7 @@ export interface FileRoutesByTo {
   '/activity': typeof AdminActivityIndexRoute
   '/notices': typeof AdminNoticesIndexRoute
   '/recruiting': typeof AdminRecruitingIndexRoute
-  '/activity/points/$memberId': typeof AdminActivityPointsMemberIdRoute
+  '/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
   '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/activity/points': typeof AdminActivityPointsIndexRoute
 }
@@ -154,7 +154,7 @@ export interface FileRoutesById {
   '/_admin/activity/': typeof AdminActivityIndexRoute
   '/_admin/notices/': typeof AdminNoticesIndexRoute
   '/_admin/recruiting/': typeof AdminRecruitingIndexRoute
-  '/_admin/activity/points/$memberId': typeof AdminActivityPointsMemberIdRoute
+  '/_admin/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
   '/_admin/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/_admin/activity/points/': typeof AdminActivityPointsIndexRoute
 }
@@ -173,7 +173,7 @@ export interface FileRouteTypes {
     | '/activity/'
     | '/notices/'
     | '/recruiting/'
-    | '/activity/points/$memberId'
+    | '/activity/points/$challengerId'
     | '/notices/$noticeId/edit'
     | '/activity/points/'
   fileRoutesByTo: FileRoutesByTo
@@ -186,7 +186,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/notices'
     | '/recruiting'
-    | '/activity/points/$memberId'
+    | '/activity/points/$challengerId'
     | '/notices/$noticeId/edit'
     | '/activity/points'
   id:
@@ -204,7 +204,7 @@ export interface FileRouteTypes {
     | '/_admin/activity/'
     | '/_admin/notices/'
     | '/_admin/recruiting/'
-    | '/_admin/activity/points/$memberId'
+    | '/_admin/activity/points/$challengerId'
     | '/_admin/notices/$noticeId/edit'
     | '/_admin/activity/points/'
   fileRoutesById: FileRoutesById
@@ -315,11 +315,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivityPointsIndexRouteImport
       parentRoute: typeof AdminActivityPointsRoute
     }
-    '/_admin/activity/points/$memberId': {
-      id: '/_admin/activity/points/$memberId'
-      path: '/$memberId'
-      fullPath: '/activity/points/$memberId'
-      preLoaderRoute: typeof AdminActivityPointsMemberIdRouteImport
+    '/_admin/activity/points/$challengerId': {
+      id: '/_admin/activity/points/$challengerId'
+      path: '/$challengerId'
+      fullPath: '/activity/points/$challengerId'
+      preLoaderRoute: typeof AdminActivityPointsChallengerIdRouteImport
       parentRoute: typeof AdminActivityPointsRoute
     }
     '/_admin/notices/$noticeId/edit': {
@@ -333,12 +333,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminActivityPointsRouteChildren {
-  AdminActivityPointsMemberIdRoute: typeof AdminActivityPointsMemberIdRoute
+  AdminActivityPointsChallengerIdRoute: typeof AdminActivityPointsChallengerIdRoute
   AdminActivityPointsIndexRoute: typeof AdminActivityPointsIndexRoute
 }
 
 const AdminActivityPointsRouteChildren: AdminActivityPointsRouteChildren = {
-  AdminActivityPointsMemberIdRoute: AdminActivityPointsMemberIdRoute,
+  AdminActivityPointsChallengerIdRoute: AdminActivityPointsChallengerIdRoute,
   AdminActivityPointsIndexRoute: AdminActivityPointsIndexRoute,
 }
 

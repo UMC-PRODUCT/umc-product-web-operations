@@ -7,6 +7,7 @@ import { canCreateNotice } from "@/features/notices/model/notice-session"
 import { toNoticeOperatorSession } from "./-notice-session"
 
 export const Route = createFileRoute("/_admin/notices/new")({
+  staticData: { shellLayout: "compose" },
   component: NoticeCreateRoute,
 })
 

@@ -1,4 +1,9 @@
-import { getRouteApi, Outlet, useRouterState } from "@tanstack/react-router"
+import {
+  getRouteApi,
+  Outlet,
+  useMatches,
+  useRouterState,
+} from "@tanstack/react-router"
 import { PageHeader } from "@umc-product/react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -10,17 +15,9 @@ import { AdminHeader } from "./AdminHeader"
 import { AdminSideNav } from "./AdminSideNav"
 import { getPageBreadcrumbs, resolveAdminSection } from "./nav"
 import { resolveDefaultRoleView, toRoleViewOptions } from "./role-view"
+import { resolveAdminShellStaticData } from "./route-static-data"
 
 const adminRouteApi = getRouteApi("/_admin")
-
-function getNoticeDetailIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/notices\/([^/]+)$/)
-  const noticeId = match?.[1]
-  if (!noticeId || noticeId === "new") {
-    return null
-  }
-  return noticeId
-}
 
 export function AdminShell() {
   const { session } = adminRouteApi.useRouteContext()
@@ -41,6 +38,7 @@ export function AdminShell() {
 
 function AdminShellFrame() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const matches = useMatches()
   const { session } = adminRouteApi.useRouteContext()
   const selectedGisu = useSelectedGisu()
   const viewOptions = useMemo(() => toRoleViewOptions(session), [session])
@@ -62,22 +60,11 @@ function AdminShellFrame() {
 
   const section = resolveAdminSection(pathname)
   const { breadcrumbs, title } = getPageBreadcrumbs(pathname, section)
-  const isPointsSurface =
-    pathname === "/activity" ||
-    pathname === "/activity/points" ||
-    pathname.startsWith("/activity/points/")
-  const noticeDetailId = getNoticeDetailIdFromPath(pathname)
-  const isNoticeDetailPage = noticeDetailId !== null
-  const isNoticesListPage = pathname === "/notices"
-  const isNoticeCreatePage = pathname === "/notices/new"
-  const isNoticeEditPage = /^\/notices\/[^/]+\/edit$/.test(pathname)
-  const isNoticeComposePage = isNoticeCreatePage || isNoticeEditPage
-  const usesFeaturePageHeader =
-    isPointsSurface ||
-    isNoticesListPage ||
-    isNoticeComposePage ||
-    isNoticeDetailPage
-
+  const { hideTitleBlock, shellLayout } = resolveAdminShellStaticData(
+    matches.map((match) => match.staticData),
+  )
+  const isContentsAreaLayout = shellLayout === "contents-area"
+  const isComposeLayout = shellLayout === "compose"
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <AdminHeader
@@ -92,10 +79,10 @@ function AdminShellFrame() {
           viewOptions={viewOptions}
           viewValue={selectedView}
         />
-        {isNoticeDetailPage ? (
+        {isContentsAreaLayout ? (
           <AdminContentsArea
             breadcrumbs={breadcrumbs}
-            hideTitleBlock
+            hideTitleBlock={hideTitleBlock}
             title={<span className="sr-only">{title}</span>}
           >
             <Outlet />
@@ -104,21 +91,20 @@ function AdminShellFrame() {
           <div
             className={cn(
               "flex min-w-0 flex-1 flex-col overflow-auto px-8 pt-12 pb-20",
-              isNoticeComposePage && "bg-background-neutral-weak",
+              isComposeLayout && "bg-background-neutral-weak",
             )}
           >
             <PageHeader
               breadcrumbs={breadcrumbs}
               className={cn(
-                usesFeaturePageHeader &&
-                  "[&_.umc-page-header__title-block]:hidden",
+                hideTitleBlock && "[&_.umc-page-header__title-block]:hidden",
               )}
               title={<span className="sr-only">{title}</span>}
             />
             <main
               className={cn(
-                usesFeaturePageHeader ? "flex-1" : "mt-6 flex-1",
-                isNoticeComposePage && "flex min-h-0 flex-col",
+                hideTitleBlock ? "flex-1" : "mt-6 flex-1",
+                isComposeLayout && "flex min-h-0 flex-col",
               )}
             >
               <Outlet />

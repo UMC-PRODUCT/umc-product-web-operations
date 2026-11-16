@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_admin/notices/$noticeId/edit")({
     listAudience: parseNoticeListAudienceOptional(search.listAudience),
   }),
   // 상세와 같은 캐시를 쓰며, preload로 불필요 GET(조회수 증가)이 나지 않게 한다.
+  staticData: { shellLayout: "compose" },
   preload: false,
   loader: async ({ context, params }) =>
     loadNoticeEdit(params.noticeId, context.queryClient),
