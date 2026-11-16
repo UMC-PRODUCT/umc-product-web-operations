@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { CheckCircleIcon } from "@umc-product/icons"
 import { useToast } from "@umc-product/react"
@@ -120,17 +120,21 @@ export function MemberDetailPage({
     setAwardOpen(true)
   }
 
-  const handleAwardSubmit = async (payload: PendingAward) => {
-    if (challengerId == null) {
-      return "network_error" as const
-    }
-
-    try {
+  const awardMutation = useMutation({
+    mutationFn: async (payload: PendingAward) => {
+      if (challengerId == null) {
+        throw new Error("MISSING_CHALLENGER")
+      }
       const updated = await grantChallengerPoint(
         challengerId,
         toGrantPointBody(payload),
       )
-      queryClient.setQueryData(challengerKeys.detail(challengerId), updated)
+      return { updated, payload }
+    },
+    onSuccess: async ({ updated, payload }) => {
+      if (challengerId != null) {
+        queryClient.setQueryData(challengerKeys.detail(challengerId), updated)
+      }
       try {
         await refreshHistory()
       } catch {
@@ -142,8 +146,21 @@ export function MemberDetailPage({
         color: "brand",
         icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
       })
+    },
+  })
+
+  const deletePointMutation = useMutation({
+    mutationFn: (historyId: string) => deleteChallengerPoint(Number(historyId)),
+  })
+
+  const handleAwardSubmit = async (payload: PendingAward) => {
+    try {
+      await awardMutation.mutateAsync(payload)
       return "success" as const
     } catch (error) {
+      if (error instanceof Error && error.message === "MISSING_CHALLENGER") {
+        return "network_error" as const
+      }
       if (isForbiddenError(error)) {
         return "forbidden" as const
       }
@@ -221,6 +238,7 @@ export function MemberDetailPage({
 
       <AwardPointsModal
         initialTab={awardTab}
+        isSubmitting={awardMutation.isPending}
         member={member}
         onOpenChange={setAwardOpen}
         onSubmit={handleAwardSubmit}
@@ -235,7 +253,7 @@ export function MemberDetailPage({
         }}
         onConfirm={async (historyId) => {
           try {
-            await deleteChallengerPoint(Number(historyId))
+            await deletePointMutation.mutateAsync(historyId)
             return "success"
           } catch (error) {
             const status = getHttpStatus(error)

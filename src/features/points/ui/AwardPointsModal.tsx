@@ -58,6 +58,7 @@ type AwardPointsModalProps = {
   open: boolean
   member: PointsMember
   initialTab?: PointAwardTab
+  isSubmitting?: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: AwardPayload) => Promise<AwardPointOutcome>
 }
@@ -83,6 +84,7 @@ export function AwardPointsModal({
   open,
   member,
   initialTab = "reward",
+  isSubmitting = false,
   onOpenChange,
   onSubmit,
 }: AwardPointsModalProps) {
@@ -93,13 +95,14 @@ export function AwardPointsModal({
   const [reason, setReason] = useState("")
   const [reasonInvalid, setReasonInvalid] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const [localSubmitting, setLocalSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<AwardError | null>(null)
+  const submitting = isSubmitting || localSubmitting
 
   useEffect(() => {
     if (!open) {
       setDiscardOpen(false)
-      setSubmitting(false)
+      setLocalSubmitting(false)
       setSubmitError(null)
       return
     }
@@ -110,7 +113,7 @@ export function AwardPointsModal({
     setReason("")
     setReasonInvalid(false)
     setDiscardOpen(false)
-    setSubmitting(false)
+    setLocalSubmitting(false)
     setSubmitError(null)
   }, [open, initialTab])
 
@@ -249,25 +252,28 @@ export function AwardPointsModal({
       setReasonInvalid(true)
       return
     }
-    setSubmitting(true)
+    setLocalSubmitting(true)
     setSubmitError(null)
-    const outcome = await onSubmit({
-      tab,
-      pointType: tab === "other" ? "CUSTOM" : selectedType?.pointType,
-      typeLabel:
-        tab === "other"
-          ? otherKind === "reward"
-            ? "기타 상점"
-            : "기타 벌점"
-          : (selectedType?.label ?? "기타"),
-      score,
-      reason: trimmedReason.slice(0, REASON_MAX_LENGTH),
-    })
-    if (outcome === "success") {
-      return
+    try {
+      const outcome = await onSubmit({
+        tab,
+        pointType: tab === "other" ? "CUSTOM" : selectedType?.pointType,
+        typeLabel:
+          tab === "other"
+            ? otherKind === "reward"
+              ? "기타 상점"
+              : "기타 벌점"
+            : (selectedType?.label ?? "기타"),
+        score,
+        reason: trimmedReason.slice(0, REASON_MAX_LENGTH),
+      })
+      if (outcome === "success") {
+        return
+      }
+      setSubmitError(outcome)
+    } finally {
+      setLocalSubmitting(false)
     }
-    setSubmitError(outcome)
-    setSubmitting(false)
   }
 
   const confirmDiscard = () => {
