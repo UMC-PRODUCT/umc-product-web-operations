@@ -12,24 +12,24 @@ import type { PointAwardTab } from "./point-types"
 import type { PointsMember } from "./types"
 
 const POINT_TYPE_LABEL: Record<PointType, string> = {
-  BEST_WORKBOOK: "베스트 워크북 선정",
+  BEST_WORKBOOK: "베스트 워크북",
   BEST_WORKBOOK_V2: "베스트 워크북 선정",
-  BLOG_CHALLENGE: "블로그 챌린지",
+  BLOG_CHALLENGE: "블로그 챌린지 참여",
   UMC_EVENT_REVIEW: "행사 리뷰어",
-  PEER_REVIEW_SUBMISSION: "피어리뷰 제출",
+  PEER_REVIEW_SUBMISSION: "Peer Review 작성",
   NO_WORKBOOK_MISSION: "과제 미수행",
-  STUDY_LATE: "스터디 지각",
-  STUDY_ABSENT: "스터디 불참",
-  EVENT_LATE: "행사 지각",
+  STUDY_LATE: "스터디 무단 지각",
+  STUDY_ABSENT: "스터디 무단 불참",
+  EVENT_LATE: "행사 무단 지각",
   EVENT_EARLY_LEAVE: "행사 중도 퇴실",
   EVENT_LATE_CANCEL: "행사 기간 외 취소",
-  EVENT_NO_SHOW: "노쇼",
+  EVENT_NO_SHOW: "노쇼(무단 결석)",
   WARNING: "경고",
-  OUT: "아웃",
+  OUT: "퇴출",
   CUSTOM: "기타",
-  PART_LEAD_FEEDBACK_LATE: "파트장 피드백 지각",
-  SCHOOL_CORE_MEETING_ABSENT: "회의 불참",
-  SCHOOL_CORE_TASK_NOT_COMPLETED: "업무 불이행",
+  PART_LEAD_FEEDBACK_LATE: "기간 외 피드백",
+  SCHOOL_CORE_MEETING_ABSENT: "회의 무단 불참",
+  SCHOOL_CORE_TASK_NOT_COMPLETED: "업무 무단 불이행",
 }
 
 export function pointTypeLabel(pointType: string | null | undefined): string {
@@ -58,9 +58,8 @@ export function formatOccurredAt(value: string | null | undefined): string {
   return `${yyyy}.${mm}.${dd} ${hh}:${mi}`
 }
 
+/** 부호가 양수로 내려와도 벌점으로 뒤집을 유형. OUT(+1)·WARNING(0)은 제외. */
 const PENALTY_POINT_TYPES = new Set<PointType>([
-  "WARNING",
-  "OUT",
   "NO_WORKBOOK_MISSION",
   "STUDY_LATE",
   "STUDY_ABSENT",

@@ -13,11 +13,14 @@ export type PointTypeOption = {
 
 export type PenaltyScope = "all" | "campus" | "presidency"
 
-/** TODO: API 연동 시 서버 목록으로 교체 */
+/**
+ * 신규 선택 가능한 상점 유형.
+ * 과거 전용(BEST_WORKBOOK 등)은 넣지 않는다. CUSTOM은 「기타」 탭에서만.
+ */
 export const MOCK_REWARD_TYPES: PointTypeOption[] = [
   {
     id: "r-blog",
-    label: "블로그 챌린지",
+    label: "블로그 챌린지 참여",
     score: 3,
     pointType: "BLOG_CHALLENGE",
   },
@@ -34,16 +37,10 @@ export const MOCK_REWARD_TYPES: PointTypeOption[] = [
     pointType: "UMC_EVENT_REVIEW",
   },
   {
-    id: "r-central-event",
-    label: "중앙 행사 참여",
-    score: 2,
-    pointType: "CUSTOM",
-  },
-  {
-    id: "r-knowledge",
-    label: "지식인 채널 활동",
+    id: "r-peer-review",
+    label: "Peer Review 작성",
     score: 1,
-    pointType: "CUSTOM",
+    pointType: "PEER_REVIEW_SUBMISSION",
   },
 ]
 
@@ -57,19 +54,19 @@ export const MOCK_PENALTY_TYPES_ALL: PointTypeOption[] = [
   },
   {
     id: "p-all-study-late",
-    label: "스터디 지각",
+    label: "스터디 무단 지각",
     score: -2,
     pointType: "STUDY_LATE",
   },
   {
     id: "p-all-study-absent",
-    label: "스터디 불참",
+    label: "스터디 무단 불참",
     score: -4,
     pointType: "STUDY_ABSENT",
   },
   {
     id: "p-all-event-late",
-    label: "행사 지각",
+    label: "행사 무단 지각",
     score: -2,
     pointType: "EVENT_LATE",
   },
@@ -87,7 +84,7 @@ export const MOCK_PENALTY_TYPES_ALL: PointTypeOption[] = [
   },
   {
     id: "p-all-noshow",
-    label: "노쇼",
+    label: "노쇼(무단 결석)",
     score: -10,
     pointType: "EVENT_NO_SHOW",
   },
@@ -96,16 +93,16 @@ export const MOCK_PENALTY_TYPES_ALL: PointTypeOption[] = [
 /** 벌점 — 교내 운영진 */
 export const MOCK_PENALTY_TYPES_CAMPUS: PointTypeOption[] = [
   {
-    id: "p-campus-duty",
-    label: "업무 불이행",
+    id: "p-campus-feedback",
+    label: "기간 외 피드백",
     score: -4,
-    pointType: "SCHOOL_CORE_TASK_NOT_COMPLETED",
+    pointType: "PART_LEAD_FEEDBACK_LATE",
   },
   {
-    id: "p-campus-policy",
-    label: "운영 기준 위반",
-    score: -6,
-    pointType: "CUSTOM",
+    id: "p-campus-duty",
+    label: "업무 무단 불이행",
+    score: -4,
+    pointType: "SCHOOL_CORE_TASK_NOT_COMPLETED",
   },
 ]
 
@@ -113,27 +110,15 @@ export const MOCK_PENALTY_TYPES_CAMPUS: PointTypeOption[] = [
 export const MOCK_PENALTY_TYPES_PRESIDENCY: PointTypeOption[] = [
   {
     id: "p-pres-meeting",
-    label: "회의 불참",
+    label: "회의 무단 불참",
     score: -4,
     pointType: "SCHOOL_CORE_MEETING_ABSENT",
   },
   {
     id: "p-pres-duty",
-    label: "업무 불이행",
+    label: "업무 무단 불이행",
     score: -4,
     pointType: "SCHOOL_CORE_TASK_NOT_COMPLETED",
-  },
-  {
-    id: "p-pres-document",
-    label: "문서 미제출",
-    score: -4,
-    pointType: "CUSTOM",
-  },
-  {
-    id: "p-pres-policy",
-    label: "운영 기준 위반",
-    score: -6,
-    pointType: "CUSTOM",
   },
 ]
 
