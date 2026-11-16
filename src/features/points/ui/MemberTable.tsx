@@ -8,6 +8,10 @@ import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
 import { StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
+import {
+  memberStatusLabel,
+  memberStatusTagColor,
+} from "../model/map-search-member"
 import { MemberNetworkError } from "./MemberNetworkError"
 import { MemberPartTag } from "./MemberPartTag"
 import { MemberPermissionDenied } from "./MemberPermissionDenied"
@@ -132,7 +136,11 @@ export function MemberTable({
       }),
       columnHelper.accessor("status", {
         header: "상태",
-        cell: () => <StatusTag color="brand">활동</StatusTag>,
+        cell: ({ row }) => (
+          <StatusTag color={memberStatusTagColor(row.original.status)}>
+            {memberStatusLabel(row.original.status)}
+          </StatusTag>
+        ),
         meta: {
           headerClass:
             "w-[112px] min-w-[112px] max-w-[112px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",

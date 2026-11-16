@@ -7,6 +7,7 @@ import type {
 import type {
   MemberPartFilter,
   MemberSchool,
+  MemberStatus,
   PointsMember,
   PointsMemberRole,
 } from "./types"
@@ -198,6 +199,42 @@ export function usesLegacyPartLabel(
   return generationNumber != null && generationNumber < PE_PART_GENERATION
 }
 
+export function mapChallengerStatus(
+  status: SearchMemberItem["challengerStatus"],
+): MemberStatus {
+  switch (status) {
+    case "GRADUATED":
+      return "graduated"
+    case "EXPELLED":
+      return "expelled"
+    case "WITHDRAWN":
+      return "withdrawn"
+    case "ACTIVE":
+    default:
+      return "active"
+  }
+}
+
+export function memberStatusLabel(status: MemberStatus): string {
+  switch (status) {
+    case "graduated":
+      return "수료"
+    case "expelled":
+      return "제적"
+    case "withdrawn":
+      return "탈퇴"
+    case "active":
+    default:
+      return "활동"
+  }
+}
+
+export function memberStatusTagColor(
+  status: MemberStatus,
+): "brand" | "neutral" {
+  return status === "active" ? "brand" : "neutral"
+}
+
 export function toPointsMember(item: SearchMemberItem): PointsMember {
   const apiPart = item.part ?? null
   const rawGeneration = item.generation
@@ -232,7 +269,7 @@ export function toPointsMember(item: SearchMemberItem): PointsMember {
     role: primaryRole.color,
     roleLabel: primaryRole.label,
     roles,
-    status: "active",
+    status: mapChallengerStatus(item.challengerStatus),
     challengerId: item.challengerId ?? null,
   }
 }

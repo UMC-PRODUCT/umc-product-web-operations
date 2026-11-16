@@ -8,7 +8,7 @@ export type MemberSchool = "cau" | "snu" | "yonsei"
 
 export type MemberPartFilter = PartTagPart
 
-export type MemberStatus = "active"
+export type MemberStatus = "active" | "graduated" | "expelled" | "withdrawn"
 
 export type PointsMemberRole = {
   color: RoleTagColor
