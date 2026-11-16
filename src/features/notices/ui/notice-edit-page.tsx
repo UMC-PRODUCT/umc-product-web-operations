@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router"
+import { useBlocker, useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -60,7 +60,6 @@ export function NoticeEditPage({
   noticeId,
 }: NoticeEditPageProps) {
   const navigate = useNavigate()
-  const router = useRouter()
   const queryClient = useQueryClient()
   const toast = useToast()
   const baselineFormRef = useRef(initialForm)
@@ -240,10 +239,12 @@ export function NoticeEditPage({
       if (outcome.kind === "success") {
         allowLeaveRef.current = true
         showNoticePrimarySuccessToast(toast, NOTICE_EDIT_SUCCESS_TOAST_MESSAGE)
-        void queryClient.invalidateQueries({ queryKey: noticeKeys.all })
-        await router.invalidate({
-          filter: (match) => match.routeId === "/_admin/notices/$noticeId",
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: noticeKeys.lists() }),
+          queryClient.invalidateQueries({
+            queryKey: noticeKeys.detail(noticeId),
+          }),
+        ])
         await navigate({
           params: { noticeId: String(noticeId) },
           search: listAudience ? { listAudience } : {},

@@ -1,6 +1,13 @@
 import { queryOptions } from "@tanstack/react-query"
 
-import { buildGisuGenerationLookup, fetchGisuList } from "@/entities/gisu"
+import {
+  buildGisuGenerationLookup,
+  gisuListQueryOptions,
+} from "@/entities/gisu"
+import {
+  gisuOrganizationQueryOptions,
+  toOrganizationLists,
+} from "@/entities/organization"
 
 import { listNotices, searchNotices } from "../api/notices-query.api"
 import {
@@ -18,10 +25,11 @@ import {
   isNoticeNetworkError,
 } from "./notice-api-error"
 import { noticeKeys } from "./notice-keys"
-import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
 import { canAccessStaffNoticeTab } from "./notice-notice-tab"
 
 import type { QueryClient } from "@tanstack/react-query"
+
+import type { GisuListItem } from "@/entities/gisu"
 
 import type { GetNoticeSummaryResponse } from "../api/notice-api.types"
 import type { NoticeListRequest } from "./build-notice-list-params"
@@ -165,6 +173,7 @@ export async function fetchNoticeListPage(input: {
   audience: NoticeAudience
   filters: NoticeListQueryFilterFields
   page: number
+  queryClient: QueryClient
   session: NoticeOperatorSession
 }): Promise<NoticeListQueryResult> {
   if (input.audience === "staff" && !canAccessStaffNoticeTab(input.session)) {
@@ -204,7 +213,12 @@ export async function fetchNoticeListPage(input: {
       return { kind: "missing_gisu" }
     }
 
-    const [page, gisuList, organization] = await Promise.all([
+    const sessionGisuId = input.session.gisuId
+    if (sessionGisuId == null) {
+      return { kind: "missing_gisu" }
+    }
+
+    const [page, gisuList, organizationGisu] = await Promise.all([
       useClientSidePagination
         ? fetchAllNoticeListSummaries(listRequest).then((summaries) => ({
             content: summaries,
@@ -212,20 +226,14 @@ export async function fetchNoticeListPage(input: {
             totalPages: 1,
           }))
         : fetchNoticeListSummariesPage(listRequest, input.page),
-      fetchGisuList().catch(
-        () => [] as Awaited<ReturnType<typeof fetchGisuList>>,
-      ),
-      fetchNoticeListOrganizationOptions(input.session.gisuId).catch(
-        () =>
-          ({
-            chapters: [],
-            schools: [],
-            schoolsByChapterId: new Map(),
-          }) satisfies Awaited<
-            ReturnType<typeof fetchNoticeListOrganizationOptions>
-          >,
-      ),
+      input.queryClient
+        .ensureQueryData(gisuListQueryOptions())
+        .catch((): GisuListItem[] => []),
+      input.queryClient
+        .ensureQueryData(gisuOrganizationQueryOptions(sessionGisuId))
+        .catch(() => null),
     ])
+    const organization = toOrganizationLists(organizationGisu)
     const gisuGenerationById = buildGisuGenerationLookup(gisuList)
     const { chapterNameById, schoolNameById } =
       buildNoticeOrganizationNameLookup(organization)
@@ -254,15 +262,13 @@ export async function fetchNoticeListPage(input: {
       totalPages = paginated.totalPages
     }
 
-    const gisuId = input.session.gisuId!
-
     return {
       kind: "success",
       notices: content.map((summary) =>
         mapNoticeSummaryForListPage(
           summary,
           targetDisplayContext,
-          gisuId,
+          sessionGisuId,
           useClientSidePagination,
         ),
       ),
@@ -288,7 +294,8 @@ export function noticeListQueryOptions(input: {
 }) {
   return queryOptions({
     queryKey: noticeListQueryKey(input),
-    queryFn: () => fetchNoticeListPage(input),
+    queryFn: ({ client }) =>
+      fetchNoticeListPage({ ...input, queryClient: client }),
   })
 }
 

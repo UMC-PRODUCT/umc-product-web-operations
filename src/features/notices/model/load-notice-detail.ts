@@ -1,4 +1,11 @@
-import { buildGisuGenerationLookup, fetchGisuList } from "@/entities/gisu"
+import {
+  buildGisuGenerationLookup,
+  gisuListQueryOptions,
+} from "@/entities/gisu"
+import {
+  gisuOrganizationQueryOptions,
+  toOrganizationLists,
+} from "@/entities/organization"
 
 import { buildNoticeOrganizationNameLookup } from "./map-gisu-organization"
 import { mapNoticeDetailResponse } from "./map-notice-from-api"
@@ -7,9 +14,10 @@ import {
   isNoticeNotFoundError,
 } from "./notice-api-error"
 import { noticeDetailQueryOptions } from "./notice-detail-query"
-import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
 
 import type { QueryClient } from "@tanstack/react-query"
+
+import type { GisuListItem } from "@/entities/gisu"
 
 import type { NoticeDetail } from "./notice-detail.types"
 
@@ -33,15 +41,19 @@ export async function loadNoticeDetail(
     )
     const targetGisuRaw = detail.targetInfo?.targetGisuId
     const targetGisuId = targetGisuRaw == null ? null : Number(targetGisuRaw)
+    const resolvedGisuId = Number.isFinite(targetGisuId) ? targetGisuId : null
 
-    const [gisuList, organization] = await Promise.all([
-      fetchGisuList().catch(
-        () => [] as Awaited<ReturnType<typeof fetchGisuList>>,
-      ),
-      fetchNoticeListOrganizationOptions(
-        Number.isFinite(targetGisuId) ? targetGisuId : null,
-      ),
+    const [gisuList, organizationGisu] = await Promise.all([
+      queryClient
+        .ensureQueryData(gisuListQueryOptions())
+        .catch((): GisuListItem[] => []),
+      resolvedGisuId == null
+        ? Promise.resolve(null)
+        : queryClient
+            .ensureQueryData(gisuOrganizationQueryOptions(resolvedGisuId))
+            .catch(() => null),
     ])
+    const organization = toOrganizationLists(organizationGisu)
     const gisuGenerationById = buildGisuGenerationLookup(gisuList)
     const { chapterNameById, schoolNameById } =
       buildNoticeOrganizationNameLookup(organization)
