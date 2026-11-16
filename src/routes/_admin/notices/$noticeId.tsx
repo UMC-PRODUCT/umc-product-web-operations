@@ -5,13 +5,13 @@ import {
   useRouterState,
 } from "@tanstack/react-router"
 
+import { useSelectedGisu } from "@/entities/gisu"
 import { NoticeDetailPage } from "@/features/notices"
 import { loadNoticeDetail } from "@/features/notices/model/load-notice-detail"
 import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
 import { canManageNoticeDetail } from "@/features/notices/model/notice-viewer"
 import { NoticeDetailStatusView } from "@/features/notices/ui/notice-detail-status-view"
 import { onlyInDev } from "@/shared/lib/dev-only"
-import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 

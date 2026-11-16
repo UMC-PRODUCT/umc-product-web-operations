@@ -3,18 +3,20 @@ import { afterEach, describe, expect, it } from "vitest"
 
 import { api } from "@/shared/api/client"
 
-import { fetchActiveGisuOrganization } from "./gisu-organization.api"
+import { fetchGisuOrganizationById } from "./gisu-organization"
 
-describe("fetchActiveGisuOrganization", () => {
+describe("fetchGisuOrganizationById", () => {
   afterEach(() => {
     api.defaults.adapter = undefined
   })
 
   it("requests gisu by id without mixing active criteria", async () => {
     let url: string | undefined
+    let params: unknown
 
     api.defaults.adapter = async (config) => {
       url = config.url
+      params = config.params
       return {
         data: {
           success: true,
@@ -39,13 +41,15 @@ describe("fetchActiveGisuOrganization", () => {
       }
     }
 
-    const gisu = await fetchActiveGisuOrganization(9)
+    const gisu = await fetchGisuOrganizationById(9)
 
-    expect(url).toContain("/v2/gisu?")
-    expect(url).not.toContain("active=")
-    expect(url).toContain("includeChapter=true")
-    expect(url).toContain("includeSchool=true")
-    expect(url).toContain("id=9")
+    expect(url).toContain("/v2/gisu")
+    expect(params).toMatchObject({
+      id: 9,
+      includeChapter: true,
+      includeSchool: true,
+    })
+    expect(params).not.toHaveProperty("active")
     expect(gisu?.chapters).toHaveLength(1)
     expect(gisu?.schools).toHaveLength(1)
   })

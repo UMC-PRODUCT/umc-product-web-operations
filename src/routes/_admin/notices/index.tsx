@@ -1,5 +1,6 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router"
 
+import { useSelectedGisu } from "@/entities/gisu"
 import { NoticeListPage } from "@/features/notices"
 import {
   parseNoticeListAudienceOptional,
@@ -7,7 +8,6 @@ import {
   parseNoticeListPage,
 } from "@/features/notices/model/notice-list-route-search"
 import { onlyInDev } from "@/shared/lib/dev-only"
-import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 

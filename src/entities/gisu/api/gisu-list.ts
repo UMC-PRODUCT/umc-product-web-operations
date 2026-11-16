@@ -1,5 +1,6 @@
 import { api } from "@/shared/api/client"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
+import { toPositiveInt } from "@/shared/lib/to-positive-int"
 
 export type GisuListItem = {
   gisuId: number
@@ -21,13 +22,6 @@ type GisuListPage = {
 
 const GISU_PAGE_SIZE = 20
 const MAX_GISU_PAGES = 10
-
-function toPositiveInt(
-  value: number | string | null | undefined,
-): number | null {
-  const parsed = typeof value === "number" ? value : Number(value)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
-}
 
 export function toGisuListItems(
   content: readonly GisuListRawItem[] | null | undefined,

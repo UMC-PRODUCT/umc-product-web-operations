@@ -10,9 +10,9 @@ import {
 } from "@umc-product/react"
 import { useEffect, useId, useRef, useState } from "react"
 
+import { useSelectedGisu } from "@/entities/gisu"
 import { adminSessionQueryKey } from "@/features/auth"
 import { getSsoClient } from "@/shared/auth/sso-client"
-import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { HEADER_NAV_ITEMS } from "./nav"
 import { resolveProfileRoles } from "./profile-roles"

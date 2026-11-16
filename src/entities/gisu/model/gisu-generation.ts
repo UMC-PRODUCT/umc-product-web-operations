@@ -1,4 +1,4 @@
-import type { GisuListItem } from "@/shared/api/gisu-list"
+import type { GisuListItem } from "../api/gisu-list"
 
 export type GisuGenerationLookup = ReadonlyMap<number, number>
 

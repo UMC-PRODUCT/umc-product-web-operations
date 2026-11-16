@@ -3,9 +3,9 @@ import { useNavigate } from "@tanstack/react-router"
 import { Pagination } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { useSelectedGisu } from "@/shared/model/selected-gisu"
+import { useSelectedGisu } from "@/entities/gisu"
+import { gisuOrganizationQueryOptions } from "@/entities/organization"
 
-import { fetchGisuOrganization } from "../api/gisu-organization"
 import { MEMBER_SEARCH_PAGE_SIZE, searchMembers } from "../api/member-search"
 import { isForbiddenError } from "../model/http-status"
 import {
@@ -73,9 +73,8 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
   const selectedSchoolId = toOrganizationId(lockedSchool?.schoolId ?? schoolId)
 
   const organizationQuery = useQuery({
-    queryKey: ["gisu", "organization", selectedGisu.gisuId],
-    queryFn: () => fetchGisuOrganization(selectedGisu.gisuId ?? undefined),
-    enabled: !selectedGisu.isPending,
+    ...gisuOrganizationQueryOptions(selectedGisu.gisuId),
+    enabled: !selectedGisu.isPending && selectedGisu.gisuId != null,
     retry: false,
   })
 
@@ -96,7 +95,7 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
       return
     }
     const allowed = toSchoolOptions(
-      organizationQuery.data ?? [],
+      organizationQuery.data,
       selectedChapterId,
     ).some((option) => option.value === schoolId)
     if (!allowed) {
@@ -105,14 +104,11 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
   }, [lockedSchoolId, organizationQuery.data, schoolId, selectedChapterId])
 
   const chapterOptions = useMemo(
-    () => toChapterOptions(organizationQuery.data ?? []),
+    () => toChapterOptions(organizationQuery.data),
     [organizationQuery.data],
   )
   const schoolOptions = useMemo(() => {
-    const options = toSchoolOptions(
-      organizationQuery.data ?? [],
-      selectedChapterId,
-    )
+    const options = toSchoolOptions(organizationQuery.data, selectedChapterId)
     if (
       lockedSchool == null ||
       options.some((option) => option.value === lockedSchool.schoolId) ||

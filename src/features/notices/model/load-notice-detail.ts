@@ -1,4 +1,4 @@
-import { fetchGisuList } from "@/shared/api/gisu-list"
+import { buildGisuGenerationLookup, fetchGisuList } from "@/entities/gisu"
 
 import { buildNoticeOrganizationNameLookup } from "./map-gisu-organization"
 import { mapNoticeDetailResponse } from "./map-notice-from-api"
@@ -7,7 +7,6 @@ import {
   isNoticeNotFoundError,
 } from "./notice-api-error"
 import { noticeDetailQueryOptions } from "./notice-detail-query"
-import { buildGisuGenerationLookup } from "./notice-gisu-generation"
 import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
 
 import type { QueryClient } from "@tanstack/react-query"

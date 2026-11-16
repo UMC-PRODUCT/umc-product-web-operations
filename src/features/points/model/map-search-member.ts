@@ -1,9 +1,9 @@
-import type { GisuOrganizationItem } from "../api/gisu-organization"
-import type {
-  ChallengerSearchRoleType,
-  MemberSearchPart,
-  SearchMemberItem,
-} from "../api/member-search"
+import { PE_PART_GENERATION, usesLegacyPartLabel } from "@/entities/member"
+
+import type { RoleType } from "@/entities/member"
+import type { GisuOrganization } from "@/entities/organization"
+
+import type { MemberSearchPart, SearchMemberItem } from "../api/member-search"
 import type {
   MemberPartFilter,
   MemberStatus,
@@ -96,14 +96,30 @@ export type OrganizationFilterOption = {
   label: string
 }
 
+type GisuOrganizationLike = Pick<GisuOrganization, "chapters" | "schools">
+
+function asGisuList(
+  gisus:
+    GisuOrganizationLike | readonly GisuOrganizationLike[] | null | undefined,
+): readonly GisuOrganizationLike[] {
+  if (gisus == null) {
+    return []
+  }
+  if (Array.isArray(gisus)) {
+    return gisus as readonly GisuOrganizationLike[]
+  }
+  return [gisus as GisuOrganizationLike]
+}
+
 export function toChapterOptions(
-  gisus: readonly GisuOrganizationItem[],
+  gisus:
+    GisuOrganizationLike | readonly GisuOrganizationLike[] | null | undefined,
 ): OrganizationFilterOption[] {
   const seen = new Set<number>()
   const options: OrganizationFilterOption[] = []
 
-  for (const gisu of gisus) {
-    for (const chapter of gisu.chapters ?? []) {
+  for (const gisu of asGisuList(gisus)) {
+    for (const chapter of gisu.chapters) {
       if (seen.has(chapter.chapterId) || !chapter.chapterName) {
         continue
       }
@@ -119,7 +135,8 @@ export function toChapterOptions(
 }
 
 export function toSchoolOptions(
-  gisus: readonly GisuOrganizationItem[],
+  gisus:
+    GisuOrganizationLike | readonly GisuOrganizationLike[] | null | undefined,
   chapterId?: number,
 ): OrganizationFilterOption[] {
   const seen = new Set<number>()
@@ -136,24 +153,24 @@ export function toSchoolOptions(
     })
   }
 
-  for (const gisu of gisus) {
+  for (const gisu of asGisuList(gisus)) {
     if (chapterId != null) {
-      for (const chapter of gisu.chapters ?? []) {
+      for (const chapter of gisu.chapters) {
         if (chapter.chapterId !== chapterId) {
           continue
         }
-        for (const school of chapter.schools ?? []) {
+        for (const school of chapter.schools) {
           pushSchool(school.schoolId, school.schoolName)
         }
       }
       continue
     }
 
-    for (const school of gisu.schools ?? []) {
+    for (const school of gisu.schools) {
       pushSchool(school.schoolId, school.schoolName)
     }
-    for (const chapter of gisu.chapters ?? []) {
-      for (const school of chapter.schools ?? []) {
+    for (const chapter of gisu.chapters) {
+      for (const school of chapter.schools) {
         pushSchool(school.schoolId, school.schoolName)
       }
     }
@@ -175,7 +192,7 @@ const CHALLENGER_ROLE: PointsMemberRole = {
   label: "챌린저",
 }
 
-function mapRoleType(roleType: ChallengerSearchRoleType): PointsMemberRole {
+function mapRoleType(roleType: RoleType): PointsMemberRole {
   switch (roleType) {
     case "CHAPTER_PRESIDENT":
       return { color: "chapter", label: "지부장" }
@@ -208,14 +225,7 @@ export function mapMemberRoles(item: SearchMemberItem): PointsMemberRole[] {
   return roleTypes.map(mapRoleType)
 }
 
-/** 11기부터 PE 체계. 그 이전은 API 파트명을 그대로 표시한다. */
-export const PE_PART_GENERATION = 11
-
-export function usesLegacyPartLabel(
-  generationNumber: number | null | undefined,
-): boolean {
-  return generationNumber != null && generationNumber < PE_PART_GENERATION
-}
+export { PE_PART_GENERATION, usesLegacyPartLabel }
 
 export function mapChallengerStatus(
   status: SearchMemberItem["challengerStatus"],

@@ -1,26 +1,31 @@
 import { api } from "@/shared/api/client"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
+import { toPositiveInt } from "@/shared/lib/to-positive-int"
 
-export type GisuSchool = {
+export type OrganizationSchool = {
   schoolId: number
   schoolName: string
 }
 
-export type GisuChapter = {
+export type OrganizationChapter = {
   chapterId: number
   chapterName: string
-  schools?: GisuSchool[] | null
+  schools: OrganizationSchool[]
 }
 
-export type GisuOrganizationItem = {
+export type GisuOrganization = {
   gisuId: number
-  chapters?: GisuChapter[] | null
-  schools?: GisuSchool[] | null
+  generation: number | null
+  isActive: boolean
+  chapters: OrganizationChapter[]
+  schools: OrganizationSchool[]
 }
 
 type RawSchool = {
   schoolId?: number | string | null
   schoolName?: string | null
+  id?: number | string | null
+  name?: string | null
 }
 
 type RawChapter = {
@@ -33,6 +38,8 @@ type RawChapter = {
 
 type RawGisu = {
   gisuId?: number | string | null
+  generation?: number | string | null
+  isActive?: boolean | null
   chapters?: RawChapter[] | null
   schools?: RawSchool[] | null
 }
@@ -41,25 +48,17 @@ type RawGisuOrganizationResult = {
   gisus?: RawGisu[] | null
 }
 
-function toId(value: number | string | null | undefined) {
-  if (value == null || value === "") {
-    return null
-  }
-  const id = Number(value)
-  return Number.isFinite(id) ? id : null
-}
-
-function normalizeSchool(school: RawSchool): GisuSchool | null {
-  const schoolId = toId(school.schoolId)
-  const schoolName = school.schoolName?.trim() ?? ""
+function normalizeSchool(school: RawSchool): OrganizationSchool | null {
+  const schoolId = toPositiveInt(school.schoolId ?? school.id)
+  const schoolName = (school.schoolName ?? school.name)?.trim() ?? ""
   if (schoolId == null || schoolName === "") {
     return null
   }
   return { schoolId, schoolName }
 }
 
-function normalizeChapter(chapter: RawChapter): GisuChapter | null {
-  const chapterId = toId(chapter.chapterId ?? chapter.id)
+function normalizeChapter(chapter: RawChapter): OrganizationChapter | null {
+  const chapterId = toPositiveInt(chapter.chapterId ?? chapter.id)
   const chapterName = (chapter.chapterName ?? chapter.name)?.trim() ?? ""
   if (chapterId == null || chapterName === "") {
     return null
@@ -69,31 +68,32 @@ function normalizeChapter(chapter: RawChapter): GisuChapter | null {
     chapterName,
     schools: (chapter.schools ?? [])
       .map(normalizeSchool)
-      .filter((school): school is GisuSchool => school != null),
+      .filter((item): item is OrganizationSchool => item != null),
   }
 }
 
-function normalizeGisu(gisu: RawGisu): GisuOrganizationItem | null {
-  const gisuId = toId(gisu.gisuId)
+function normalizeGisu(gisu: RawGisu): GisuOrganization | null {
+  const gisuId = toPositiveInt(gisu.gisuId)
   if (gisuId == null) {
     return null
   }
   return {
     gisuId,
+    generation: toPositiveInt(gisu.generation),
+    isActive: gisu.isActive === true,
     chapters: (gisu.chapters ?? [])
       .map(normalizeChapter)
-      .filter((chapter): chapter is GisuChapter => chapter != null),
+      .filter((item): item is OrganizationChapter => item != null),
     schools: (gisu.schools ?? [])
       .map(normalizeSchool)
-      .filter((school): school is GisuSchool => school != null),
+      .filter((item): item is OrganizationSchool => item != null),
   }
 }
 
 /**
- * 기수 조직 조회.
- * - 기수 id가 있으면 해당 기수
+ * 기수 조직 조회 (GISU-201).
+ * - `gisuId`가 있으면 해당 기수
  * - 없으면 활성 기수 (`active=true`)
- * 지부 목록은 `includeChapter=true`로 받는다.
  */
 export async function fetchGisuOrganization(gisuId?: number) {
   const { data } = await api.get<unknown>("/v2/gisu", {
@@ -113,5 +113,11 @@ export async function fetchGisuOrganization(gisuId?: number) {
   const result = unwrapApiResult<RawGisuOrganizationResult>(data)
   return (result.gisus ?? [])
     .map(normalizeGisu)
-    .filter((gisu): gisu is GisuOrganizationItem => gisu != null)
+    .filter((gisu): gisu is GisuOrganization => gisu != null)
+}
+
+/** 특정 기수 1건. 없으면 null. */
+export async function fetchGisuOrganizationById(gisuId: number) {
+  const gisus = await fetchGisuOrganization(gisuId)
+  return gisus.find((gisu) => gisu.gisuId === gisuId) ?? gisus[0] ?? null
 }

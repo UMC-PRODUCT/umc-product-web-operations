@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest"
 
+import { buildGisuGenerationLookup } from "@/entities/gisu"
+
 import {
   mapNoticeDetailResponse,
   mapNoticeSummaryToNotice,
 } from "./map-notice-from-api"
-import { buildGisuGenerationLookup } from "./notice-gisu-generation"
 
 describe("mapNoticeSummaryToNotice", () => {
   it("maps summary fields for the list table", () => {

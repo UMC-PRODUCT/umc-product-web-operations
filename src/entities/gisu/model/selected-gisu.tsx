@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { createContext, useContext, useMemo, useState } from "react"
 
-import { fetchGisuList } from "@/shared/api/gisu-list"
+import { fetchGisuList } from "../api/gisu-list"
+import { gisuKeys } from "./gisu-keys"
 
 import type { ReactNode } from "react"
 
@@ -37,7 +38,7 @@ export function SelectedGisuProvider({
   allowedGisuIds,
 }: SelectedGisuProviderProps) {
   const gisuQuery = useQuery({
-    queryKey: ["gisu", "list"],
+    queryKey: gisuKeys.list(),
     queryFn: fetchGisuList,
     retry: false,
     staleTime: 60_000,

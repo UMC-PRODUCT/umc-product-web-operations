@@ -1,16 +1,10 @@
-export const ROLE_TYPES = [
-  "CENTRAL_PRESIDENT",
-  "CENTRAL_VICE_PRESIDENT",
-  "CENTRAL_OPERATING_TEAM_MEMBER",
-  "CENTRAL_EDUCATION_TEAM_MEMBER",
-  "CHAPTER_PRESIDENT",
-  "SCHOOL_PRESIDENT",
-  "SCHOOL_VICE_PRESIDENT",
-  "SCHOOL_PART_LEADER",
-  "SCHOOL_ETC_ADMIN",
-] as const
+import { isRoleType, ROLE_TYPES } from "@/entities/member"
+import { toPositiveInt } from "@/shared/lib/to-positive-int"
 
-export type RoleType = (typeof ROLE_TYPES)[number]
+import type { RoleType } from "@/entities/member"
+
+export { isRoleType, ROLE_TYPES }
+export type { RoleType }
 
 export type AdminScope =
   "SUPER_ADMIN" | "CENTRAL" | "CHAPTER" | "SCHOOL" | "SCHOOL_PART"
@@ -47,11 +41,6 @@ export type MemberSummaryResponse = {
   challengerHistory?: ChallengerHistoryItem[] | null
 }
 
-function toPositiveInt(value: ApiInt | null | undefined): number | null {
-  const parsed = typeof value === "number" ? value : Number(value)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
-}
-
 export type AdminSession = {
   id: number
   name: string
@@ -80,10 +69,6 @@ const SCHOOL_ROLES = new Set<RoleType>([
   "SCHOOL_VICE_PRESIDENT",
   "SCHOOL_ETC_ADMIN",
 ])
-
-export function isRoleType(value: string): value is RoleType {
-  return (ROLE_TYPES as readonly string[]).includes(value)
-}
 
 export function widestScope(input: {
   isSuperAdmin: boolean

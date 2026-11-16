@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query"
 
-import { fetchGisuList } from "@/shared/api/gisu-list"
+import { buildGisuGenerationLookup, fetchGisuList } from "@/entities/gisu"
 
 import { listNotices, searchNotices } from "../api/notices-query.api"
 import {
@@ -17,7 +17,6 @@ import {
   isNoticeForbiddenError,
   isNoticeNetworkError,
 } from "./notice-api-error"
-import { buildGisuGenerationLookup } from "./notice-gisu-generation"
 import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
 import { canAccessStaffNoticeTab } from "./notice-notice-tab"
 

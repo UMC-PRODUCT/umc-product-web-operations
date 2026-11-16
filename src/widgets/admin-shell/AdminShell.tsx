@@ -2,11 +2,8 @@ import { getRouteApi, Outlet, useRouterState } from "@tanstack/react-router"
 import { PageHeader } from "@umc-product/react"
 import { useEffect, useMemo, useState } from "react"
 
+import { SelectedGisuProvider, useSelectedGisu } from "@/entities/gisu"
 import { cn } from "@/shared/lib/cn"
-import {
-  SelectedGisuProvider,
-  useSelectedGisu,
-} from "@/shared/model/selected-gisu"
 
 import { AdminContentsArea } from "./AdminContentsArea"
 import { AdminHeader } from "./AdminHeader"
