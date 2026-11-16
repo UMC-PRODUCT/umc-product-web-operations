@@ -17,7 +17,6 @@ import {
   toGrantPointBody,
   toPointHistoryItem,
 } from "../model/map-point-history"
-import { mockAwardPoint } from "../model/mock-award-point"
 import {
   buildSummary,
   formatAwardToastMessage,
@@ -31,21 +30,15 @@ import { MemberProfileCard } from "./MemberProfileCard"
 import { PointHistoryEmpty } from "./PointHistoryEmpty"
 import { PointHistoryTable } from "./PointHistoryTable"
 
-import type { AwardPointOutcome } from "../model/mock-award-point"
-import type { DeletePointHistoryOutcome } from "../model/mock-delete-point-history"
 import type { PointHistoryItem } from "../model/point-history"
 import type { PointAwardTab } from "../model/point-types"
 
 type MemberDetailPageProps = {
   memberId: string
   challengerId?: number
-  /** 쿼리로 에러/권한 화면을 열 때 사용한다. */
+  /** 쿼리로 에러/권한 화면을 열 때 사용한다. (개발 모드 전용) */
   isError?: boolean
   isForbidden?: boolean
-  /** 쿼리로 삭제 결과를 흉내 낼 때만 전달한다. */
-  deleteOutcome?: DeletePointHistoryOutcome
-  /** 쿼리로 부여 결과를 흉내 낼 때만 전달한다. */
-  awardOutcome?: AwardPointOutcome
   onRetry?: () => void
 }
 
@@ -67,8 +60,6 @@ export function MemberDetailPage({
   challengerId,
   isError = false,
   isForbidden = false,
-  deleteOutcome,
-  awardOutcome,
   onRetry,
 }: MemberDetailPageProps) {
   const { session } = adminRouteApi.useRouteContext()
@@ -131,19 +122,6 @@ export function MemberDetailPage({
   }
 
   const handleAwardSubmit = async (payload: PendingAward) => {
-    if (awardOutcome) {
-      const outcome = await mockAwardPoint(awardOutcome)
-      if (outcome === "success") {
-        setAwardOpen(false)
-        toast.show({
-          message: formatAwardToastMessage(payload.typeLabel, payload.score),
-          color: "brand",
-          icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
-        })
-      }
-      return outcome
-    }
-
     if (challengerId == null) {
       return "network_error" as const
     }
@@ -256,40 +234,28 @@ export function MemberDetailPage({
         onAlreadyDeleted={() => {
           void refreshHistory()
         }}
-        onConfirm={
-          deleteOutcome
-            ? undefined
-            : async (historyId) => {
-                try {
-                  await deleteChallengerPoint(Number(historyId))
-                  return "success"
-                } catch (error) {
-                  const status = getHttpStatus(error)
-                  if (status === 404) {
-                    return "already_deleted"
-                  }
-                  if (status === 403) {
-                    return "forbidden"
-                  }
-                  return "network_error"
-                }
-              }
-        }
-        onDeleted={async (historyId) => {
-          const previousTotal = summary.total
-          if (deleteOutcome) {
-            const target = history.find((item) => item.id === historyId)
-            const nextTotal = target
-              ? previousTotal - target.score
-              : previousTotal
-            toast.show({
-              message: formatDeleteToastMessage(previousTotal, nextTotal),
-              color: "brand",
-              icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
-            })
-            return
+        onConfirm={async (historyId) => {
+          try {
+            await deleteChallengerPoint(Number(historyId))
+            return "success"
+          } catch (error) {
+            const status = getHttpStatus(error)
+            if (status === 404) {
+              return "already_deleted"
+            }
+            if (status === 403) {
+              return "forbidden"
+            }
+            return "network_error"
           }
-          await refreshHistory()
+        }}
+        onDeleted={async () => {
+          const previousTotal = summary.total
+          try {
+            await refreshHistory()
+          } catch {
+            // 삭제 API는 성공했으므로 토스트는 유지하고, 이력 재조회 실패는 네트워크 오류로 돌리지 않는다.
+          }
           const next = queryClient.getQueryData<
             Awaited<ReturnType<typeof fetchChallenger>>
           >(
@@ -314,7 +280,6 @@ export function MemberDetailPage({
           }
         }}
         open={deleteOpen}
-        simulateOutcome={deleteOutcome}
       />
     </section>
   )

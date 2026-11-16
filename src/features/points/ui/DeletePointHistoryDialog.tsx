@@ -5,7 +5,6 @@ import { createPortal } from "react-dom"
 
 import { cn } from "@/shared/lib/cn"
 
-import { mockDeletePointHistory } from "../model/mock-delete-point-history"
 import { formatPointScore } from "../model/point-history"
 
 import type { DeletePointHistoryOutcome } from "../model/mock-delete-point-history"
@@ -18,9 +17,7 @@ type DeletePointHistoryDialogProps = {
   open: boolean
   member: PointsMember
   item: PointHistoryItem | null
-  /** 쿼리로 결과를 흉내 낼 때만 사용한다. 없으면 onConfirm으로 삭제한다. */
-  simulateOutcome?: DeletePointHistoryOutcome
-  onConfirm?: (historyId: string) => Promise<DeleteRequestOutcome>
+  onConfirm: (historyId: string) => Promise<DeleteRequestOutcome>
   onOpenChange: (open: boolean) => void
   onDeleted: (historyId: string) => void | Promise<void>
   onAlreadyDeleted: (historyId: string) => void
@@ -32,7 +29,6 @@ export function DeletePointHistoryDialog({
   open,
   member,
   item,
-  simulateOutcome,
   onConfirm,
   onOpenChange,
   onDeleted,
@@ -70,21 +66,28 @@ export function DeletePointHistoryDialog({
       return
     }
     setPhase("loading")
-    const outcome = onConfirm
-      ? await onConfirm(item.id)
-      : await mockDeletePointHistory(item.id, simulateOutcome ?? "success")
-    if (outcome === "success") {
-      await onDeleted(item.id)
-      onOpenChange(false)
-      return
+    try {
+      const outcome = await onConfirm(item.id)
+      if (outcome === "success") {
+        try {
+          await onDeleted(item.id)
+          onOpenChange(false)
+        } catch {
+          // 삭제 API는 성공했는데 후속 재조회가 실패해도 로딩에 멈추지 않는다.
+          onOpenChange(false)
+        }
+        return
+      }
+      if (outcome === "already_deleted") {
+        onAlreadyDeleted(item.id)
+        setPhase("already_deleted")
+        return
+      }
+      // 403·네트워크 실패 모두 Figma PT-M03 V2 — 모달 내 InlineAlert 유지
+      setPhase("network_error")
+    } catch {
+      setPhase("network_error")
     }
-    if (outcome === "already_deleted") {
-      onAlreadyDeleted(item.id)
-      setPhase("already_deleted")
-      return
-    }
-    // 403·네트워크 실패 모두 Figma PT-M03 V2 — 모달 내 InlineAlert 유지
-    setPhase("network_error")
   }
 
   return createPortal(
