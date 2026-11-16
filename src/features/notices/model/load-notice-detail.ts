@@ -1,14 +1,16 @@
 import { fetchGisuList } from "@/shared/api/gisu-list"
 
-import { getNoticeDetail } from "../api/notices-query.api"
 import { buildNoticeOrganizationNameLookup } from "./map-gisu-organization"
 import { mapNoticeDetailResponse } from "./map-notice-from-api"
 import {
   isNoticeForbiddenError,
   isNoticeNotFoundError,
 } from "./notice-api-error"
+import { noticeDetailQueryOptions } from "./notice-detail-query"
 import { buildGisuGenerationLookup } from "./notice-gisu-generation"
 import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
+
+import type { QueryClient } from "@tanstack/react-query"
 
 import type { NoticeDetail } from "./notice-detail.types"
 
@@ -19,6 +21,7 @@ export type NoticeDetailLoaderData =
 
 export async function loadNoticeDetail(
   noticeId: string,
+  queryClient: QueryClient,
 ): Promise<NoticeDetailLoaderData> {
   const parsedId = Number(noticeId)
   if (!Number.isFinite(parsedId)) {
@@ -26,7 +29,9 @@ export async function loadNoticeDetail(
   }
 
   try {
-    const detail = await getNoticeDetail(parsedId)
+    const detail = await queryClient.ensureQueryData(
+      noticeDetailQueryOptions(parsedId),
+    )
     const targetGisuRaw = detail.targetInfo?.targetGisuId
     const targetGisuId = targetGisuRaw == null ? null : Number(targetGisuRaw)
 

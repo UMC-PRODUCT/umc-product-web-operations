@@ -14,7 +14,10 @@ export const Route = createFileRoute("/_admin/notices/$noticeId/edit")({
   validateSearch: (search: Record<string, unknown>): NoticeEditSearch => ({
     listAudience: parseNoticeListAudienceOptional(search.listAudience),
   }),
-  loader: async ({ params }) => loadNoticeEdit(params.noticeId),
+  // 상세와 같은 캐시를 쓰며, preload로 불필요 GET(조회수 증가)이 나지 않게 한다.
+  preload: false,
+  loader: async ({ context, params }) =>
+    loadNoticeEdit(params.noticeId, context.queryClient),
   component: NoticeEditRoute,
 })
 

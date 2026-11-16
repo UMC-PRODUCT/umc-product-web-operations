@@ -68,7 +68,10 @@ export const Route = createFileRoute("/_admin/notices/$noticeId")({
         : undefined,
     ),
   }),
-  loader: async ({ params }) => loadNoticeDetail(params.noticeId),
+  // 상세 GET이 조회수를 올리므로 hover preload로 조회수가 오르지 않게 한다.
+  preload: false,
+  loader: async ({ context, params }) =>
+    loadNoticeDetail(params.noticeId, context.queryClient),
   component: NoticeDetailRoute,
 })
 
