@@ -6,6 +6,8 @@ export type GisuListItem = {
   gisuId: number
   generation: number
   isActive: boolean
+  /** API `startAt` (기수 시작일). 프로필 기수 메뉴 연도 표시에 사용 */
+  startAt: string | null
 }
 
 type GisuListRawItem = {
@@ -13,6 +15,8 @@ type GisuListRawItem = {
   generation?: number | string | null
   gisu?: number | string | null
   isActive?: boolean | null
+  startAt?: string | null
+  startedAt?: string | null
 }
 
 type GisuListPage = {
@@ -21,6 +25,30 @@ type GisuListPage = {
 
 /** 기수 수가 적어 size를 크게 잡아 1회 조회한다. */
 const GISU_LIST_SIZE = 200
+
+function toStartAt(item: GisuListRawItem): string | null {
+  if (typeof item.startAt === "string" && item.startAt.trim() !== "") {
+    return item.startAt
+  }
+  if (typeof item.startedAt === "string" && item.startedAt.trim() !== "") {
+    return item.startedAt
+  }
+  return null
+}
+
+/** `startAt`에서 연도 문자열을 뽑는다. 파싱 실패 시 undefined. */
+export function formatGisuStartYear(
+  startAt: string | null | undefined,
+): string | undefined {
+  if (startAt == null || startAt.trim() === "") {
+    return undefined
+  }
+  const date = new Date(startAt)
+  if (Number.isNaN(date.getTime())) {
+    return undefined
+  }
+  return String(date.getFullYear())
+}
 
 export function toGisuListItems(
   content: readonly GisuListRawItem[] | null | undefined,
@@ -37,6 +65,7 @@ export function toGisuListItems(
       gisuId,
       generation,
       isActive: item.isActive === true,
+      startAt: toStartAt(item),
     })
   }
 

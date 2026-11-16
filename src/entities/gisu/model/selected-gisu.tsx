@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { createContext, useContext, useMemo, useState } from "react"
 
-import { fetchGisuList } from "../api/gisu-list"
+import { fetchGisuList, formatGisuStartYear } from "../api/gisu-list"
 import { gisuKeys } from "./gisu-keys"
 
 import type { ReactNode } from "react"
@@ -9,6 +9,8 @@ import type { ReactNode } from "react"
 type GisuOption = {
   value: string
   label: string
+  /** Figma caption — startAt 연도 (예: "2026") */
+  year?: string
 }
 
 type SelectedGisuContextValue = {
@@ -68,10 +70,14 @@ export function SelectedGisuProvider({
     return {
       gisuId: selected?.gisuId ?? null,
       generation: selected?.generation ?? null,
-      options: items.map((item) => ({
-        value: String(item.gisuId),
-        label: `${item.generation}기`,
-      })),
+      options: items.map((item) => {
+        const year = formatGisuStartYear(item.startAt)
+        return {
+          value: String(item.gisuId),
+          label: `${item.generation}기`,
+          ...(year != null ? { year } : {}),
+        }
+      }),
       selectedValue: selected == null ? null : String(selected.gisuId),
       setGisuId: setOverrideId,
       isPending: gisuQuery.isPending,

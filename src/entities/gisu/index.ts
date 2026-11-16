@@ -1,4 +1,8 @@
-export { fetchGisuList, toGisuListItems } from "./api/gisu-list"
+export {
+  fetchGisuList,
+  formatGisuStartYear,
+  toGisuListItems,
+} from "./api/gisu-list"
 export type { GisuListItem } from "./api/gisu-list"
 export {
   buildGisuGenerationLookup,
