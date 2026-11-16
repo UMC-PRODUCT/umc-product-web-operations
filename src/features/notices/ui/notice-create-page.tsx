@@ -159,20 +159,31 @@ export function NoticeCreatePage({
     [adminSession],
   )
 
+  const chapterPresidentLockResult = useMemo(
+    () =>
+      resolveNoticeChapterPresidentChallengerLock(
+        adminSession,
+        organizationQuery.data,
+      ),
+    [adminSession, organizationQuery.data],
+  )
+
+  const chapterPresidentUnresolved =
+    chapterPresidentLockResult.status === "unresolved"
+
   const chapterPresidentCreateLock = useMemo(() => {
-    const resolved = resolveNoticeChapterPresidentChallengerLock(
-      adminSession,
-      organizationQuery.data,
-    )
-    if (resolved == null || session.gisuId == null) {
+    if (
+      chapterPresidentLockResult.status !== "locked" ||
+      session.gisuId == null
+    ) {
       return null
     }
 
     return {
-      chapterId: resolved.chapterId,
+      chapterId: chapterPresidentLockResult.lock.chapterId,
       targetGisuId: session.gisuId,
     }
-  }, [adminSession, organizationQuery.data, session.gisuId])
+  }, [chapterPresidentLockResult, session.gisuId])
 
   useEffect(() => {
     if (!chapterPresidentChallengerOnly) {
@@ -406,6 +417,9 @@ export function NoticeCreatePage({
   }
 
   const openPublishDialog = () => {
+    if (chapterPresidentUnresolved) {
+      return
+    }
     if (isSubmitting) {
       return
     }
@@ -486,6 +500,11 @@ export function NoticeCreatePage({
         <p className="text-body-3-regular text-neutral-medium-600">
           공지 대상과 내용을 설정하고 게시해요
         </p>
+        {chapterPresidentUnresolved ? (
+          <p className="text-body-3-regular text-status-error-500" role="alert">
+            소속 지부를 확인할 수 없습니다. 관리자에게 문의해 주세요.
+          </p>
+        ) : null}
       </div>
 
       <div className="flex w-full items-start gap-(--umc-spacing-gap-24)">
@@ -523,7 +542,7 @@ export function NoticeCreatePage({
         />
         <NoticeCreateSummaryPanel
           audienceTags={summary.audienceTags}
-          isSubmitting={isSubmitting}
+          isSubmitting={isSubmitting || chapterPresidentUnresolved}
           onCancel={() => {
             requestLeave("/notices")
           }}

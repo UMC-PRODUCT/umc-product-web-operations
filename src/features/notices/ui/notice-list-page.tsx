@@ -361,7 +361,7 @@ export function NoticeListPage({
     noticeListOrganizationQueryOptions(session.gisuId),
   )
 
-  const chapterPresidentContext = useMemo(
+  const chapterPresidentLockResult = useMemo(
     () =>
       resolveNoticeChapterPresidentChallengerLock(
         adminSession,
@@ -369,6 +369,14 @@ export function NoticeListPage({
       ),
     [adminSession, organizationQuery.data],
   )
+
+  const chapterPresidentContext =
+    chapterPresidentLockResult.status === "locked"
+      ? chapterPresidentLockResult.lock
+      : null
+
+  const chapterPresidentUnresolved =
+    chapterPresidentLockResult.status === "unresolved"
 
   const schoolExecutiveLock = useMemo(
     () =>
@@ -417,14 +425,20 @@ export function NoticeListPage({
     : null
 
   const staffListFiltersDisabled =
-    audience === "staff" && chapterPresidentContext != null
+    (audience === "staff" && chapterPresidentContext != null) ||
+    chapterPresidentUnresolved
 
-  const challengerLockedChapterScope =
-    chapterPresidentChallengerLock?.chapterScope ??
-    schoolExecutiveChallengerLock?.chapterScope ??
-    null
+  const challengerLockedChapterScope = chapterPresidentUnresolved
+    ? null
+    : (chapterPresidentChallengerLock?.chapterScope ??
+      schoolExecutiveChallengerLock?.chapterScope ??
+      null)
 
   const challengerListSchoolOptions = useMemo(() => {
+    if (chapterPresidentUnresolved) {
+      return []
+    }
+
     if (chapterPresidentChallengerLock != null) {
       return chapterPresidentChallengerLock.schoolOptions
     }
@@ -441,6 +455,7 @@ export function NoticeListPage({
     return organizationQuery.data?.schools ?? []
   }, [
     chapterPresidentChallengerLock,
+    chapterPresidentUnresolved,
     organizationQuery.data?.schools,
     schoolExecutiveChallengerLock,
   ])
