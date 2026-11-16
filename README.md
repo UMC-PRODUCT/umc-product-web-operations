@@ -12,6 +12,7 @@ pnpm format              # Prettier 포맷 적용
 pnpm lint                # 남은 린트 에러 없는지 확인
 pnpm lint:boundaries     # FSD 레이어 경계 검사
 pnpm test:run            # 테스트 1회
+pnpm knip                # 미사용 파일·의존성 검사
 ```
 
 그다음 스테이징·커밋합니다.
@@ -76,7 +77,8 @@ pnpm dev
 ```
 
 - 개발 서버: Vite HMR
-- 기본 화면: `/` (AdminShell), `/login`
+- 기본 화면: `/` → 관리자 셸로 진입, `/login`
+- 주요 라우트: `/notices`, `/notices/new`, `/notices/$noticeId`, `/activity/points`, `/activity/points/$memberId`
 - API: 브라우저 `/api/*` → Vite 프록시 → 기본 `https://api-dev.university.neordinary.com`  
   로컬 백엔드는 `.env`에 `VITE_DEV_API_PROXY_TARGET=http://localhost:8080` 후 dev 서버 재시작.
 
@@ -167,6 +169,11 @@ Vitest를 **watch 모드**로 실행합니다. 테스트 파일이 바뀌면 관
 Vitest를 **한 번만** 실행하고 종료합니다.  
 커밋 전·CI처럼 “지금 테스트가 전부 통과하는지” 확인할 때 사용합니다.  
 대상: `src/**/*.{test,spec}.{ts,tsx}` (setup: `src/test/setup.ts`).
+
+#### `pnpm knip`
+
+미사용 **파일·의존성·바이너리**를 검사합니다 (`knip.json`).  
+의도적으로 export만 남겨 둔 심볼까지 전부 실패시키지는 않습니다. CI의 Knip 단계와 동일한 범위를 봅니다.
 
 #### `pnpm exec commitlint` (메시지 사전 검증)
 
@@ -360,24 +367,32 @@ app → routes → widgets → features → entities → shared
 
 TanStack Router **파일 기반 라우팅**입니다. `src/routes/`에 파일을 추가하면 `src/routeTree.gen.ts`가 자동 생성됩니다. **생성 파일은 직접 수정하지 마세요.**
 
-| 파일명 패턴             | 의미                                       |
-| ----------------------- | ------------------------------------------ |
-| `__root.tsx`            | 앱 전체 루트 (Provider, Head 등)           |
-| `_admin.tsx`            | pathless 레이아웃 — URL에 안 붙음          |
-| `_admin.index.tsx`      | `_admin` 아래 인덱스 → 실제 URL `/`        |
-| `login.tsx`             | `/login`                                   |
-| `members.tsx`           | `/members`                                 |
-| `members.$memberId.tsx` | `/members/:memberId` (`$` = 동적 파라미터) |
+| 파일명 패턴                            | 의미                                       |
+| -------------------------------------- | ------------------------------------------ |
+| `__root.tsx`                           | 앱 전체 루트 (Provider, Head 등)           |
+| `_admin/route.tsx`                     | pathless 레이아웃 — URL에 안 붙음          |
+| `_admin/index.tsx`                     | `_admin` 아래 인덱스 → 실제 URL `/`        |
+| `login.tsx`                            | `/login`                                   |
+| `_admin/notices/index.tsx`             | `/notices`                                 |
+| `_admin/notices/$noticeId.tsx`         | `/notices/:noticeId` (`$` = 동적 파라미터) |
+| `_admin/activity/points.$memberId.tsx` | `/activity/points/:memberId`               |
 
 백오피스 페이지는 보통 `_admin` 레이아웃 아래에 둡니다.
 
 ```
 src/routes/
 ├── __root.tsx
-├── login.tsx                 # 레이아웃 밖
-├── _admin.tsx                # AdminShell
-├── _admin.index.tsx          # /
-└── _admin.members.tsx        # /members  (추가 예시)
+├── login.tsx
+└── _admin/
+    ├── route.tsx              # AdminShell + 세션 가드
+    ├── index.tsx              # /
+    ├── notices/
+    │   ├── index.tsx          # /notices
+    │   ├── new.tsx            # /notices/new
+    │   └── $noticeId.tsx      # /notices/:noticeId
+    └── activity/
+        ├── points.index.tsx   # /activity/points
+        └── points.$memberId.tsx
 ```
 
 라우트 파일에서는 `createFileRoute("...")`의 경로 문자열이 파일 위치와 일치해야 합니다. 플러그인이 타입을 맞춰 줍니다.
@@ -409,17 +424,17 @@ import { SearchIcon } from "@umc-product/icons"
 
 ## API 호출
 
-`shared/api/client.ts`의 axios 인스턴스를 사용합니다. `baseURL`은 `/api`입니다.
+`shared/api/client.ts`의 axios 인스턴스 `api`를 사용합니다. `baseURL`은 `/api`입니다.
 
 ```ts
-import { apiClient } from "@/shared/api/client"
+import { api } from "@/shared/api/client"
 
-const { data } = await apiClient.get("/members")
+const { data } = await api.get("/v1/notices")
 ```
 
-도메인별 요청 함수는 `features/<domain>/api/` 또는 `entities/<domain>/api/`에 둡니다.  
-서버 상태는 `@tanstack/react-query`, 클라이언트 UI 상태는 `zustand`를 사용합니다.  
-폼은 `react-hook-form` + `zod` (`@hookform/resolvers`) 패턴을 따릅니다.
+도메인별 요청 함수는 `features/<domain>/api/`에 둡니다.  
+서버 상태는 `@tanstack/react-query`를 사용합니다.  
+(과거 예시의 `apiClient` / `zustand` / `react-hook-form` / `zod` / `recharts` / `react-day-picker`는 이 앱에서 제거되었거나 사용하지 않습니다.)
 
 ---
 
