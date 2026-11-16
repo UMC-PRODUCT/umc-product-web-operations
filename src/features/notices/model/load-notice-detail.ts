@@ -12,9 +12,6 @@ import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-q
 
 import type { NoticeDetail } from "./notice-detail.types"
 
-/** QA: Figma NT-D01 권한 없음 — `/notices/403` */
-export const NOTICE_DETAIL_FORBIDDEN_MOCK_ID = "403"
-
 export type NoticeDetailLoaderData =
   | { kind: "success"; notice: NoticeDetail }
   | { kind: "forbidden" }
@@ -23,10 +20,6 @@ export type NoticeDetailLoaderData =
 export async function loadNoticeDetail(
   noticeId: string,
 ): Promise<NoticeDetailLoaderData> {
-  if (noticeId === NOTICE_DETAIL_FORBIDDEN_MOCK_ID) {
-    return { kind: "forbidden" }
-  }
-
   const parsedId = Number(noticeId)
   if (!Number.isFinite(parsedId)) {
     return { kind: "deleted" }
@@ -66,8 +59,4 @@ export async function loadNoticeDetail(
     }
     throw error
   }
-}
-
-export function shouldHideNoticeDetailPageHeader(noticeId: string): boolean {
-  return noticeId === NOTICE_DETAIL_FORBIDDEN_MOCK_ID
 }

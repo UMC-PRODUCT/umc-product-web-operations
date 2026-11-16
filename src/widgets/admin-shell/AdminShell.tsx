@@ -2,7 +2,6 @@ import { getRouteApi, Outlet, useRouterState } from "@tanstack/react-router"
 import { PageHeader } from "@umc-product/react"
 import { useEffect, useMemo, useState } from "react"
 
-import { shouldHideNoticeDetailPageHeader } from "@/features/notices/model/load-notice-detail"
 import { cn } from "@/shared/lib/cn"
 import {
   SelectedGisuProvider,
@@ -72,8 +71,6 @@ function AdminShellFrame() {
     pathname.startsWith("/activity/points/")
   const noticeDetailId = getNoticeDetailIdFromPath(pathname)
   const isNoticeDetailPage = noticeDetailId !== null
-  const hideNoticeDetailPageHeader =
-    noticeDetailId !== null && shouldHideNoticeDetailPageHeader(noticeDetailId)
   const isNoticesListPage = pathname === "/notices"
   const isNoticeCreatePage = pathname === "/notices/new"
   const isNoticeEditPage = /^\/notices\/[^/]+\/edit$/.test(pathname)
@@ -101,7 +98,6 @@ function AdminShellFrame() {
         {isNoticeDetailPage ? (
           <AdminContentsArea
             breadcrumbs={breadcrumbs}
-            hidePageHeader={hideNoticeDetailPageHeader}
             hideTitleBlock
             title={<span className="sr-only">{title}</span>}
           >
