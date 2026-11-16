@@ -97,7 +97,7 @@ export default tseslint.config(
     },
     rules: {
       "boundaries/dependencies": [
-        "warn",
+        "error",
         {
           default: "disallow",
           policies: [
