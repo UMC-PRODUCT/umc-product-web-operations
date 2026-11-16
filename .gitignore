@@ -36,3 +36,6 @@ coverage
 # IDE
 .vscode
 .idea
+
+# Local scratch / agent notes
+.tmp/
