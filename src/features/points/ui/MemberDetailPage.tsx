@@ -11,7 +11,11 @@ import {
 } from "../api/challenger-points"
 import { canDeletePointHistory } from "../model/can-delete-point-history"
 import { challengerKeys } from "../model/challenger-keys"
-import { getHttpStatus, isForbiddenError } from "../model/http-status"
+import {
+  getHttpStatus,
+  isForbiddenError,
+  isNetworkError,
+} from "../model/http-status"
 import {
   challengerPointList,
   toDetailMember,
@@ -159,12 +163,15 @@ export function MemberDetailPage({
       return "success" as const
     } catch (error) {
       if (error instanceof Error && error.message === "MISSING_CHALLENGER") {
-        return "network_error" as const
+        return "server_error" as const
       }
       if (isForbiddenError(error)) {
         return "forbidden" as const
       }
-      return "network_error" as const
+      // 무응답만 network_error, HTTP 4xx·5xx 응답은 server_error
+      return isNetworkError(error)
+        ? ("network_error" as const)
+        : ("server_error" as const)
     }
   }
 
@@ -263,7 +270,7 @@ export function MemberDetailPage({
             if (status === 403) {
               return "forbidden"
             }
-            return "network_error"
+            return isNetworkError(error) ? "network_error" : "server_error"
           }
         }}
         onDeleted={async () => {

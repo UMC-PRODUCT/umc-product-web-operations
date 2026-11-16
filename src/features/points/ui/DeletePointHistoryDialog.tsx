@@ -23,7 +23,8 @@ type DeletePointHistoryDialogProps = {
   onAlreadyDeleted: (historyId: string) => void
 }
 
-type DialogPhase = "idle" | "loading" | "network_error" | "already_deleted"
+type DialogPhase =
+  "idle" | "loading" | "network_error" | "server_error" | "already_deleted"
 
 export function DeletePointHistoryDialog({
   open,
@@ -81,6 +82,10 @@ export function DeletePointHistoryDialog({
       if (outcome === "already_deleted") {
         onAlreadyDeleted(item.id)
         setPhase("already_deleted")
+        return
+      }
+      if (outcome === "server_error") {
+        setPhase("server_error")
         return
       }
       // 403·네트워크 실패 모두 Figma PT-M03 V2 — 모달 내 InlineAlert 유지
@@ -151,7 +156,7 @@ export function DeletePointHistoryDialog({
             </p>
           </div>
 
-          {phase === "network_error" ? (
+          {phase === "network_error" || phase === "server_error" ? (
             <div
               className="flex min-h-11 w-full items-center gap-(--umc-spacing-gap-8) rounded-(--umc-radius-14) bg-[var(--umc-toast-error-bg,#fed7d7)] py-(--umc-spacing-padding-12) pr-(--umc-spacing-padding-16) pl-[14px] shadow-[0_4px_16px_rgba(64,68,67,0.16)]"
               role="alert"
@@ -163,7 +168,9 @@ export function DeletePointHistoryDialog({
                 weight="fill"
               />
               <p className="text-label-3-medium min-w-0 flex-1 text-[var(--umc-color-red-700,#a60303)]">
-                삭제하지 못했어요. 다시 시도해 주세요
+                {phase === "server_error"
+                  ? "서버에서 삭제를 처리하지 못했어요. 잠시 후 다시 시도해 주세요"
+                  : "삭제하지 못했어요. 다시 시도해 주세요"}
               </p>
             </div>
           ) : null}

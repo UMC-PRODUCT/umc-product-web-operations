@@ -28,6 +28,12 @@ export const NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE =
 export const NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE =
   "공지를 게시하지 못했어요, 다시 시도해 주세요"
 
+/** 서버가 HTTP 오류(4xx·5xx)로 응답했을 때 기본 안내 — 무응답(네트워크)과 구분 */
+export const NOTICE_CREATE_PUBLISH_SERVER_ERROR_MESSAGE =
+  "서버에서 공지를 처리하지 못했어요. 잠시 후 다시 시도해 주세요"
+export const NOTICE_EDIT_SERVER_ERROR_MESSAGE =
+  "서버에서 공지 수정을 처리하지 못했어요. 잠시 후 다시 시도해 주세요"
+
 /** Figma 598:9622 — 이미지 업로드 실패 Toast Bottom */
 export const NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE =
   "이미지를 올리지 못했어요. 파일 형식이나 용량을 확인해 주세요"

@@ -275,6 +275,11 @@ export function NoticeEditPage({
         return
       }
 
+      if (outcome.kind === "server_error") {
+        showNoticeEditFailureToast(toast, outcome.message)
+        return
+      }
+
       showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
     },
     onError: () => {

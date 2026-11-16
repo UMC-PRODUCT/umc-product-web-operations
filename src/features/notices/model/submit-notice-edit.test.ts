@@ -191,4 +191,34 @@ describe("submitNoticeEdit", () => {
       }),
     )
   })
+
+  it("returns server_error for HTTP error responses and network_error for no response", async () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      title: "t",
+      content: "c",
+    }
+    patchNotice.mockRejectedValueOnce(
+      Object.assign(new Error("500"), {
+        isAxiosError: true,
+        response: { status: 500, data: undefined },
+      }),
+    )
+
+    expect(await submitNoticeEdit({ form, noticeId: 1 })).toMatchObject({
+      kind: "server_error",
+      message: expect.any(String),
+    })
+
+    patchNotice.mockRejectedValueOnce(
+      Object.assign(new Error("Network Error"), {
+        isAxiosError: true,
+        response: undefined,
+      }),
+    )
+
+    expect(await submitNoticeEdit({ form, noticeId: 1 })).toEqual({
+      kind: "network_error",
+    })
+  })
 })

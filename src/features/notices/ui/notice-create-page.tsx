@@ -84,7 +84,8 @@ export function NoticeCreatePage({
   const pendingLeaveToRef = useRef<string | null>(null)
   const leaveDialogFocusStore = useRef<HTMLElement | null>(null)
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
-  const [publishNetworkError, setPublishNetworkError] = useState(false)
+  /** 게시 Dialog slot에 표시할 오류 문구 (null이면 없음) */
+  const [publishError, setPublishError] = useState<string | null>(null)
   const publishDialogFocusStore = useRef<HTMLElement | null>(null)
   /** 게시 실패 후 재시도 시 완료된 단계(이미지·공지·첨부·투표)를 건너뛰기 위한 진행 상황 */
   const submitProgressRef = useRef<SubmitNoticeCreateProgress | null>(null)
@@ -451,12 +452,17 @@ export function NoticeCreatePage({
         return
       }
 
-      setPublishNetworkError(true)
+      if (outcome.kind === "server_error") {
+        setPublishError(outcome.message)
+        return
+      }
+
+      setPublishError(NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
     },
     onError: () => {
       setPublishDialogOpen(false)
       restoreNoticeDialogFocus(publishDialogFocusStore)
-      setPublishNetworkError(true)
+      setPublishError(NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
     },
   })
   const isSubmitting = submitMutation.isPending
@@ -465,7 +471,7 @@ export function NoticeCreatePage({
     if (isSubmitting) {
       return
     }
-    setPublishNetworkError(false)
+    setPublishError(null)
     setPublishDialogOpen(false)
     restoreNoticeDialogFocus(publishDialogFocusStore)
   }
@@ -477,7 +483,7 @@ export function NoticeCreatePage({
     if (isSubmitting) {
       return
     }
-    setPublishNetworkError(false)
+    setPublishError(null)
     captureNoticeDialogFocus(publishDialogFocusStore)
     setPublishDialogOpen(true)
   }
@@ -487,7 +493,7 @@ export function NoticeCreatePage({
       return
     }
 
-    setPublishNetworkError(false)
+    setPublishError(null)
     setShowRequiredFieldErrors(true)
 
     const progress = submitProgressRef.current ?? {}
@@ -592,7 +598,7 @@ export function NoticeCreatePage({
             return
           }
           if (!open) {
-            setPublishNetworkError(false)
+            setPublishError(null)
             restoreNoticeDialogFocus(publishDialogFocusStore)
           }
           setPublishDialogOpen(open)
@@ -600,10 +606,8 @@ export function NoticeCreatePage({
         open={publishDialogOpen || isSubmitting}
         title="공지를 올릴까요?"
       >
-        {publishNetworkError ? (
-          <NoticeCreatePublishDialogErrorToast
-            message={NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE}
-          />
+        {publishError != null ? (
+          <NoticeCreatePublishDialogErrorToast message={publishError} />
         ) : null}
       </Dialog>
 

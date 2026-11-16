@@ -1,1 +1,5 @@
-export { getHttpStatus, isForbiddenError } from "@/shared/lib/http-status"
+export {
+  getHttpStatus,
+  isForbiddenError,
+  isNetworkError,
+} from "@/shared/lib/http-status"

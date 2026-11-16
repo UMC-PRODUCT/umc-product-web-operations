@@ -59,6 +59,13 @@ function makeNetworkError() {
   })
 }
 
+function makeServerError(status: number, data?: unknown) {
+  return Object.assign(new Error(`Request failed with status ${status}`), {
+    isAxiosError: true,
+    response: { status, data },
+  })
+}
+
 describe("submitNoticeCreate", () => {
   beforeEach(() => {
     postNotice.mockReset()
@@ -154,5 +161,37 @@ describe("submitNoticeCreate", () => {
 
     expect(postNotice).toHaveBeenCalledTimes(1)
     expect(addNoticeVote).toHaveBeenCalledTimes(2)
+  })
+
+  it("returns server_error with default message for 5xx responses", async () => {
+    postNotice.mockRejectedValueOnce(makeServerError(500))
+
+    const outcome = await submitNoticeCreate({ form: baseForm, session })
+
+    expect(outcome).toMatchObject({
+      kind: "server_error",
+      message: expect.any(String),
+    })
+  })
+
+  it("returns server_error with API message for non-400 responses", async () => {
+    postNotice.mockRejectedValueOnce(
+      makeServerError(409, { message: "이미 처리된 요청이에요" }),
+    )
+
+    const outcome = await submitNoticeCreate({ form: baseForm, session })
+
+    expect(outcome).toMatchObject({
+      kind: "server_error",
+      message: "이미 처리된 요청이에요",
+    })
+  })
+
+  it("keeps network_error when the server gave no response", async () => {
+    postNotice.mockRejectedValueOnce(makeNetworkError())
+
+    const outcome = await submitNoticeCreate({ form: baseForm, session })
+
+    expect(outcome.kind).toBe("network_error")
   })
 })

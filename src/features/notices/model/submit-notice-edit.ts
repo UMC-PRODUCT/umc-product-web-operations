@@ -27,6 +27,7 @@ import {
   isNoticeCreateLinkUrl,
   NOTICE_CREATE_LINK_INVALID_MESSAGE,
 } from "./notice-create-link"
+import { NOTICE_EDIT_SERVER_ERROR_MESSAGE } from "./notice-outcomes"
 
 import type { NoticeCreateVoteDraft } from "./notice-create-vote-draft"
 
@@ -34,6 +35,8 @@ export type SubmitNoticeEditOutcome =
   | { kind: "success" }
   | { kind: "forbidden" }
   | { kind: "network_error" }
+  /** 서버가 4xx·5xx로 응답한 경우 (무응답인 network_error와 구분) */
+  | { kind: "server_error"; message: string }
   | { kind: "not_found" }
   | { kind: "validation_error"; message: string }
 
@@ -151,8 +154,14 @@ export async function submitNoticeEdit(input: {
     if (getHttpStatus(error) === 400 && apiMessage) {
       return { kind: "validation_error", message: apiMessage }
     }
-    if (isNoticeNetworkError(error) || isAxiosError(error)) {
+    if (isNoticeNetworkError(error)) {
       return { kind: "network_error" }
+    }
+    if (isAxiosError(error)) {
+      return {
+        kind: "server_error",
+        message: apiMessage ?? NOTICE_EDIT_SERVER_ERROR_MESSAGE,
+      }
     }
     throw error
   }

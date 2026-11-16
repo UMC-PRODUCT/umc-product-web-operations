@@ -28,6 +28,7 @@ import {
   isNoticeCreateLinkUrl,
   NOTICE_CREATE_LINK_INVALID_MESSAGE,
 } from "./notice-create-link"
+import { NOTICE_CREATE_PUBLISH_SERVER_ERROR_MESSAGE } from "./notice-outcomes"
 import {
   isNoticeSchoolStaffContext,
   validateNoticeSchoolStaffCreateParts,
@@ -50,6 +51,12 @@ export type SubmitNoticeCreateOutcome =
   | { kind: "success"; noticeId: number }
   | { kind: "forbidden"; progress?: SubmitNoticeCreateProgress }
   | { kind: "network_error"; progress?: SubmitNoticeCreateProgress }
+  /** 서버가 4xx·5xx로 응답한 경우 (무응답인 network_error와 구분) */
+  | {
+      kind: "server_error"
+      message: string
+      progress?: SubmitNoticeCreateProgress
+    }
   | {
       kind: "validation_error"
       message: string
@@ -177,7 +184,7 @@ export async function submitNoticeCreate(input: {
 
   const operationGisuId = input.operationGisuId ?? input.session.gisuId ?? null
   if (operationGisuId == null) {
-    return { kind: "network_error" }
+    return { kind: "validation_error", message: "대상 기수를 선택해 주세요" }
   }
 
   const progress: SubmitNoticeCreateProgress = input.progress ?? {}
@@ -244,8 +251,15 @@ export async function submitNoticeCreate(input: {
     if (getHttpStatus(error) === 400 && apiMessage) {
       return { kind: "validation_error", message: apiMessage, progress }
     }
-    if (isNoticeNetworkError(error) || isAxiosError(error)) {
+    if (isNoticeNetworkError(error)) {
       return { kind: "network_error", progress }
+    }
+    if (isAxiosError(error)) {
+      return {
+        kind: "server_error",
+        message: apiMessage ?? NOTICE_CREATE_PUBLISH_SERVER_ERROR_MESSAGE,
+        progress,
+      }
     }
     throw error
   }
