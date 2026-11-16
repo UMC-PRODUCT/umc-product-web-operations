@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { NoticeEditPage } from "@/features/notices"
-import { loadNoticeEdit } from "@/features/notices/model/load-notice-edit"
-import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
-import { NoticeDetailStatusView } from "@/features/notices/ui/notice-detail-status-view"
-import { NoticeEditForbiddenStatusView } from "@/features/notices/ui/notice-edit-forbidden-status-view"
+import { loadNoticeEdit } from "@/features/notices"
+import { parseNoticeListAudienceOptional } from "@/features/notices"
+import { NoticeDetailStatusView } from "@/features/notices"
+import { NoticeEditForbiddenStatusView } from "@/features/notices"
 
 type NoticeEditSearch = {
   listAudience?: ReturnType<typeof parseNoticeListAudienceOptional>

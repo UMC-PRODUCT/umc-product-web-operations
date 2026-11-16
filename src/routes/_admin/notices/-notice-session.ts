@@ -1,5 +1,5 @@
 import type { AdminSession } from "@/features/auth"
-import type { NoticeOperatorSession } from "@/features/notices/model/notice-session"
+import type { NoticeOperatorSession } from "@/features/notices"
 
 export function toNoticeOperatorSession(
   session: AdminSession,

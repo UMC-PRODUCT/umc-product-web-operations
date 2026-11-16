@@ -7,16 +7,16 @@ import {
 
 import { useSelectedGisu } from "@/entities/gisu"
 import { NoticeDetailPage } from "@/features/notices"
-import { loadNoticeDetail } from "@/features/notices/model/load-notice-detail"
-import { parseNoticeListAudienceOptional } from "@/features/notices/model/notice-list-route-search"
-import { canManageNoticeDetail } from "@/features/notices/model/notice-viewer"
-import { NoticeDetailStatusView } from "@/features/notices/ui/notice-detail-status-view"
+import { loadNoticeDetail } from "@/features/notices"
+import { parseNoticeListAudienceOptional } from "@/features/notices"
+import { canManageNoticeDetail } from "@/features/notices"
+import { NoticeDetailStatusView } from "@/features/notices"
 import { onlyInDev } from "@/shared/lib/dev-only"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 
-import type { NoticeImageLoadState } from "@/features/notices/model/notice-detail.types"
-import type { NoticeAudience } from "@/features/notices/model/types"
+import type { NoticeImageLoadState } from "@/features/notices"
+import type { NoticeAudience } from "@/features/notices"
 
 type NoticeDetailSearch = {
   /** 목록으로 돌아갈 때 복원할 탭(챌린저/운영진) */

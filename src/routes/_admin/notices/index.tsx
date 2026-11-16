@@ -6,14 +6,14 @@ import {
   parseNoticeListAudienceOptional,
   parseNoticeListFiltersFromSearch,
   parseNoticeListPage,
-} from "@/features/notices/model/notice-list-route-search"
+} from "@/features/notices"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 
-import type { NoticePart } from "@/features/notices/api/notice-api.types"
-import type { NoticeCreateStaffScope } from "@/features/notices/model/notice-create-form"
-import type { NoticeScopeStage } from "@/features/notices/model/notice-scope-stage"
-import type { NoticeAudience } from "@/features/notices/model/types"
+import type { NoticePart } from "@/features/notices"
+import type { NoticeCreateStaffScope } from "@/features/notices"
+import type { NoticeScopeStage } from "@/features/notices"
+import type { NoticeAudience } from "@/features/notices"
 
 type NoticesSearch = {
   audience?: NoticeAudience

@@ -228,6 +228,34 @@ export default tseslint.config(
     },
   },
   {
+    // routes/widgets는 feature 공개 API(index)만 사용한다. (flat config는 rule을 덮어쓰므로 auth-client 패턴도 함께 둔다)
+    files: ["src/routes/**/*.{ts,tsx}", "src/widgets/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/lib/auth-client",
+                "@/lib/auth-client/**",
+                "@umc-product/auth-client/**",
+                "!@umc-product/auth-client/react",
+              ],
+              message:
+                "auth-client는 @umc-product/auth-client 또는 @umc-product/auth-client/react 만 import합니다.",
+            },
+            {
+              group: ["@/features/*/*", "@/features/*/**"],
+              message:
+                "routes/widgets에서는 feature deep import 대신 @/features/<name> 공개 API(index)만 사용합니다.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["scripts/**/*.{js,mjs}"],
     languageOptions: {
       globals: {

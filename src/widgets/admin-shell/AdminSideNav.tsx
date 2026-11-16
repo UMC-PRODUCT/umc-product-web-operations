@@ -3,7 +3,7 @@ import { PeoplePictogram } from "@umc-product/icons"
 import { ContextSwitcher, SideNavigation } from "@umc-product/react"
 import { useMemo, useState } from "react"
 
-import { canCreateNotice } from "@/features/notices/model/notice-session"
+import { canCreateNotice } from "@/features/notices"
 
 import { type AdminSection, getSideNavItems, getSideNavTitle } from "./nav"
 
