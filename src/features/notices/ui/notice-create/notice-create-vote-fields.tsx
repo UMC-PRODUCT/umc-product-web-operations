@@ -1,5 +1,10 @@
 import { RemoveCircleIcon } from "@umc-product/icons"
-import { Field, FieldControl, TextFieldBoxField } from "@umc-product/react"
+import {
+  Field,
+  FieldControl,
+  TextFieldBox,
+  TextFieldBoxField,
+} from "@umc-product/react"
 import {
   type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -59,14 +64,22 @@ export function VoteFilledTextFieldBox({
   required,
   value,
 }: VoteFilledTextFieldBoxProps) {
-  const showClearControl = onClear != null || value.length > 0
-
-  const handleClear = () => {
-    if (onClear) {
-      onClear()
-      return
-    }
-    onChange("")
+  // 항목 삭제(onClear)가 없으면 DS TextFieldBox 의 기본 지우기 동작과 같다.
+  if (onClear == null) {
+    return (
+      <TextFieldBox
+        errorMessage={errorMessage}
+        invalid={invalid}
+        label={label}
+        onChange={(event) => {
+          onChange(event.target.value)
+        }}
+        placeholder={placeholder}
+        required={required}
+        size="lg"
+        value={value}
+      />
+    )
   }
 
   return (
@@ -86,12 +99,10 @@ export function VoteFilledTextFieldBox({
           required={required}
           value={value}
         />
-        {showClearControl ? (
-          <VoteTextFieldClearButton
-            ariaLabel={clearAriaLabel}
-            onClick={handleClear}
-          />
-        ) : null}
+        <VoteTextFieldClearButton
+          ariaLabel={clearAriaLabel}
+          onClick={onClear}
+        />
       </TextFieldBoxField>
     </Field>
   )
