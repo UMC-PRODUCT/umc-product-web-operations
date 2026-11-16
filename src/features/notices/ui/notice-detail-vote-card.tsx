@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query"
 import {
   Button,
   Checkbox,
@@ -199,7 +200,9 @@ export function NoticeDetailVoteCard({
   const [endDialogOpen, setEndDialogOpen] = useState(false)
   const endDialogFocusStore = useRef<HTMLElement | null>(null)
   const [isEndingPoll, setIsEndingPoll] = useState(false)
-  const [isSubmittingVote, setIsSubmittingVote] = useState(false)
+  const submitVoteMutation = useMutation({
+    mutationFn: saveNoticeVoteResponse,
+  })
 
   const voteLeaveStateRef = useRef({
     draftSelection,
@@ -279,7 +282,7 @@ export function NoticeDetailVoteCard({
   }
 
   const handleSubmitVote = async () => {
-    if (draftSelection.length === 0 || isSubmittingVote) {
+    if (draftSelection.length === 0 || submitVoteMutation.isPending) {
       return
     }
 
@@ -288,10 +291,9 @@ export function NoticeDetailVoteCard({
       return
     }
 
-    setIsSubmittingVote(true)
     try {
       if (!isPreview) {
-        await saveNoticeVoteResponse({
+        await submitVoteMutation.mutateAsync({
           noticeId: parsedNoticeId,
           optionIds: draftSelection.map((optionId) => Number(optionId)),
           hasExistingResponse: hasEverVoted,
@@ -317,8 +319,6 @@ export function NoticeDetailVoteCard({
         getServerErrorMessage(error) ??
           "투표를 저장하지 못했어요. 잠시 후 다시 시도해주세요.",
       )
-    } finally {
-      setIsSubmittingVote(false)
     }
   }
 
@@ -424,8 +424,8 @@ export function NoticeDetailVoteCard({
             {showVoteButton ? (
               <Button
                 color="brand"
-                disabled={isSubmittingVote}
-                isLoading={isSubmittingVote}
+                disabled={submitVoteMutation.isPending}
+                isLoading={submitVoteMutation.isPending}
                 onClick={() => {
                   void handleSubmitVote()
                 }}

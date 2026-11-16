@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -65,7 +65,6 @@ export function NoticeEditPage({
   const toast = useToast()
   const baselineFormRef = useRef(initialForm)
   const [form, setForm] = useState<NoticeCreateFormState>(initialForm)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false)
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
   const [deletedWhileEditingDialogOpen, setDeletedWhileEditingDialogOpen] =
@@ -82,7 +81,6 @@ export function NoticeEditPage({
   const [voteDraft, setVoteDraft] = useState<NoticeCreateVoteDraft | null>(null)
   const [voteDeleteDialogOpen, setVoteDeleteDialogOpen] = useState(false)
   const voteDeleteTargetRef = useRef<"attached" | "draft">("attached")
-  const [isDeletingVote, setIsDeletingVote] = useState(false)
   const isDirty = useMemo(
     () =>
       isNoticeEditFormDirty(form, baselineFormRef.current) ||
@@ -236,21 +234,9 @@ export function NoticeEditPage({
     setLeaveDialogOpen(true)
   }
 
-  const handleSubmit = async () => {
-    if (isSubmitting) {
-      return
-    }
-
-    setIsSubmitting(true)
-    setShowRequiredFieldErrors(true)
-
-    try {
-      const outcome = await submitNoticeEdit({
-        form,
-        noticeId,
-        voteDraft: attachedVotePoll == null ? voteDraft : null,
-      })
-
+  const submitMutation = useMutation({
+    mutationFn: submitNoticeEdit,
+    onSuccess: async (outcome, variables) => {
       if (outcome.kind === "success") {
         allowLeaveRef.current = true
         showNoticePrimarySuccessToast(toast, NOTICE_EDIT_SUCCESS_TOAST_MESSAGE)
@@ -268,7 +254,7 @@ export function NoticeEditPage({
 
       if (outcome.kind === "validation_error") {
         const hasTitleOrContentError =
-          !form.title.trim() || !form.content.trim()
+          !variables.form.title.trim() || !variables.form.content.trim()
         if (!hasTitleOrContentError) {
           showNoticeErrorToast(toast, outcome.message)
         }
@@ -289,11 +275,41 @@ export function NoticeEditPage({
       }
 
       showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
-    } catch {
+    },
+    onError: () => {
       showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
-    } finally {
-      setIsSubmitting(false)
+    },
+  })
+  const isSubmitting = submitMutation.isPending
+
+  const deleteVoteMutation = useMutation({
+    mutationFn: deleteNoticeVoteByNoticeId,
+    onSuccess: async () => {
+      setAttachedVotePoll(null)
+      baselineAttachedVotePollRef.current = null
+      setVoteDeleteDialogOpen(false)
+      await queryClient.invalidateQueries({
+        queryKey: noticeKeys.detail(noticeId),
+      })
+    },
+    onError: () => {
+      showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
+    },
+  })
+  const isDeletingVote = deleteVoteMutation.isPending
+
+  const handleSubmit = () => {
+    if (isSubmitting) {
+      return
     }
+
+    setShowRequiredFieldErrors(true)
+
+    submitMutation.mutate({
+      form,
+      noticeId,
+      voteDraft: attachedVotePoll == null ? voteDraft : null,
+    })
   }
 
   return (
@@ -340,9 +356,7 @@ export function NoticeEditPage({
         <NoticeEditSummaryPanel
           isSubmitting={isSubmitting}
           onCancel={requestLeave}
-          onSubmitClick={() => {
-            void handleSubmit()
-          }}
+          onSubmitClick={handleSubmit}
         />
       </div>
 
@@ -371,25 +385,7 @@ export function NoticeEditPage({
             setVoteDeleteDialogOpen(false)
             return
           }
-          void (async () => {
-            setIsDeletingVote(true)
-            try {
-              await deleteNoticeVoteByNoticeId(noticeId)
-              setAttachedVotePoll(null)
-              baselineAttachedVotePollRef.current = null
-              setVoteDeleteDialogOpen(false)
-              await queryClient.invalidateQueries({
-                queryKey: noticeKeys.detail(noticeId),
-              })
-            } catch {
-              showNoticeEditFailureToast(
-                toast,
-                NOTICE_EDIT_FAILURE_TOAST_MESSAGE,
-              )
-            } finally {
-              setIsDeletingVote(false)
-            }
-          })()
+          deleteVoteMutation.mutate(noticeId)
         }}
         onOpenChange={setVoteDeleteDialogOpen}
         open={voteDeleteDialogOpen}

@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Button, Dialog, Tag, useToast } from "@umc-product/react"
 import { useEffect, useRef, useState } from "react"
@@ -89,7 +89,9 @@ export function NoticeDetailPage({
   const createdMeta = `${notice.authorDisplay} · ${notice.createdAt}`
   const isImageLoading = imageLoadState === "loading"
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const deleteMutation = useMutation({
+    mutationFn: deleteNoticeById,
+  })
   const deleteDialogFocusStore = useRef<HTMLElement | null>(null)
 
   return (
@@ -221,7 +223,7 @@ export function NoticeDetailPage({
         description="삭제하면 챌린저 앱에서도 사라지고 되돌릴 수 없어요"
         open={isDeleteDialogOpen}
         onOpenChange={(open) => {
-          if (isDeleting && !open) {
+          if (deleteMutation.isPending && !open) {
             return
           }
           setIsDeleteDialogOpen(open)
@@ -233,18 +235,17 @@ export function NoticeDetailPage({
         cancelLabel="돌아가기"
         color="error"
         onConfirm={async () => {
-          if (isDeleting) {
+          if (deleteMutation.isPending) {
             return
           }
 
-          setIsDeleting(true)
           try {
             if (deleteOutcome === "network_error") {
               showNoticeErrorToast(toast, NOTICE_DELETE_FAILURE_TOAST_MESSAGE)
               return
             }
 
-            await deleteNoticeById(Number(notice.id))
+            await deleteMutation.mutateAsync(Number(notice.id))
             deleteDialogFocusStore.current = null
             setIsDeleteDialogOpen(false)
             showNoticePrimarySuccessToast(toast, NOTICE_DELETE_TOAST_MESSAGE)
@@ -264,8 +265,6 @@ export function NoticeDetailPage({
               getServerErrorMessage(error) ??
                 NOTICE_DELETE_FAILURE_TOAST_MESSAGE,
             )
-          } finally {
-            setIsDeleting(false)
           }
         }}
       />

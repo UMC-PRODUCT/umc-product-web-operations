@@ -1,6 +1,6 @@
 import "./notice-create-publish-dialog.css"
 
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { useBlocker, useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -75,7 +75,6 @@ export function NoticeCreatePage({
   const [form, setForm] = useState<NoticeCreateFormState>(
     INITIAL_NOTICE_CREATE_FORM,
   )
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false)
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
   const allowLeaveRef = useRef(false)
@@ -407,6 +406,53 @@ export function NoticeCreatePage({
     setLeaveDialogOpen(true)
   }
 
+  const submitMutation = useMutation({
+    mutationFn: submitNoticeCreate,
+    onSuccess: async (outcome, variables) => {
+      if (outcome.kind === "success") {
+        restoreNoticeDialogFocus(publishDialogFocusStore)
+        publishDialogFocusStore.current = null
+        setPublishDialogOpen(false)
+        allowLeaveRef.current = true
+        showNoticePrimarySuccessToast(toast, NOTICE_PUBLISH_TOAST_MESSAGE)
+        await navigate({
+          to: "/notices",
+          search: {},
+        })
+        return
+      }
+
+      if (outcome.kind === "validation_error") {
+        setPublishDialogOpen(false)
+        restoreNoticeDialogFocus(publishDialogFocusStore)
+        const hasTitleOrContentError =
+          !variables.form.title.trim() || !variables.form.content.trim()
+        if (!hasTitleOrContentError) {
+          showNoticeErrorToast(toast, outcome.message)
+        }
+        return
+      }
+
+      if (outcome.kind === "forbidden") {
+        setPublishDialogOpen(false)
+        restoreNoticeDialogFocus(publishDialogFocusStore)
+        showNoticeCreateForbiddenToast(
+          toast,
+          NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
+        )
+        return
+      }
+
+      setPublishNetworkError(true)
+    },
+    onError: () => {
+      setPublishDialogOpen(false)
+      restoreNoticeDialogFocus(publishDialogFocusStore)
+      setPublishNetworkError(true)
+    },
+  })
+  const isSubmitting = submitMutation.isPending
+
   const dismissPublishDialog = () => {
     if (isSubmitting) {
       return
@@ -428,67 +474,22 @@ export function NoticeCreatePage({
     setPublishDialogOpen(true)
   }
 
-  const handlePublishConfirm = async () => {
+  const handlePublishConfirm = () => {
     if (isSubmitting) {
       return
     }
 
-    setIsSubmitting(true)
     setPublishNetworkError(false)
     setShowRequiredFieldErrors(true)
 
-    try {
-      const outcome = await submitNoticeCreate({
-        adminSession,
-        form,
-        session,
-        operationGisuId: contextGisuId,
-        targetGeneration: contextGeneration,
-        voteDraft,
-      })
-
-      if (outcome.kind === "success") {
-        restoreNoticeDialogFocus(publishDialogFocusStore)
-        publishDialogFocusStore.current = null
-        setPublishDialogOpen(false)
-        allowLeaveRef.current = true
-        showNoticePrimarySuccessToast(toast, NOTICE_PUBLISH_TOAST_MESSAGE)
-        await navigate({
-          to: "/notices",
-          search: {},
-        })
-        return
-      }
-
-      if (outcome.kind === "validation_error") {
-        setPublishDialogOpen(false)
-        restoreNoticeDialogFocus(publishDialogFocusStore)
-        const hasTitleOrContentError =
-          !form.title.trim() || !form.content.trim()
-        if (!hasTitleOrContentError) {
-          showNoticeErrorToast(toast, outcome.message)
-        }
-        return
-      }
-
-      if (outcome.kind === "forbidden") {
-        setPublishDialogOpen(false)
-        restoreNoticeDialogFocus(publishDialogFocusStore)
-        showNoticeCreateForbiddenToast(
-          toast,
-          NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
-        )
-        return
-      }
-
-      setPublishNetworkError(true)
-    } catch {
-      setPublishDialogOpen(false)
-      restoreNoticeDialogFocus(publishDialogFocusStore)
-      setPublishNetworkError(true)
-    } finally {
-      setIsSubmitting(false)
-    }
+    submitMutation.mutate({
+      adminSession,
+      form,
+      session,
+      operationGisuId: contextGisuId,
+      targetGeneration: contextGeneration,
+      voteDraft,
+    })
   }
 
   return (
@@ -572,7 +573,7 @@ export function NoticeCreatePage({
         }
         onCancel={dismissPublishDialog}
         onConfirm={() => {
-          void handlePublishConfirm()
+          handlePublishConfirm()
         }}
         onOpenChange={(open) => {
           if (isSubmitting) {
