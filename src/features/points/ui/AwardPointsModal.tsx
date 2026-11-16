@@ -46,6 +46,7 @@ import type { PointsMember } from "../model/types"
 
 type AwardPayload = {
   tab: PointAwardTab
+  pointType?: PointTypeOption["pointType"]
   typeLabel: string
   score: number
   reason: string
@@ -124,8 +125,8 @@ export function AwardPointsModal({
   }, [discardOpen])
 
   const typeOptions = useMemo(
-    () => (tab === "other" ? [] : getPointTypeOptions(tab, member.role)),
-    [member.role, tab],
+    () => (tab === "other" ? [] : getPointTypeOptions(tab, member.roleTypes)),
+    [member.roleTypes, tab],
   )
 
   const selectedType = useMemo(
@@ -252,6 +253,7 @@ export function AwardPointsModal({
     setSubmitError(null)
     const outcome = await onSubmit({
       tab,
+      pointType: tab === "other" ? "CUSTOM" : selectedType?.pointType,
       typeLabel:
         tab === "other"
           ? otherKind === "reward"

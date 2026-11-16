@@ -193,11 +193,25 @@ describe("point grant body", () => {
     expect(
       toGrantPointBody({
         tab: "reward",
+        pointType: "BLOG_CHALLENGE",
         typeLabel: "블로그 챌린지",
         score: 3,
         reason: "제출",
       }),
     ).toEqual({ pointType: "BLOG_CHALLENGE", description: "제출" })
+
+    expect(
+      toGrantPointBody({
+        tab: "reward",
+        pointType: "SCHOOL_CORE_TASK_NOT_COMPLETED",
+        typeLabel: "업무 불이행",
+        score: -4,
+        reason: "미이행",
+      }),
+    ).toEqual({
+      pointType: "SCHOOL_CORE_TASK_NOT_COMPLETED",
+      description: "미이행",
+    })
 
     expect(
       toGrantPointBody({

@@ -1,4 +1,8 @@
-import { PE_PART_GENERATION, usesLegacyPartLabel } from "@/entities/member"
+import {
+  isRoleType,
+  PE_PART_GENERATION,
+  usesLegacyPartLabel,
+} from "@/entities/member"
 
 import type { RoleType } from "@/entities/member"
 import type { GisuOrganization } from "@/entities/organization"
@@ -280,6 +284,10 @@ export function toPointsMember(item: SearchMemberItem): PointsMember {
       : null
   const roles = mapMemberRoles(item)
   const primaryRole = roles[0] ?? CHALLENGER_ROLE
+  const roleTypes =
+    item.isAdminInActiveGisu === true
+      ? (item.roleTypes?.filter(isRoleType) ?? [])
+      : []
 
   return {
     id: String(item.memberId ?? item.challengerId ?? ""),
@@ -295,6 +303,7 @@ export function toPointsMember(item: SearchMemberItem): PointsMember {
     role: primaryRole.color,
     roleLabel: primaryRole.label,
     roles,
+    roleTypes,
     status: mapChallengerStatus(item.challengerStatus),
     challengerId: item.challengerId ?? null,
   }

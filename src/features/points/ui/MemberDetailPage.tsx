@@ -31,6 +31,7 @@ import { MemberProfileCard } from "./MemberProfileCard"
 import { PointHistoryEmpty } from "./PointHistoryEmpty"
 import { PointHistoryTable } from "./PointHistoryTable"
 
+import type { PointType } from "../api/challenger-points"
 import type { PointHistoryItem } from "../model/point-history"
 import type { PointAwardTab } from "../model/point-types"
 
@@ -45,6 +46,7 @@ type MemberDetailPageProps = {
 
 type PendingAward = {
   tab: PointAwardTab
+  pointType?: PointType
   typeLabel: string
   score: number
   reason: string
