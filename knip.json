@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/routes/**/*.{ts,tsx}!"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{js,mjs,ts}"],
+  "include": ["files", "dependencies", "unlisted", "binaries", "duplicates"]
+}
