@@ -242,7 +242,7 @@ export function NoticeCreateAudienceSection({
                   return
                 }
 
-                applyStaffScopeChange(value as NoticeCreateStaffScope)
+                applyStaffScopeChange(value)
               }}
               options={staffScopeOptions}
               size="sm"

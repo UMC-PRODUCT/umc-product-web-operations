@@ -155,8 +155,8 @@ export function PointHistoryTable({
           <div className="flex h-7 w-full items-center">
             {table.getHeaderGroups().map((headerGroup) =>
               headerGroup.headers.map((header) => {
-                const meta = header.column.columnDef.meta as
-                  ColumnMeta | undefined
+                const meta: ColumnMeta | undefined =
+                  header.column.columnDef.meta
                 return (
                   <div
                     className={meta?.headerClass ?? ""}
@@ -191,8 +191,8 @@ export function PointHistoryTable({
                 role="row"
               >
                 {row.getVisibleCells().map((cell) => {
-                  const meta = cell.column.columnDef.meta as
-                    ColumnMeta | undefined
+                  const meta: ColumnMeta | undefined =
+                    cell.column.columnDef.meta
                   return (
                     <div
                       className={cn("flex items-center", meta?.cellClass)}

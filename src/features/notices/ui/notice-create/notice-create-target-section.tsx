@@ -146,7 +146,7 @@ export function NoticeCreateTargetSection({
                 return
               }
 
-              const gisuMode = value as NoticeCreateGisuMode
+              const gisuMode = value
               if (gisuMode === "all") {
                 onChange({
                   chapterId: null,
@@ -204,7 +204,7 @@ export function NoticeCreateTargetSection({
               }
 
               onChange({
-                orgMode: value as NoticeCreateOrgMode,
+                orgMode: value,
                 chapterId: null,
                 schoolId: null,
               })

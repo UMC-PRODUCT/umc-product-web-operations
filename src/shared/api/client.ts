@@ -29,22 +29,18 @@ api.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
     if (!isAxiosError(error) || error.response?.status !== 401) {
-      return Promise.reject(error)
+      throw error
     }
 
     const config = error.config
     if (!config || isAuthEndpoint(requestUrl(config)) || config._retry) {
-      return Promise.reject(error)
+      throw error
     }
 
     config._retry = true
-    try {
-      const accessToken = await getSsoClient().recoverFromUnauthorized()
-      config.headers.set("Authorization", `Bearer ${accessToken}`)
-      return api.request(config)
-    } catch (renewError) {
-      return Promise.reject(renewError)
-    }
+    const accessToken = await getSsoClient().recoverFromUnauthorized()
+    config.headers.set("Authorization", `Bearer ${accessToken}`)
+    return api.request(config)
   },
 )
 

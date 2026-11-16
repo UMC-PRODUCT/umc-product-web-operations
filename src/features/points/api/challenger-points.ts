@@ -26,7 +26,7 @@ export type PointType =
 export type ChallengerPointInfo = {
   id: number
   challengerId?: number | null
-  pointType?: PointType | string | null
+  pointType?: PointType | (string & Record<never, never>) | null
   point?: number | string | null
   description?: string | null
   createdAt?: string | null

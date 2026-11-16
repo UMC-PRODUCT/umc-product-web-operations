@@ -216,6 +216,8 @@ export function NoticeCreateVotePanel({
         onClick={onClose}
       />
       <div className="fixed inset-0 z-[calc(var(--umc-z-dialog,1000)+1)] flex items-center justify-center p-(--umc-spacing-padding-32)">
+        {/* 포털 밖 React 트리 부모로 클릭이 버블링되지 않도록 막는 용도 (키보드 상호작용 아님) */}
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
         <div
           aria-labelledby={titleId}
           aria-modal="true"

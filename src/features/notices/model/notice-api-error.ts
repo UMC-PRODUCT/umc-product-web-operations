@@ -25,12 +25,12 @@ export function getNoticeApiErrorMessage(error: unknown): string | null {
   if (!isAxiosError(error)) {
     return null
   }
-  const data = error.response?.data
+  const data: unknown = error.response?.data
   if (data === null || typeof data !== "object") {
     return null
   }
 
-  const result = "result" in data ? (data as { result: unknown }).result : null
+  const result = "result" in data ? data.result : null
   if (typeof result === "string" && result.trim()) {
     return result.trim()
   }
@@ -38,6 +38,6 @@ export function getNoticeApiErrorMessage(error: unknown): string | null {
   if (!("message" in data)) {
     return null
   }
-  const message = (data as { message: unknown }).message
+  const message = data.message
   return typeof message === "string" && message.trim() ? message.trim() : null
 }
