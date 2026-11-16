@@ -1,23 +1,14 @@
 import { SearchField, Select } from "@umc-product/react"
 
 import type { OrganizationFilterOption } from "../model/map-search-member"
-import type { MemberPartFilter } from "../model/types"
 
 const ALL_OPTION = "all"
 
-const PART_OPTIONS = [
-  { value: ALL_OPTION, label: "파트 전체" },
-  { value: "pm", label: "PM" },
-  { value: "design", label: "Design" },
-  { value: "web-pe", label: "Web PE" },
-  { value: "mobile-pe", label: "Mobile PE" },
-] as const
-
-function toFilterValue<T extends string>(value: string | null): T | null {
+function toFilterValue(value: string | null): string | null {
   if (value == null || value === ALL_OPTION) {
     return null
   }
-  return value as T
+  return value
 }
 
 function filterSelectVariant(value: string | null): "default" | "filter" {
@@ -33,8 +24,9 @@ type PointsToolbarProps = {
   schoolOptions: readonly OrganizationFilterOption[]
   schoolDisabled?: boolean
   onSchoolChange: (value: string | null) => void
-  part: MemberPartFilter | null
-  onPartChange: (value: MemberPartFilter | null) => void
+  part: string | null
+  partOptions: readonly { value: string; label: string }[]
+  onPartChange: (value: string | null) => void
   query: string
   onQueryChange: (value: string) => void
 }
@@ -49,6 +41,7 @@ export function PointsToolbar({
   schoolDisabled = false,
   onSchoolChange,
   part,
+  partOptions,
   onPartChange,
   query,
   onQueryChange,
@@ -80,10 +73,8 @@ export function PointsToolbar({
       <Select
         aria-label="파트"
         className="w-auto shrink-0"
-        onValueChange={(value) =>
-          onPartChange(toFilterValue<MemberPartFilter>(value))
-        }
-        options={[...PART_OPTIONS]}
+        onValueChange={(value) => onPartChange(toFilterValue(value))}
+        options={[{ value: ALL_OPTION, label: "파트 전체" }, ...partOptions]}
         placeholder="파트 전체"
         size="md"
         value={part}

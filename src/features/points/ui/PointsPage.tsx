@@ -9,6 +9,7 @@ import { fetchGisuOrganization } from "../api/gisu-organization"
 import { MEMBER_SEARCH_PAGE_SIZE, searchMembers } from "../api/member-search"
 import { isForbiddenError } from "../model/http-status"
 import {
+  getPartFilterOptions,
   toChapterOptions,
   toMemberSearchPart,
   toOrganizationId,
@@ -19,8 +20,6 @@ import { MOCK_MEMBERS } from "../model/mock-members"
 import { MemberTable } from "./MemberTable"
 import { PointsToolbar } from "./PointsToolbar"
 import { useDebouncedValue } from "./use-debounced-value"
-
-import type { MemberPartFilter } from "../model/types"
 
 type LockedSchool = {
   schoolId: string
@@ -49,11 +48,20 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [chapterId, setChapterId] = useState<string | null>(null)
   const [schoolId, setSchoolId] = useState<string | null>(null)
-  const [part, setPart] = useState<MemberPartFilter | null>(null)
+  const [part, setPart] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const keyword = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
   const [page, setPage] = useState(0)
   const useMockRoles = mock === "roles"
+  const partOptions = useMemo(
+    () => getPartFilterOptions(selectedGisu.generation),
+    [selectedGisu.generation],
+  )
+
+  useEffect(() => {
+    setPart(null)
+    setPage(0)
+  }, [selectedGisu.generation])
 
   const resetPage = () => {
     setPage(0)
@@ -136,7 +144,7 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
       searchMembers({
         keyword: keyword || undefined,
         gisuId: selectedGisu.gisuId ?? undefined,
-        part: toMemberSearchPart(part),
+        part: toMemberSearchPart(part, selectedGisu.generation),
         chapterId: selectedChapterId,
         schoolId: selectedSchoolId,
         page,
@@ -206,6 +214,7 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
             resetPage()
           }}
           part={part}
+          partOptions={partOptions}
           query={query}
           schoolDisabled={filtersLocked}
           schoolId={lockedSchool?.schoolId ?? schoolId}

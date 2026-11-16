@@ -6,6 +6,7 @@ import {
   toPointHistoryItem,
 } from "./map-point-history"
 import {
+  getPartFilterOptions,
   toChapterOptions,
   toMemberSearchPart,
   toOrganizationId,
@@ -92,6 +93,18 @@ describe("challenger search mapping", () => {
       generationNumber: 10,
     })
     expect(usesLegacyPartLabel(member.generationNumber)).toBe(true)
+  })
+
+  it("uses API part enums for legacy generation filters", () => {
+    expect(getPartFilterOptions(10).map((option) => option.value)).toEqual([
+      "WEB",
+      "NODEJS",
+      "SPRINGBOOT",
+      "ANDROID",
+      "IOS",
+    ])
+    expect(toMemberSearchPart("SPRINGBOOT", 10)).toBe("SPRINGBOOT")
+    expect(toMemberSearchPart("web-pe", 11)).toBe("WEB_PRODUCT_ENGINEER")
   })
 
   it("builds chapter and school options from the organization response", () => {

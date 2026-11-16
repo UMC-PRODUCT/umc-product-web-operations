@@ -51,12 +51,50 @@ const PART_LABEL: Record<MemberSearchPart, string> = {
   ADMIN: "Admin",
 }
 
+const LEGACY_PART_FILTERS = new Set<MemberSearchPart>([
+  "WEB",
+  "NODEJS",
+  "SPRINGBOOT",
+  "ANDROID",
+  "IOS",
+])
+
+export const PE_PART_FILTER_OPTIONS = [
+  { value: "pm", label: "PM" },
+  { value: "design", label: "Design" },
+  { value: "web-pe", label: "Web PE" },
+  { value: "mobile-pe", label: "Mobile PE" },
+] as const
+
+export const LEGACY_PART_FILTER_OPTIONS = [
+  { value: "WEB", label: "Web" },
+  { value: "NODEJS", label: "Node.js" },
+  { value: "SPRINGBOOT", label: "Spring" },
+  { value: "ANDROID", label: "Android" },
+  { value: "IOS", label: "iOS" },
+] as const
+
+export function getPartFilterOptions(generation: number | null | undefined) {
+  if (usesLegacyPartLabel(generation)) {
+    return [...LEGACY_PART_FILTER_OPTIONS]
+  }
+  return [...PE_PART_FILTER_OPTIONS]
+}
+
 export function toMemberSearchPart(
-  part: MemberPartFilter | null,
+  part: string | null,
+  generation?: number | null,
 ): MemberSearchPart | undefined {
   if (!part) {
     return undefined
   }
+
+  if (usesLegacyPartLabel(generation)) {
+    return LEGACY_PART_FILTERS.has(part as MemberSearchPart)
+      ? (part as MemberSearchPart)
+      : undefined
+  }
+
   return PART_QUERY[part]
 }
 

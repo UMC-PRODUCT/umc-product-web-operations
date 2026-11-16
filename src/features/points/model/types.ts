@@ -8,6 +8,9 @@ export type MemberSchool = "cau" | "snu" | "yonsei"
 
 export type MemberPartFilter = PartTagPart
 
+/** 목록 필터 값 — PE 체계 태그 또는 10기 이하 API 파트 enum */
+export type MemberPartFilterValue = MemberPartFilter | MemberSearchPart
+
 export type MemberStatus = "active" | "graduated" | "expelled" | "withdrawn"
 
 export type PointsMemberRole = {
