@@ -6,7 +6,7 @@ on:
 
 jobs:
   verify:
-    name: Lint & Build
+    name: Lint, Test & Build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,8 +36,14 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Format check
+        run: pnpm format:check
+
       - name: FSD 경계 위반 래칫 체크
         run: pnpm lint:boundaries
+
+      - name: Test
+        run: pnpm test:run
 
       - name: Build
         run: pnpm build
