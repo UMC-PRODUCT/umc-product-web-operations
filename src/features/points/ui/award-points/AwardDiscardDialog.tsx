@@ -1,6 +1,5 @@
-import { Dialog, Dimmed } from "@umc-product/react"
+import { Dialog } from "@umc-product/react"
 import { useEffect } from "react"
-import { createPortal } from "react-dom"
 
 type AwardDiscardDialogProps = {
   open: boolean
@@ -9,8 +8,7 @@ type AwardDiscardDialogProps = {
 }
 
 /**
- * 이탈 확인: Panel 딤은 끄고(app.css), Dialog용 Dimmed(medium)만 켠다.
- * Dialog 자체 backdrop은 transparent.
+ * 이탈 확인: Panel 딤은 끄고(app.css), Dialog backdrop(medium)만 표시한다.
  */
 export function AwardDiscardDialog({
   open,
@@ -28,30 +26,18 @@ export function AwardDiscardDialog({
   }, [open])
 
   return (
-    <>
-      {open && typeof document !== "undefined"
-        ? createPortal(
-            <Dimmed
-              aria-hidden="true"
-              className="award-discard-dimmed"
-              intensity="medium"
-            />,
-            document.body,
-          )
-        : null}
-      <Dialog
-        cancelLabel="계속 작성"
-        color="brand"
-        confirmLabel="나가기"
-        description="지금 나가면 입력한 내용이 모두 사라져요"
-        onCancel={() => {
-          onOpenChange(false)
-        }}
-        onConfirm={onConfirm}
-        onOpenChange={onOpenChange}
-        open={open}
-        title="작성 중인 내용이 있어요"
-      />
-    </>
+    <Dialog
+      cancelLabel="계속 작성"
+      color="brand"
+      confirmLabel="나가기"
+      description="지금 나가면 입력한 내용이 모두 사라져요"
+      onCancel={() => {
+        onOpenChange(false)
+      }}
+      onConfirm={onConfirm}
+      onOpenChange={onOpenChange}
+      open={open}
+      title="작성 중인 내용이 있어요"
+    />
   )
 }

@@ -46,7 +46,6 @@ import { NoticeCreatePublishDialogErrorToast } from "./notice-create/notice-crea
 import { NoticeCreateSummaryPanel } from "./notice-create/notice-create-summary-panel"
 import { NoticeCreateVotePanel } from "./notice-create/notice-create-vote-panel"
 import { NoticeVoteDeleteDialog } from "./notice-create/notice-vote-delete-dialog"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
   restoreNoticeDialogFocus,
@@ -436,9 +435,6 @@ export function NoticeCreatePage({
         />
       </div>
 
-      {publishDialogOpen || isSubmitting ? (
-        <NoticeDialogDimmed intensity="medium" />
-      ) : null}
       <Dialog
         cancelLabel="돌아가기"
         className={
@@ -481,14 +477,12 @@ export function NoticeCreatePage({
         open={votePanelOpen}
       />
 
-      {voteDeleteDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <NoticeVoteDeleteDialog
         onConfirm={clearVoteDraft}
         onOpenChange={setVoteDeleteDialogOpen}
         open={voteDeleteDialogOpen}
       />
 
-      {leaveDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         cancelLabel="계속 작성"
         color="brand"

@@ -22,7 +22,6 @@ import {
   cancelNoticeVoteResponse,
   saveNoticeVoteResponse,
 } from "../model/submit-notice-vote"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
   restoreNoticeDialogFocus,
@@ -473,7 +472,6 @@ export function NoticeDetailVoteCard({
         </p>
       </article>
 
-      {endDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         cancelLabel="취소"
         color="brand"

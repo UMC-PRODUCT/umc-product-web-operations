@@ -28,7 +28,6 @@ import {
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
 import { NoticeCreateVotePanel } from "./notice-create/notice-create-vote-panel"
 import { NoticeVoteDeleteDialog } from "./notice-create/notice-vote-delete-dialog"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import { captureNoticeDialogFocus } from "./notice-dialog-focus"
 import { NoticeEditSummaryPanel } from "./notice-edit/notice-edit-summary-panel"
 import {
@@ -326,12 +325,6 @@ export function NoticeEditPage({
         />
       </div>
 
-      {leaveDialogOpen ||
-      deletedWhileEditingDialogOpen ||
-      voteDeleteDialogOpen ||
-      votePanelOpen ? (
-        <NoticeDialogDimmed intensity="medium" />
-      ) : null}
       <NoticeCreateVotePanel
         initialDraft={voteDraft ?? undefined}
         onClose={closeVotePanel}

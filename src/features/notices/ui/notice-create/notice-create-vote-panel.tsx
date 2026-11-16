@@ -1,26 +1,23 @@
-import { AddIcon, CloseIcon } from "@umc-product/icons"
+import { AddIcon } from "@umc-product/icons"
 import {
+  BottomSheetActions,
   Button,
   type CalendarRange,
   Checkbox,
-  Dimmed,
   Field,
-  IconButton,
+  Panel,
+  PanelCloseButton,
   ScrollFog,
 } from "@umc-product/react"
 import {
   useCallback,
   useEffect,
-  useId,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from "react"
-import { createPortal } from "react-dom"
 
 import { cn } from "@/shared/lib/cn"
-import { lockBodyScroll } from "@/shared/lib/lock-body-scroll"
 
 import {
   createInitialNoticeCreateVoteDraft,
@@ -59,18 +56,23 @@ export function NoticeCreateVotePanel({
   onCreate,
   open,
 }: NoticeCreateVotePanelProps) {
-  const titleId = useId()
   const [draft, setDraft] = useState<NoticeCreateVoteDraft>(
     initialDraft ?? createInitialNoticeCreateVoteDraft(),
   )
   const [openCalendarField, setOpenCalendarField] =
     useState<VoteDateField | null>(null)
   const [showValidationErrors, setShowValidationErrors] = useState(false)
-  const voteBodyScrollRef = useRef<HTMLDivElement>(null)
+  /**
+   * Panel 본문은 portal 로 늦게 마운트되므로 state 로 요소를 받아 effect 에 연결한다.
+   * 실제 스크롤 컨테이너는 DS Panel 본문 영역(= 이 요소의 부모)이다.
+   */
+  const [voteBodyElement, setVoteBodyElement] = useState<HTMLDivElement | null>(
+    null,
+  )
   const [showVoteBodyScrollFog, setShowVoteBodyScrollFog] = useState(false)
 
   const updateVoteBodyScrollFog = useCallback(() => {
-    const element = voteBodyScrollRef.current
+    const element = voteBodyElement?.parentElement
     if (element == null) {
       setShowVoteBodyScrollFog(false)
       return
@@ -79,7 +81,7 @@ export function NoticeCreateVotePanel({
     const atBottom =
       element.scrollTop + element.clientHeight >= element.scrollHeight - 1
     setShowVoteBodyScrollFog(hasOverflow && !atBottom)
-  }, [])
+  }, [voteBodyElement])
 
   useEffect(() => {
     if (open) {
@@ -105,7 +107,7 @@ export function NoticeCreateVotePanel({
     if (!open) {
       return
     }
-    const element = voteBodyScrollRef.current
+    const element = voteBodyElement?.parentElement
     if (element == null) {
       return
     }
@@ -122,25 +124,7 @@ export function NoticeCreateVotePanel({
       observer.disconnect()
       element.removeEventListener("scroll", updateVoteBodyScrollFog)
     }
-  }, [open, updateVoteBodyScrollFog])
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-    const unlock = lockBodyScroll()
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault()
-        onClose()
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown)
-      unlock()
-    }
-  }, [onClose, open])
+  }, [open, updateVoteBodyScrollFog, voteBodyElement])
 
   const calendarRanges = useMemo((): readonly CalendarRange[] => {
     if (draft.startDate && draft.endDate) {
@@ -204,259 +188,201 @@ export function NoticeCreateVotePanel({
     }))
   }
 
-  if (!open || typeof document === "undefined") {
-    return null
+  const handleCreate = () => {
+    setShowValidationErrors(true)
+    if (!isVoteDraftSubmittable(draft)) {
+      return
+    }
+    onCreate({
+      ...draft,
+      endTime: normalizeVoteTimeForSubmit(draft.endTime),
+      startTime: normalizeVoteTimeForSubmit(draft.startTime),
+    })
   }
 
-  return createPortal(
-    <>
-      <Dimmed
-        className="fixed inset-0 z-[var(--umc-z-dialog,1000)]"
-        intensity="medium"
-        onClick={onClose}
-      />
-      <div className="fixed inset-0 z-[calc(var(--umc-z-dialog,1000)+1)] flex items-center justify-center p-(--umc-spacing-padding-32)">
-        {/* 포털 밖 React 트리 부모로 클릭이 버블링되지 않도록 막는 용도 (키보드 상호작용 아님) */}
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
-        <div
-          aria-labelledby={titleId}
-          aria-modal="true"
-          className={cn(
-            "relative flex max-h-[min(720px,90vh)] w-full max-w-[512px] flex-col",
-            "overflow-hidden rounded-(--umc-radius-16) bg-white",
-            "pb-(--umc-spacing-padding-20) shadow-(--umc-shadow-drop-neutral-2)",
-          )}
-          onClick={(event) => {
-            event.stopPropagation()
-          }}
-          role="dialog"
-        >
-          <div className="flex shrink-0 items-start justify-between pt-(--umc-spacing-padding-32) pr-(--umc-spacing-padding-24) pl-(--umc-spacing-padding-32)">
-            <h2
-              className="text-heading-2-semibold text-neutral-default-900 px-(--umc-spacing-padding-4)"
-              id={titleId}
-            >
-              투표 만들기
-            </h2>
-            <IconButton
-              aria-label="닫기"
-              color="white"
-              icon={<CloseIcon aria-hidden size={20} />}
-              onClick={onClose}
-              size="sm"
-              type="button"
-              variant="weak"
-            />
-          </div>
+  return (
+    <Panel
+      actions={
+        <BottomSheetActions
+          layout="emphasis"
+          primary={{ label: "생성하기", onClick: handleCreate }}
+          secondary={{ label: "취소", onClick: onClose }}
+        />
+      }
+      headSlot={<PanelCloseButton />}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose()
+        }
+      }}
+      open={open}
+      title="투표 만들기"
+    >
+      <div ref={setVoteBodyElement}>
+        <div className="flex flex-col gap-(--umc-spacing-gap-12) py-(--umc-spacing-padding-20)">
+          <VoteFilledTextFieldBox
+            errorMessage={voteTitleError}
+            invalid={Boolean(voteTitleError)}
+            label="투표 제목"
+            onChange={(title) => {
+              patchDraft({ title })
+            }}
+            placeholder="제목을 입력하세요"
+            required
+            value={draft.title}
+          />
 
-          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex flex-col">
+            <div className="flex flex-col gap-(--umc-spacing-gap-8)">
+              {draft.options.map((option, index) => {
+                const optionError = getVoteOptionFieldError(
+                  option,
+                  showValidationErrors,
+                )
+
+                return (
+                  <VoteFilledTextFieldBox
+                    clearAriaLabel={
+                      canRemoveOption
+                        ? "항목 삭제"
+                        : VOTE_TEXT_FIELD_CLEAR_LABEL
+                    }
+                    errorMessage={optionError}
+                    invalid={Boolean(optionError)}
+                    key={`vote-option-${index}`}
+                    label={index === 0 ? "항목 (최소 2~5개)" : undefined}
+                    onChange={(nextValue) => {
+                      updateOption(index, nextValue)
+                    }}
+                    onClear={
+                      canRemoveOption
+                        ? () => {
+                            removeOption(index)
+                          }
+                        : undefined
+                    }
+                    placeholder="항목을 입력하세요"
+                    required={index === 0}
+                    value={option}
+                  />
+                )
+              })}
+              <Button
+                className="w-full"
+                color="neutral"
+                disabled={!canAddOption}
+                leadingIcon={<AddIcon aria-hidden size={14} weight="fill" />}
+                onClick={addOption}
+                size="sm"
+                type="button"
+                variant="weak"
+              >
+                항목 추가
+              </Button>
+            </div>
+            <Field
+              className="mt-(--umc-spacing-gap-20)"
+              label="투표 일시"
+              required
+            >
+              <div className="flex flex-col gap-(--umc-spacing-gap-8)">
+                <VoteDateTimeRow
+                  date={draft.startDate}
+                  dateField="start"
+                  label="시작"
+                  onClearDate={() => {
+                    patchDraft({ startDate: null })
+                    setOpenCalendarField(null)
+                  }}
+                  onDateChange={(date) => {
+                    patchDraft({ startDate: date })
+                    setOpenCalendarField(null)
+                  }}
+                  onDismissCalendar={() => {
+                    setOpenCalendarField(null)
+                  }}
+                  onOpenCalendar={toggleCalendar}
+                  onTimeChange={(startTime) => {
+                    patchDraft({ startTime })
+                  }}
+                  openCalendarField={openCalendarField}
+                  ranges={calendarRanges}
+                  time={draft.startTime}
+                  timeInvalid={isVoteTimeFieldInvalid(
+                    draft.startTime,
+                    showValidationErrors,
+                  )}
+                />
+                <VoteDateTimeRow
+                  date={draft.endDate}
+                  dateErrorMessage={voteDateTimeErrors.endDate}
+                  dateField="end"
+                  dateInvalid={Boolean(voteDateTimeErrors.endDate)}
+                  label="종료"
+                  onClearDate={() => {
+                    patchDraft({ endDate: null })
+                    setOpenCalendarField(null)
+                  }}
+                  onDateChange={(date) => {
+                    patchDraft({ endDate: date })
+                    setOpenCalendarField(null)
+                  }}
+                  onDismissCalendar={() => {
+                    setOpenCalendarField(null)
+                  }}
+                  onOpenCalendar={toggleCalendar}
+                  onTimeChange={(endTime) => {
+                    patchDraft({ endTime })
+                  }}
+                  openCalendarField={openCalendarField}
+                  ranges={calendarRanges}
+                  time={draft.endTime}
+                  timeInvalid={isVoteTimeFieldInvalid(
+                    draft.endTime,
+                    showValidationErrors,
+                  )}
+                />
+              </div>
+            </Field>
             <div
               className={cn(
-                "flex min-h-0 flex-1 flex-col gap-(--umc-spacing-gap-12)",
-                "overflow-y-auto px-(--umc-spacing-padding-32) py-(--umc-spacing-padding-20)",
+                "mt-(--umc-spacing-gap-20) flex flex-col",
+                "gap-(--umc-spacing-gap-12)",
               )}
-              ref={voteBodyScrollRef}
             >
-              <VoteFilledTextFieldBox
-                errorMessage={voteTitleError}
-                invalid={Boolean(voteTitleError)}
-                label="투표 제목"
-                onChange={(title) => {
-                  patchDraft({ title })
+              <Checkbox
+                checked={draft.isAnonymous}
+                color={draft.isAnonymous ? "brand" : "neutral"}
+                labelPlacement="end"
+                onCheckedChange={(checked) => {
+                  patchDraft({ isAnonymous: checked === true })
                 }}
-                placeholder="제목을 입력하세요"
-                required
-                value={draft.title}
-              />
-
-              <div className="flex flex-col">
-                <div className="flex flex-col gap-(--umc-spacing-gap-8)">
-                  {draft.options.map((option, index) => {
-                    const optionError = getVoteOptionFieldError(
-                      option,
-                      showValidationErrors,
-                    )
-
-                    return (
-                      <VoteFilledTextFieldBox
-                        clearAriaLabel={
-                          canRemoveOption
-                            ? "항목 삭제"
-                            : VOTE_TEXT_FIELD_CLEAR_LABEL
-                        }
-                        errorMessage={optionError}
-                        invalid={Boolean(optionError)}
-                        key={`vote-option-${index}`}
-                        label={index === 0 ? "항목 (최소 2~5개)" : undefined}
-                        onChange={(nextValue) => {
-                          updateOption(index, nextValue)
-                        }}
-                        onClear={
-                          canRemoveOption
-                            ? () => {
-                                removeOption(index)
-                              }
-                            : undefined
-                        }
-                        placeholder="항목을 입력하세요"
-                        required={index === 0}
-                        value={option}
-                      />
-                    )
-                  })}
-                  <Button
-                    className="w-full"
-                    color="neutral"
-                    disabled={!canAddOption}
-                    leadingIcon={
-                      <AddIcon aria-hidden size={14} weight="fill" />
-                    }
-                    onClick={addOption}
-                    size="sm"
-                    type="button"
-                    variant="weak"
-                  >
-                    항목 추가
-                  </Button>
-                </div>
-                <Field
-                  className="mt-(--umc-spacing-gap-20)"
-                  label="투표 일시"
-                  required
-                >
-                  <div className="flex flex-col gap-(--umc-spacing-gap-8)">
-                    <VoteDateTimeRow
-                      date={draft.startDate}
-                      dateField="start"
-                      label="시작"
-                      onClearDate={() => {
-                        patchDraft({ startDate: null })
-                        setOpenCalendarField(null)
-                      }}
-                      onDateChange={(date) => {
-                        patchDraft({ startDate: date })
-                        setOpenCalendarField(null)
-                      }}
-                      onDismissCalendar={() => {
-                        setOpenCalendarField(null)
-                      }}
-                      onOpenCalendar={toggleCalendar}
-                      onTimeChange={(startTime) => {
-                        patchDraft({ startTime })
-                      }}
-                      openCalendarField={openCalendarField}
-                      ranges={calendarRanges}
-                      time={draft.startTime}
-                      timeInvalid={isVoteTimeFieldInvalid(
-                        draft.startTime,
-                        showValidationErrors,
-                      )}
-                    />
-                    <VoteDateTimeRow
-                      date={draft.endDate}
-                      dateErrorMessage={voteDateTimeErrors.endDate}
-                      dateField="end"
-                      dateInvalid={Boolean(voteDateTimeErrors.endDate)}
-                      label="종료"
-                      onClearDate={() => {
-                        patchDraft({ endDate: null })
-                        setOpenCalendarField(null)
-                      }}
-                      onDateChange={(date) => {
-                        patchDraft({ endDate: date })
-                        setOpenCalendarField(null)
-                      }}
-                      onDismissCalendar={() => {
-                        setOpenCalendarField(null)
-                      }}
-                      onOpenCalendar={toggleCalendar}
-                      onTimeChange={(endTime) => {
-                        patchDraft({ endTime })
-                      }}
-                      openCalendarField={openCalendarField}
-                      ranges={calendarRanges}
-                      time={draft.endTime}
-                      timeInvalid={isVoteTimeFieldInvalid(
-                        draft.endTime,
-                        showValidationErrors,
-                      )}
-                    />
-                  </div>
-                </Field>
-                <div
-                  className={cn(
-                    "mt-(--umc-spacing-gap-20) flex flex-col",
-                    "gap-(--umc-spacing-gap-12)",
-                  )}
-                >
-                  <Checkbox
-                    checked={draft.isAnonymous}
-                    color={draft.isAnonymous ? "brand" : "neutral"}
-                    labelPlacement="end"
-                    onCheckedChange={(checked) => {
-                      patchDraft({ isAnonymous: checked === true })
-                    }}
-                    size="md"
-                  >
-                    익명투표
-                  </Checkbox>
-                  <Checkbox
-                    checked={draft.allowMultiple}
-                    color={draft.allowMultiple ? "brand" : "neutral"}
-                    labelPlacement="end"
-                    onCheckedChange={(checked) => {
-                      patchDraft({ allowMultiple: checked === true })
-                    }}
-                    size="md"
-                  >
-                    복수선택
-                  </Checkbox>
-                </div>
-              </div>
+                size="md"
+              >
+                익명투표
+              </Checkbox>
+              <Checkbox
+                checked={draft.allowMultiple}
+                color={draft.allowMultiple ? "brand" : "neutral"}
+                labelPlacement="end"
+                onCheckedChange={(checked) => {
+                  patchDraft({ allowMultiple: checked === true })
+                }}
+                size="md"
+              >
+                복수선택
+              </Checkbox>
             </div>
-            {showVoteBodyScrollFog ? (
-              <ScrollFog
-                aria-hidden
-                className="pointer-events-none absolute right-0 bottom-0 left-0 h-[74px]"
-                side="bottom"
-              />
-            ) : null}
-          </div>
-
-          <div className="grid shrink-0 grid-cols-3 gap-(--umc-spacing-gap-8) px-(--umc-spacing-padding-16) pt-(--umc-spacing-padding-16)">
-            <Button
-              color="neutral"
-              onClick={onClose}
-              size="md"
-              type="button"
-              variant="weak"
-            >
-              취소
-            </Button>
-            <Button
-              className="col-span-2"
-              color="brand"
-              onClick={() => {
-                setShowValidationErrors(true)
-                if (!isVoteDraftSubmittable(draft)) {
-                  return
-                }
-                onCreate({
-                  ...draft,
-                  endTime: normalizeVoteTimeForSubmit(draft.endTime),
-                  startTime: normalizeVoteTimeForSubmit(draft.startTime),
-                })
-              }}
-              size="md"
-              type="button"
-              variant="fill"
-            >
-              생성하기
-            </Button>
           </div>
         </div>
+        {showVoteBodyScrollFog ? (
+          <ScrollFog
+            aria-hidden
+            className="pointer-events-none sticky bottom-0 -mt-[74px] h-[74px]"
+            side="bottom"
+          />
+        ) : null}
       </div>
-    </>,
-    document.body,
+    </Panel>
   )
 }

@@ -6,7 +6,6 @@ import {
 } from "@umc-product/react"
 import dayjs from "dayjs"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { createPortal } from "react-dom"
 
 import { cn } from "@/shared/lib/cn"
 
@@ -177,31 +176,33 @@ export function VoteDateTimeRow({
 
   const hasDate = date != null
 
-  const calendarPopover = isCalendarOpen
-    ? createPortal(
-        <div
-          className={cn(
-            "fixed w-fit max-w-[calc(100vw-32px)] shrink-0",
-            calendarFixedPosition == null && "invisible",
-          )}
-          ref={calendarPopoverRef}
-          style={{
-            left: calendarFixedPosition?.left ?? 0,
-            top: calendarFixedPosition?.top ?? 0,
-            zIndex: VOTE_CALENDAR_POPOVER_Z_INDEX,
-          }}
-        >
-          <Calendar
-            className={cn("max-w-none shadow-(--umc-shadow-drop-neutral-2)")}
-            markedDates={[]}
-            onValueChange={onDateChange}
-            ranges={ranges}
-            value={date}
-          />
-        </div>,
-        document.body,
-      )
-    : null
+  /*
+   * 투표 Panel(DS, modal Dialog) 안에서 열리므로 portal 로 body 에 내보내지 않는다.
+   * (body 로 나가면 Dialog outside-press 로 Panel 이 닫힘.) `fixed` 라서 Panel 의
+   * overflow 에 잘리지 않고 뷰포트 기준 좌표를 그대로 쓴다.
+   */
+  const calendarPopover = isCalendarOpen ? (
+    <div
+      className={cn(
+        "fixed w-fit max-w-[calc(100vw-32px)] shrink-0",
+        calendarFixedPosition == null && "invisible",
+      )}
+      ref={calendarPopoverRef}
+      style={{
+        left: calendarFixedPosition?.left ?? 0,
+        top: calendarFixedPosition?.top ?? 0,
+        zIndex: VOTE_CALENDAR_POPOVER_Z_INDEX,
+      }}
+    >
+      <Calendar
+        className={cn("max-w-none shadow-(--umc-shadow-drop-neutral-2)")}
+        markedDates={[]}
+        onValueChange={onDateChange}
+        ranges={ranges}
+        value={date}
+      />
+    </div>
+  ) : null
 
   return (
     <div

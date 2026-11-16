@@ -20,7 +20,6 @@ import { NoticeDetailLinkCard } from "./notice-detail-link-card"
 import { NoticeDetailLoadingContents } from "./notice-detail-loading-contents"
 import { NoticeDetailMetaRow } from "./notice-detail-meta-row"
 import { NoticeDetailVoteCard } from "./notice-detail-vote-card"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
   restoreNoticeDialogFocus,
@@ -210,7 +209,6 @@ export function NoticeDetailPage({
       >
         목록으로
       </Button>
-      {isDeleteDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         title="이 공지를 삭제할까요?"
         description="삭제하면 챌린저 앱에서도 사라지고 되돌릴 수 없어요"
