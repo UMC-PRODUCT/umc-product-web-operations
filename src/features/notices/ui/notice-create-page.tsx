@@ -5,6 +5,8 @@ import { useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import { toOrganizationLists } from "@/entities/organization"
+
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
 import {
   normalizeNoticeCreateForm,
@@ -127,6 +129,11 @@ export function NoticeCreatePage({
     noticeListOrganizationQueryOptions(contextGisuId),
   )
 
+  const organizationLists = useMemo(
+    () => toOrganizationLists(organizationQuery.data),
+    [organizationQuery.data],
+  )
+
   const contextGeneration = useMemo(() => {
     if (contextGisuId == null) {
       return null
@@ -156,50 +163,56 @@ export function NoticeCreatePage({
     () =>
       resolveNoticeChapterPresidentChallengerLock(
         adminSession,
-        organizationQuery.data,
+        organizationLists,
       ),
-    [adminSession, organizationQuery.data],
+    [adminSession, organizationLists],
   )
 
   const chapterPresidentUnresolved =
     chapterPresidentLockResult.status === "unresolved"
 
+  const chapterPresidentLockedChapterId =
+    chapterPresidentLockResult.status === "locked"
+      ? chapterPresidentLockResult.lock.chapterId
+      : null
+
   const chapterPresidentCreateLock = useMemo(() => {
-    if (
-      chapterPresidentLockResult.status !== "locked" ||
-      session.gisuId == null
-    ) {
+    if (chapterPresidentLockedChapterId == null || session.gisuId == null) {
       return null
     }
 
     return {
-      chapterId: chapterPresidentLockResult.lock.chapterId,
+      chapterId: chapterPresidentLockedChapterId,
       targetGisuId: session.gisuId,
     }
-  }, [chapterPresidentLockResult, session.gisuId])
+  }, [chapterPresidentLockedChapterId, session.gisuId])
 
-  const schoolExecutiveCreateLock = useMemo(() => {
+  const schoolExecutiveLockedSchoolId = useMemo(() => {
     if (chapterPresidentCreateLock != null || session.gisuId == null) {
       return null
     }
 
     const resolved =
-      resolveNoticeSchoolExecutiveLock(adminSession, organizationQuery.data) ??
-      resolveNoticeSchoolStaffLock(adminSession, organizationQuery.data)
-    if (resolved == null) {
+      resolveNoticeSchoolExecutiveLock(adminSession, organizationLists) ??
+      resolveNoticeSchoolStaffLock(adminSession, organizationLists)
+    return resolved?.schoolId ?? null
+  }, [
+    adminSession,
+    chapterPresidentCreateLock,
+    organizationLists,
+    session.gisuId,
+  ])
+
+  const schoolExecutiveCreateLock = useMemo(() => {
+    if (schoolExecutiveLockedSchoolId == null || session.gisuId == null) {
       return null
     }
 
     return {
-      schoolId: resolved.schoolId,
+      schoolId: schoolExecutiveLockedSchoolId,
       targetGisuId: session.gisuId,
     }
-  }, [
-    adminSession,
-    chapterPresidentCreateLock,
-    organizationQuery.data,
-    session.gisuId,
-  ])
+  }, [schoolExecutiveLockedSchoolId, session.gisuId])
 
   const schoolStaffPartsRequired = useMemo(
     () =>
@@ -220,10 +233,12 @@ export function NoticeCreatePage({
     )
   }, [
     chapterPresidentChallengerOnly,
-    chapterPresidentCreateLock,
+    chapterPresidentLockedChapterId,
     contextGeneration,
-    schoolExecutiveCreateLock,
+    schoolExecutiveLockedSchoolId,
     session.gisuId,
+    chapterPresidentCreateLock,
+    schoolExecutiveCreateLock,
   ])
 
   useEffect(() => {
@@ -235,21 +250,25 @@ export function NoticeCreatePage({
     }
 
     setForm(resetNoticeCreateOrganization)
-  }, [chapterPresidentCreateLock, contextGisuId, schoolExecutiveCreateLock])
+  }, [
+    chapterPresidentCreateLock,
+    chapterPresidentLockedChapterId,
+    contextGisuId,
+    schoolExecutiveCreateLock,
+    schoolExecutiveLockedSchoolId,
+  ])
   const organization = useMemo(() => {
-    const chapters = organizationQuery.data?.chapters ?? []
-    const schools = organizationQuery.data?.schools ?? []
     const gisuOptions = (gisuListQuery.data ?? []).map((gisu) => ({
       value: String(gisu.gisuId),
       label: `${gisu.generation}기`,
     }))
 
-    return { chapters, gisuOptions, schools }
-  }, [
-    gisuListQuery.data,
-    organizationQuery.data?.chapters,
-    organizationQuery.data?.schools,
-  ])
+    return {
+      chapters: organizationLists.chapters,
+      gisuOptions,
+      schools: organizationLists.schools,
+    }
+  }, [gisuListQuery.data, organizationLists])
 
   const summaryLabels = useMemo(() => {
     const gisuLabel =

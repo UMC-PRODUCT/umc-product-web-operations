@@ -10,11 +10,12 @@ export function gisuOrganizationQueryKey(gisuId: number | null | undefined) {
   return ["gisu", "organization", gisuId ?? null] as const
 }
 
+/** 필요 시 원본 fetch 후 UI용 목록으로 변환한다. 쿼리 select에는 쓰지 않는다. */
 export async function fetchOrganizationLists(
   gisuId: number | null,
 ): Promise<OrganizationLists> {
   if (gisuId == null) {
-    return { chapters: [], schools: [], schoolsByChapterId: new Map() }
+    return toOrganizationLists(null)
   }
 
   const gisu = await fetchGisuOrganizationById(gisuId)
@@ -22,8 +23,9 @@ export async function fetchOrganizationLists(
 }
 
 /**
- * 조직 원본을 캐시하고 `select`로 목록 형태로 쓴다.
- * points·notices가 같은 키를 공유한다.
+ * 기수 조직 API 원본을 캐시한다.
+ * UI용 chapters/schools 목록은 소비 측에서 `toOrganizationLists(data)`로 변환한다.
+ * (`select`에서 Map을 만들면 렌더마다 참조가 바뀌어 무한 갱신될 수 있다.)
  */
 export function gisuOrganizationQueryOptions(gisuId: number | null) {
   return queryOptions({
@@ -31,12 +33,5 @@ export function gisuOrganizationQueryOptions(gisuId: number | null) {
     queryFn: () => fetchGisuOrganizationById(gisuId!),
     enabled: gisuId != null,
     staleTime: 60_000,
-  })
-}
-
-export function gisuOrganizationListsQueryOptions(gisuId: number | null) {
-  return queryOptions({
-    ...gisuOrganizationQueryOptions(gisuId),
-    select: (gisu) => toOrganizationLists(gisu),
   })
 }

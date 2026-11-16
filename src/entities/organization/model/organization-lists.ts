@@ -20,6 +20,13 @@ export type OrganizationLists = {
   schoolsByChapterId: Map<number, OrganizationSchoolOption[]>
 }
 
+/** `gisu == null`일 때 공유하는 빈 목록. 호출마다 새 Map을 만들지 않는다. */
+export const EMPTY_ORGANIZATION_LISTS: OrganizationLists = {
+  chapters: [],
+  schools: [],
+  schoolsByChapterId: new Map(),
+}
+
 function toChapterOption(
   chapter: OrganizationChapter,
 ): OrganizationChapterOption {
@@ -35,7 +42,7 @@ export function toOrganizationLists(
   gisu: Pick<GisuOrganization, "chapters" | "schools"> | null | undefined,
 ): OrganizationLists {
   if (gisu == null) {
-    return { chapters: [], schools: [], schoolsByChapterId: new Map() }
+    return EMPTY_ORGANIZATION_LISTS
   }
 
   const chapters: OrganizationChapterOption[] = []

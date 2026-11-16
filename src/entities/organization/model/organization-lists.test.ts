@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest"
 
-import { toOrganizationLists } from "./organization-lists"
+import {
+  EMPTY_ORGANIZATION_LISTS,
+  toOrganizationLists,
+} from "./organization-lists"
 
 describe("toOrganizationLists", () => {
+  it("returns the shared empty lists when gisu is null", () => {
+    expect(toOrganizationLists(null)).toBe(EMPTY_ORGANIZATION_LISTS)
+    expect(toOrganizationLists(undefined)).toBe(EMPTY_ORGANIZATION_LISTS)
+  })
+
   it("maps chapters and nested schools", () => {
     const result = toOrganizationLists({
       chapters: [

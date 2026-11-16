@@ -4,6 +4,8 @@ import { AddIcon } from "@umc-product/icons"
 import { Button, Pagination, Tab, TabList, Tabs } from "@umc-product/react"
 import { useEffect, useMemo, useRef } from "react"
 
+import { toOrganizationLists } from "@/entities/organization"
+
 import { normalizeNoticeListFiltersForApi } from "../model/build-notice-list-params"
 import { normalizeNoticeListFilters } from "../model/normalize-notice-list-filters"
 import { resolveNoticeChapterPresidentChallengerLock } from "../model/notice-chapter-president-access"
@@ -231,13 +233,18 @@ export function NoticeListPage({
     noticeListOrganizationQueryOptions(session.gisuId),
   )
 
+  const organizationLists = useMemo(
+    () => toOrganizationLists(organizationQuery.data),
+    [organizationQuery.data],
+  )
+
   const chapterPresidentLockResult = useMemo(
     () =>
       resolveNoticeChapterPresidentChallengerLock(
         adminSession,
-        organizationQuery.data,
+        organizationLists,
       ),
-    [adminSession, organizationQuery.data],
+    [adminSession, organizationLists],
   )
 
   const chapterPresidentContext =
@@ -249,14 +256,13 @@ export function NoticeListPage({
     chapterPresidentLockResult.status === "unresolved"
 
   const schoolExecutiveLock = useMemo(
-    () =>
-      resolveNoticeSchoolExecutiveLock(adminSession, organizationQuery.data),
-    [adminSession, organizationQuery.data],
+    () => resolveNoticeSchoolExecutiveLock(adminSession, organizationLists),
+    [adminSession, organizationLists],
   )
 
   const schoolStaffLock = useMemo(
-    () => resolveNoticeSchoolStaffLock(adminSession, organizationQuery.data),
-    [adminSession, organizationQuery.data],
+    () => resolveNoticeSchoolStaffLock(adminSession, organizationLists),
+    [adminSession, organizationLists],
   )
 
   const schoolScopedOrganizationLock = schoolExecutiveLock ?? schoolStaffLock
@@ -322,20 +328,20 @@ export function NoticeListPage({
       ]
     }
 
-    return organizationQuery.data?.schools ?? []
+    return organizationLists.schools
   }, [
     chapterPresidentChallengerLock,
     chapterPresidentUnresolved,
-    organizationQuery.data?.schools,
+    organizationLists.schools,
     schoolExecutiveChallengerLock,
   ])
 
   const chapterScopeOptions = useMemo(
     () =>
-      (organizationQuery.data?.chapters ?? []).map((chapter) =>
+      organizationLists.chapters.map((chapter) =>
         encodeChapterScope(chapter.id),
       ),
-    [organizationQuery.data?.chapters],
+    [organizationLists.chapters],
   )
 
   const schoolScopeOptions = useMemo(
@@ -453,7 +459,7 @@ export function NoticeListPage({
     isNoticeListScopeOutOfOrganization({
       audience,
       filters,
-      organization: organizationQuery.data ?? null,
+      organization: organizationQuery.data == null ? null : organizationLists,
     })
 
   const isForbidden = listState.isForbidden || isClientFilterForbidden
@@ -555,7 +561,7 @@ export function NoticeListPage({
 
         <NoticeListFiltersBar
           key={`${audience}-${session.gisuId ?? "none"}`}
-          chapterOptions={organizationQuery.data?.chapters ?? []}
+          chapterOptions={organizationLists.chapters}
           filters={{ ...filters, audience }}
           isOrganizationLoading={isOrganizationLoading}
           challengerLockedSchoolScope={challengerLockedSchoolScope}

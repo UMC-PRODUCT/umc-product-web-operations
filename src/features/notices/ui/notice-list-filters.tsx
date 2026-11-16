@@ -1,4 +1,4 @@
-﻿import { SearchField, Select } from "@umc-product/react"
+import { SearchField, Select } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"

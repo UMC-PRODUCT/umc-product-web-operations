@@ -1,7 +1,7 @@
 import {
   fetchOrganizationLists,
-  gisuOrganizationListsQueryOptions,
   gisuOrganizationQueryKey,
+  gisuOrganizationQueryOptions,
 } from "@/entities/organization"
 
 import type { OrganizationLists } from "@/entities/organization"
@@ -19,6 +19,7 @@ export async function fetchNoticeListOrganizationOptions(
   return fetchOrganizationLists(gisuId)
 }
 
+/** 기수 조직 원본 쿼리. 목록 형태는 `toOrganizationLists`로 변환한다. */
 export function noticeListOrganizationQueryOptions(gisuId: number | null) {
-  return gisuOrganizationListsQueryOptions(gisuId)
+  return gisuOrganizationQueryOptions(gisuId)
 }

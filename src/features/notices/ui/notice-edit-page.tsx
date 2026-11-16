@@ -3,6 +3,8 @@ import { useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useMemo, useRef, useState } from "react"
 
+import { toOrganizationLists } from "@/entities/organization"
+
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
 import { deleteNoticeVoteByNoticeId } from "../model/delete-notice-vote"
 import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
@@ -116,6 +118,11 @@ export function NoticeEditPage({
     noticeListOrganizationQueryOptions(contextGisuId),
   )
 
+  const organizationLists = useMemo(
+    () => toOrganizationLists(organizationQuery.data),
+    [organizationQuery.data],
+  )
+
   const contextGeneration = useMemo(() => {
     if (contextGisuId == null) {
       return null
@@ -132,19 +139,17 @@ export function NoticeEditPage({
   )
 
   const organization = useMemo(() => {
-    const chapters = organizationQuery.data?.chapters ?? []
-    const schools = organizationQuery.data?.schools ?? []
     const gisuOptions = (gisuListQuery.data ?? []).map((gisu) => ({
       value: String(gisu.gisuId),
       label: `${gisu.generation}기`,
     }))
 
-    return { chapters, gisuOptions, schools }
-  }, [
-    gisuListQuery.data,
-    organizationQuery.data?.chapters,
-    organizationQuery.data?.schools,
-  ])
+    return {
+      chapters: organizationLists.chapters,
+      gisuOptions,
+      schools: organizationLists.schools,
+    }
+  }, [gisuListQuery.data, organizationLists])
 
   const summaryLabels = useMemo(() => {
     const gisuLabel =
