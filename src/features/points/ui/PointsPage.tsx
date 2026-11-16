@@ -277,14 +277,15 @@ export function PointsPage({
               isLoading={isLoading}
               members={isLoading || isError || isForbidden ? [] : members}
               onAssignPoints={(memberId) => {
-                const member = members.find((item) => item.id === memberId)
+                const challengerId = members.find(
+                  (item) => item.id === memberId,
+                )?.challengerId
+                if (challengerId == null) {
+                  return
+                }
                 void navigate({
-                  to: "/activity/points/$memberId",
-                  params: { memberId },
-                  search:
-                    member?.challengerId != null
-                      ? { challengerId: member.challengerId }
-                      : {},
+                  to: "/activity/points/$challengerId",
+                  params: { challengerId: String(challengerId) },
                 })
               }}
               onRetry={() => {

@@ -5,45 +5,33 @@ import { onlyInDev } from "@/shared/lib/dev-only"
 
 type MemberDetailSearch = {
   state?: "error" | "forbidden"
-  challengerId?: number
 }
 
-function readChallengerId(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-  if (
-    typeof value === "string" &&
-    value !== "" &&
-    Number.isFinite(Number(value))
-  ) {
-    return Number(value)
-  }
-  return undefined
+function parseChallengerId(value: string): number | null {
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? id : null
 }
 
-export const Route = createFileRoute("/_admin/activity/points/$memberId")({
+export const Route = createFileRoute("/_admin/activity/points/$challengerId")({
   validateSearch: (search: Record<string, unknown>): MemberDetailSearch => ({
     state: onlyInDev(
       search.state === "error" || search.state === "forbidden"
         ? search.state
         : undefined,
     ),
-    challengerId: readChallengerId(search.challengerId),
   }),
   component: MemberDetailRoute,
 })
 
 function MemberDetailRoute() {
-  const { memberId } = Route.useParams()
-  const { state, challengerId } = Route.useSearch()
+  const { challengerId } = Route.useParams()
+  const { state } = Route.useSearch()
 
   return (
     <MemberDetailPage
-      challengerId={challengerId}
+      challengerId={parseChallengerId(challengerId)}
       isError={state === "error"}
       isForbidden={state === "forbidden"}
-      memberId={memberId}
     />
   )
 }

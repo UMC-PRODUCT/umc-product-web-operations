@@ -153,12 +153,9 @@ export function toGrantPointBody(input: {
   return { pointType, description }
 }
 
-export function toDetailMember(
-  info: ChallengerInfo,
-  memberId: string,
-): PointsMember {
+export function toDetailMember(info: ChallengerInfo): PointsMember {
   const mapped = toPointsMember({
-    memberId: info.memberId ?? Number(memberId),
+    memberId: info.memberId,
     name: info.name,
     nickname: info.nickname,
     schoolName: info.schoolName,
@@ -173,7 +170,7 @@ export function toDetailMember(
   })
   return {
     ...mapped,
-    id: memberId,
+    id: String(info.memberId ?? info.challengerId),
     regionLabel: info.chapterName ?? undefined,
   }
 }

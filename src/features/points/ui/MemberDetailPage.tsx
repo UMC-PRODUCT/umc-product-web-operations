@@ -31,6 +31,7 @@ import { AwardPointsModal } from "./AwardPointsModal"
 import { DeletePointHistoryDialog } from "./DeletePointHistoryDialog"
 import { MemberDetailNetworkError } from "./MemberDetailNetworkError"
 import { MemberDetailPermissionDenied } from "./MemberDetailPermissionDenied"
+import { MemberDetailSkeleton } from "./MemberDetailSkeleton"
 import { MemberProfileCard } from "./MemberProfileCard"
 import { PointHistoryEmpty } from "./PointHistoryEmpty"
 import { PointHistoryTable } from "./PointHistoryTable"
@@ -40,8 +41,8 @@ import type { PointHistoryItem } from "../model/point-history"
 import type { PointAwardTab } from "../model/point-types"
 
 type MemberDetailPageProps = {
-  memberId: string
-  challengerId?: number
+  /** URL 경로의 챌린저 id. 유효하지 않으면 null */
+  challengerId: number | null
   /** 쿼리로 에러/권한 화면을 열 때 사용한다. (개발 모드 전용) */
   isError?: boolean
   isForbidden?: boolean
@@ -59,7 +60,6 @@ type PendingAward = {
 const adminRouteApi = getRouteApi("/_admin")
 
 export function MemberDetailPage({
-  memberId,
   challengerId,
   isError = false,
   isForbidden = false,
@@ -97,10 +97,8 @@ export function MemberDetailPage({
   const summary = useMemo(() => buildSummary(history), [history])
   const member = useMemo(
     () =>
-      challengerQuery.data
-        ? toDetailMember(challengerQuery.data, memberId)
-        : undefined,
-    [challengerQuery.data, memberId],
+      challengerQuery.data ? toDetailMember(challengerQuery.data) : undefined,
+    [challengerQuery.data],
   )
 
   const forbidden = isForbidden || isForbiddenError(challengerQuery.error)
@@ -199,14 +197,18 @@ export function MemberDetailPage({
     )
   }
 
-  if (challengerQuery.isPending || !member) {
-    return challengerId == null ? (
+  if (challengerId == null) {
+    return (
       <section className="flex flex-col gap-(--umc-spacing-gap-20)">
         <p className="text-body-3-regular text-neutral-medium-600">
           구성원을 찾을 수 없어요
         </p>
       </section>
-    ) : null
+    )
+  }
+
+  if (challengerQuery.isPending || !member) {
+    return <MemberDetailSkeleton />
   }
 
   return (
