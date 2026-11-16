@@ -52,6 +52,3 @@ function requestUrl(config: InternalAxiosRequestConfig) {
   const baseURL = config.baseURL ?? ""
   return `${baseURL}${config.url ?? ""}`
 }
-
-/** @deprecated `api`를 사용한다 */
-export const apiClient = api
