@@ -28,8 +28,6 @@ type NoticeDetailSearch = {
   imageLoadState?: NoticeImageLoadState
   /** QA: `loading`에서 mock success 자동 전환 끔 */
   imageLoadPause?: boolean
-  /** TODO: API 연동 시 제거. mock 조회자 작성자명 */
-  viewerAuthor?: string
 }
 
 function parseImageLoadState(
@@ -69,11 +67,6 @@ export const Route = createFileRoute("/_admin/notices/$noticeId")({
         ? true
         : undefined,
     ),
-    viewerAuthor: onlyInDev(
-      typeof search.viewerAuthor === "string" && search.viewerAuthor.length > 0
-        ? search.viewerAuthor
-        : undefined,
-    ),
   }),
   loader: async ({ params }) => loadNoticeDetail(params.noticeId),
   component: NoticeDetailRoute,
@@ -91,13 +84,8 @@ function NoticeDetailRoute() {
   const session = toNoticeOperatorSession(adminSession, {
     gisuId: selectedGisuId,
   })
-  const {
-    deleteOutcome,
-    imageLoadPause,
-    imageLoadState,
-    listAudience,
-    viewerAuthor,
-  } = Route.useSearch()
+  const { deleteOutcome, imageLoadPause, imageLoadState, listAudience } =
+    Route.useSearch()
 
   if (isEditRoute) {
     return <Outlet />
@@ -112,12 +100,7 @@ function NoticeDetailRoute() {
   }
 
   const { notice } = loaderData
-  const canManageNotice = canManageNoticeDetail(
-    notice,
-    session,
-    viewerAuthor,
-    adminSession.name,
-  )
+  const canManageNotice = canManageNoticeDetail(notice, session)
 
   return (
     <NoticeDetailPage
