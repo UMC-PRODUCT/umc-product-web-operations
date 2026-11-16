@@ -39,7 +39,10 @@ import {
   isNoticeSchoolStaffContext,
   resolveNoticeSchoolStaffLock,
 } from "../model/notice-school-staff-access"
-import { submitNoticeCreate } from "../model/submit-notice-create"
+import {
+  submitNoticeCreate,
+  type SubmitNoticeCreateProgress,
+} from "../model/submit-notice-create"
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
 import { NoticeCreatePublishDialogErrorToast } from "./notice-create/notice-create-publish-dialog-error-toast"
 import { NoticeCreateSummaryPanel } from "./notice-create/notice-create-summary-panel"
@@ -83,6 +86,8 @@ export function NoticeCreatePage({
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const [publishNetworkError, setPublishNetworkError] = useState(false)
   const publishDialogFocusStore = useRef<HTMLElement | null>(null)
+  /** 게시 실패 후 재시도 시 완료된 단계(이미지·공지·첨부·투표)를 건너뛰기 위한 진행 상황 */
+  const submitProgressRef = useRef<SubmitNoticeCreateProgress | null>(null)
   const [votePanelOpen, setVotePanelOpen] = useState(false)
   const [voteDeleteDialogOpen, setVoteDeleteDialogOpen] = useState(false)
   const [voteDraft, setVoteDraft] = useState<NoticeCreateVoteDraft | null>(null)
@@ -366,6 +371,8 @@ export function NoticeCreatePage({
   const targetSummaryLine = summary.targetLine
 
   const patchForm = (patch: Partial<NoticeCreateFormState>) => {
+    // 입력이 바뀌면 이전 실패 시도의 진행 상황은 더 이상 유효하지 않다
+    submitProgressRef.current = null
     setForm((current) => ({ ...current, ...patch }))
     if ("title" in patch || "content" in patch) {
       setShowRequiredFieldErrors(false)
@@ -410,6 +417,7 @@ export function NoticeCreatePage({
     mutationFn: submitNoticeCreate,
     onSuccess: async (outcome, variables) => {
       if (outcome.kind === "success") {
+        submitProgressRef.current = null
         restoreNoticeDialogFocus(publishDialogFocusStore)
         publishDialogFocusStore.current = null
         setPublishDialogOpen(false)
@@ -482,6 +490,9 @@ export function NoticeCreatePage({
     setPublishNetworkError(false)
     setShowRequiredFieldErrors(true)
 
+    const progress = submitProgressRef.current ?? {}
+    submitProgressRef.current = progress
+
     submitMutation.mutate({
       adminSession,
       form,
@@ -489,6 +500,7 @@ export function NoticeCreatePage({
       operationGisuId: contextGisuId,
       targetGeneration: contextGeneration,
       voteDraft,
+      progress,
     })
   }
 
@@ -601,6 +613,7 @@ export function NoticeCreatePage({
           setVotePanelOpen(false)
         }}
         onCreate={(draft) => {
+          submitProgressRef.current = null
           setVoteDraft(draft)
           setVotePanelOpen(false)
         }}
@@ -610,6 +623,7 @@ export function NoticeCreatePage({
       {voteDeleteDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <NoticeVoteDeleteDialog
         onConfirm={() => {
+          submitProgressRef.current = null
           setVoteDraft(null)
           setVoteDeleteDialogOpen(false)
         }}

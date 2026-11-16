@@ -307,6 +307,10 @@ export function NoticeEditPage({
     setShowRequiredFieldErrors(true)
 
     submitMutation.mutate({
+      baselineImageIds: baselineFormRef.current.existingImages.map(
+        (image) => image.fileId,
+      ),
+      baselineLinks: baselineFormRef.current.links,
       form,
       noticeId,
       voteDraft: attachedVotePoll == null ? voteDraft : null,

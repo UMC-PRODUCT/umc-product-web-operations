@@ -93,6 +93,73 @@ describe("submitNoticeEdit", () => {
     expect(replaceNoticeImages).toHaveBeenCalledWith(2, [])
   })
 
+  it("skips replace calls when links and images are unchanged from baseline", async () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      title: "t",
+      content: "c",
+      links: ["https://example.com"],
+      existingImages: [{ fileId: "existing-1", src: "https://img/1" }],
+      imageFiles: [],
+    }
+
+    const outcome = await submitNoticeEdit({
+      baselineImageIds: ["existing-1"],
+      baselineLinks: ["https://example.com"],
+      form,
+      noticeId: 5,
+    })
+
+    expect(outcome).toEqual({ kind: "success" })
+    expect(patchNotice).toHaveBeenCalled()
+    expect(replaceNoticeLinks).not.toHaveBeenCalled()
+    expect(replaceNoticeImages).not.toHaveBeenCalled()
+  })
+
+  it("still calls replace with empty arrays when baseline content is cleared", async () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      title: "t",
+      content: "c",
+      links: [],
+      existingImages: [],
+      imageFiles: [],
+    }
+
+    await submitNoticeEdit({
+      baselineImageIds: ["existing-1"],
+      baselineLinks: ["https://example.com"],
+      form,
+      noticeId: 6,
+    })
+
+    expect(replaceNoticeLinks).toHaveBeenCalledWith(6, [])
+    expect(replaceNoticeImages).toHaveBeenCalledWith(6, [])
+  })
+
+  it("calls NOTICE-104 when new files are added even if existing ids match baseline", async () => {
+    uploadNoticeImageFiles.mockResolvedValue(["new-1"])
+    const file = new File(["x"], "a.png", { type: "image/png" })
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      title: "t",
+      content: "c",
+      links: [],
+      existingImages: [{ fileId: "existing-1", src: "https://img/1" }],
+      imageFiles: [file],
+    }
+
+    await submitNoticeEdit({
+      baselineImageIds: ["existing-1"],
+      baselineLinks: [],
+      form,
+      noticeId: 7,
+    })
+
+    expect(replaceNoticeLinks).not.toHaveBeenCalled()
+    expect(replaceNoticeImages).toHaveBeenCalledWith(7, ["existing-1", "new-1"])
+  })
+
   it("calls NOTICE-103 after content save when voteDraft is provided", async () => {
     const form = {
       ...INITIAL_NOTICE_CREATE_FORM,

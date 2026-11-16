@@ -69,10 +69,18 @@ export function isNoticeEditFormDirty(
   return JSON.stringify(form) !== JSON.stringify(baseline)
 }
 
+function isSameStringList(a: readonly string[], b: readonly string[]) {
+  return a.length === b.length && a.every((value, index) => value === b[index])
+}
+
 export async function submitNoticeEdit(input: {
   form: NoticeCreateFormState
   noticeId: number
   voteDraft?: NoticeCreateVoteDraft | null
+  /** 수정 진입 시점 링크. 전달하면 변경이 없을 때 NOTICE-105를 생략한다 (빈 배열로 비우는 변경은 호출) */
+  baselineLinks?: readonly string[]
+  /** 수정 진입 시점 이미지 fileId. 전달하고 새 파일도 없으면 변경이 없을 때 NOTICE-104를 생략한다 */
+  baselineImageIds?: readonly string[]
 }): Promise<SubmitNoticeEditOutcome> {
   const validationMessage = validateNoticeEditForm(input.form)
   if (validationMessage) {
@@ -95,17 +103,34 @@ export async function submitNoticeEdit(input: {
       mustRead: input.form.mustRead,
     })
 
-    await replaceNoticeLinks(input.noticeId, input.form.links)
+    const linksUnchanged =
+      input.baselineLinks != null &&
+      isSameStringList(input.form.links, input.baselineLinks)
+    const hasNewImageFiles = input.form.imageFiles.length > 0
+    const existingImageIds = input.form.existingImages.map(
+      (image) => image.fileId,
+    )
+    const imagesUnchanged =
+      !hasNewImageFiles &&
+      input.baselineImageIds != null &&
+      isSameStringList(existingImageIds, input.baselineImageIds)
 
-    const newImageIds =
-      input.form.imageFiles.length > 0
+    const replaceImages = async () => {
+      const newImageIds = hasNewImageFiles
         ? await uploadNoticeImageFiles(input.form.imageFiles)
         : []
-    const imageIds = [
-      ...input.form.existingImages.map((image) => image.fileId),
-      ...newImageIds,
-    ]
-    await replaceNoticeImages(input.noticeId, imageIds)
+      await replaceNoticeImages(input.noticeId, [
+        ...existingImageIds,
+        ...newImageIds,
+      ])
+    }
+
+    await Promise.all([
+      linksUnchanged
+        ? Promise.resolve()
+        : replaceNoticeLinks(input.noticeId, input.form.links),
+      imagesUnchanged ? Promise.resolve() : replaceImages(),
+    ])
 
     if (input.voteDraft != null) {
       await addNoticeVote(

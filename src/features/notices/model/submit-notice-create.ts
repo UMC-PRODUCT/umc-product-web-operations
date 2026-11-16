@@ -38,11 +38,23 @@ import type { NoticeAdminAccessContext } from "./notice-admin-access-context"
 import type { NoticeCreateVoteDraft } from "./notice-create-vote-draft"
 import type { NoticeOperatorSession } from "./notice-session"
 
+/** 재시도 시 건너뛸 수 있도록 완료된 단계를 기록한다. 인덱스는 buildCreateNoticeRequests 순서. */
+export type SubmitNoticeCreateProgress = {
+  imageIds?: string[]
+  noticeIds?: (number | null)[]
+  attached?: boolean[]
+  voted?: boolean[]
+}
+
 export type SubmitNoticeCreateOutcome =
   | { kind: "success"; noticeId: number }
-  | { kind: "forbidden" }
-  | { kind: "network_error" }
-  | { kind: "validation_error"; message: string }
+  | { kind: "forbidden"; progress?: SubmitNoticeCreateProgress }
+  | { kind: "network_error"; progress?: SubmitNoticeCreateProgress }
+  | {
+      kind: "validation_error"
+      message: string
+      progress?: SubmitNoticeCreateProgress
+    }
 
 export function validateNoticeCreateForm(
   form: NoticeCreateFormState,
@@ -109,7 +121,7 @@ export function validateNoticeCreateForm(
   return null
 }
 
-/** NOTICE-105 / NOTICE-104 — 등록 직후 링크·이미지 전체 교체 */
+/** NOTICE-105 / NOTICE-104 — 등록 직후 링크·이미지 전체 교체 (비어 있으면 생략, 둘 다 있으면 병렬) */
 async function attachNoticeContent(
   noticeId: number,
   input: {
@@ -117,8 +129,14 @@ async function attachNoticeContent(
     links: string[]
   },
 ): Promise<void> {
-  await replaceNoticeLinks(noticeId, input.links)
-  await replaceNoticeImages(noticeId, input.imageIds)
+  const tasks: Promise<void>[] = []
+  if (input.links.length > 0) {
+    tasks.push(replaceNoticeLinks(noticeId, input.links))
+  }
+  if (input.imageIds.length > 0) {
+    tasks.push(replaceNoticeImages(noticeId, input.imageIds))
+  }
+  await Promise.all(tasks)
 }
 
 export async function submitNoticeCreate(input: {
@@ -133,6 +151,11 @@ export async function submitNoticeCreate(input: {
   /** 대상 기수의 generation — 10기 이하 레거시 파트를 API enum으로 변환 */
   targetGeneration?: number | null
   voteDraft?: NoticeCreateVoteDraft | null
+  /**
+   * 이전 시도에서 완료된 단계. 전달하면 해당 단계는 건너뛰고 재시도한다.
+   * 같은 객체를 제자리에서 갱신하므로, 예외로 중단돼도 호출부 ref에 진행 상황이 남는다.
+   */
+  progress?: SubmitNoticeCreateProgress
 }): Promise<SubmitNoticeCreateOutcome> {
   const validationMessage = validateNoticeCreateForm(input.form, {
     schoolStaffPartsRequired:
@@ -157,11 +180,16 @@ export async function submitNoticeCreate(input: {
     return { kind: "network_error" }
   }
 
+  const progress: SubmitNoticeCreateProgress = input.progress ?? {}
+
   try {
-    const imageIds =
-      input.form.imageFiles.length > 0
-        ? await uploadNoticeImageFiles(input.form.imageFiles)
-        : []
+    if (progress.imageIds == null) {
+      progress.imageIds =
+        input.form.imageFiles.length > 0
+          ? await uploadNoticeImageFiles(input.form.imageFiles)
+          : []
+    }
+    const imageIds = progress.imageIds
 
     const requests = buildCreateNoticeRequests(
       input.form,
@@ -169,35 +197,55 @@ export async function submitNoticeCreate(input: {
       input.targetGeneration ?? null,
     )
 
-    const noticeIds: number[] = []
-    for (const request of requests) {
-      const noticeId = await postNotice(request)
-      await attachNoticeContent(noticeId, {
-        imageIds,
-        links: input.form.links,
-      })
-      noticeIds.push(noticeId)
+    if (progress.noticeIds?.length !== requests.length) {
+      progress.noticeIds = requests.map(() => null)
+      progress.attached = requests.map(() => false)
+      progress.voted = requests.map(() => false)
     }
+    const noticeIds = progress.noticeIds
+    const attached = progress.attached ?? requests.map(() => false)
+    const voted = progress.voted ?? requests.map(() => false)
+    progress.attached = attached
+    progress.voted = voted
 
-    if (input.voteDraft != null && noticeIds.length > 0) {
-      const voteBody = buildAddNoticeVoteRequest(input.voteDraft)
-      for (const noticeId of noticeIds) {
-        await addNoticeVote(noticeId, voteBody)
+    for (const [index, request] of requests.entries()) {
+      let noticeId = noticeIds[index]
+      if (noticeId == null) {
+        noticeId = await postNotice(request)
+        noticeIds[index] = noticeId
+      }
+      if (!attached[index]) {
+        await attachNoticeContent(noticeId, {
+          imageIds,
+          links: input.form.links,
+        })
+        attached[index] = true
       }
     }
 
-    const noticeId = noticeIds.at(-1) ?? 0
+    if (input.voteDraft != null) {
+      const voteBody = buildAddNoticeVoteRequest(input.voteDraft)
+      for (const [index, noticeId] of noticeIds.entries()) {
+        if (noticeId == null || voted[index]) {
+          continue
+        }
+        await addNoticeVote(noticeId, voteBody)
+        voted[index] = true
+      }
+    }
+
+    const noticeId = noticeIds.findLast((id) => id != null) ?? 0
     return { kind: "success", noticeId }
   } catch (error) {
     if (isNoticeForbiddenError(error)) {
-      return { kind: "forbidden" }
+      return { kind: "forbidden", progress }
     }
     const apiMessage = getNoticeApiErrorMessage(error)
     if (getHttpStatus(error) === 400 && apiMessage) {
-      return { kind: "validation_error", message: apiMessage }
+      return { kind: "validation_error", message: apiMessage, progress }
     }
     if (isNoticeNetworkError(error) || isAxiosError(error)) {
-      return { kind: "network_error" }
+      return { kind: "network_error", progress }
     }
     throw error
   }
