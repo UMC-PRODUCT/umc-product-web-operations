@@ -76,9 +76,5 @@ export async function uploadStorageFiles(
   files: File[],
   category: StorageFileCategory,
 ): Promise<string[]> {
-  const fileIds: string[] = []
-  for (const file of files) {
-    fileIds.push(await uploadStorageFile(file, category))
-  }
-  return fileIds
+  return Promise.all(files.map((file) => uploadStorageFile(file, category)))
 }
