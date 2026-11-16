@@ -186,22 +186,6 @@ export function toDetailMember(
   return {
     ...mapped,
     id: memberId,
-    region: guessRegionFromChapter(info.chapterName),
     regionLabel: info.chapterName ?? undefined,
   }
-}
-
-function guessRegionFromChapter(
-  chapterName: string | null | undefined,
-): PointsMember["region"] {
-  if (!chapterName) {
-    return "seoul"
-  }
-  if (chapterName.includes("경기")) {
-    return "gyeonggi"
-  }
-  if (chapterName.includes("충청")) {
-    return "chungcheong"
-  }
-  return "seoul"
 }

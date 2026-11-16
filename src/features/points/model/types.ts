@@ -2,10 +2,6 @@ import type { PartTagPart, RoleTagColor } from "@umc-product/react"
 
 import type { MemberSearchPart } from "../api/member-search"
 
-export type MemberRegion = "seoul" | "gyeonggi" | "chungcheong"
-
-export type MemberSchool = "cau" | "snu" | "yonsei"
-
 export type MemberPartFilter = PartTagPart
 
 /** 목록 필터 값 — PE 체계 태그 또는 10기 이하 API 파트 enum */
@@ -22,9 +18,7 @@ export type PointsMember = {
   id: string
   name: string
   nickname: string
-  school: MemberSchool
   schoolLabel: string
-  region: MemberRegion
   part: PartTagPart
   /** API 원본 파트. 11기 미만 색·라벨 매핑에 사용 */
   sourcePart?: MemberSearchPart | null
@@ -38,7 +32,7 @@ export type PointsMember = {
   status: MemberStatus
   /** 상벌점 API 경로에 쓰는 챌린저 id. 목록 검색 결과에서 채운다. */
   challengerId?: number | null
-  /** 프로필에 보일 지부명. 없으면 region 라벨을 쓴다. */
+  /** 프로필에 보일 지부명. API `chapterName` */
   regionLabel?: string
   /**
    * API 파트 표시명 (Web, Node.js 등).

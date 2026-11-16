@@ -5,7 +5,7 @@ import {
   memberStatusLabel,
   memberStatusTagColor,
 } from "../model/map-search-member"
-import { getPartLabel, getRegionLabel } from "../model/member-labels"
+import { getPartLabel } from "../model/member-labels"
 import { formatPointScore } from "../model/point-history"
 
 import type { MemberPointSummary } from "../model/point-history"
@@ -55,10 +55,10 @@ export function MemberProfileCard({
 }: MemberProfileCardProps) {
   const meta = [
     member.schoolLabel,
-    member.regionLabel ?? getRegionLabel(member.region),
+    member.regionLabel,
     member.partLabel ?? getPartLabel(member.part),
     member.generation,
-  ]
+  ].filter((item): item is string => Boolean(item && item.trim()))
 
   return (
     <section className="border-neutral-disabled flex w-full flex-col gap-(--umc-spacing-gap-20) overflow-hidden rounded-(--umc-radius-12) border bg-white p-(--umc-spacing-padding-32)">

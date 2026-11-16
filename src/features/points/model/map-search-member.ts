@@ -6,17 +6,10 @@ import type {
 } from "../api/member-search"
 import type {
   MemberPartFilter,
-  MemberSchool,
   MemberStatus,
   PointsMember,
   PointsMemberRole,
 } from "./types"
-
-const SCHOOL_KEYWORDS: Record<MemberSchool, readonly string[]> = {
-  cau: ["중앙대학교", "중앙대"],
-  snu: ["서울대학교", "서울대"],
-  yonsei: ["연세대학교", "연세대"],
-}
 
 const PART_QUERY: Partial<Record<string, MemberSearchPart>> = {
   pm: "PLAN",
@@ -177,19 +170,6 @@ export function toOrganizationId(value: string | null): number | undefined {
   return Number.isInteger(id) ? id : undefined
 }
 
-function guessSchool(schoolName: string | null | undefined): MemberSchool {
-  if (!schoolName) {
-    return "cau"
-  }
-  if (SCHOOL_KEYWORDS.snu.some((keyword) => schoolName.includes(keyword))) {
-    return "snu"
-  }
-  if (SCHOOL_KEYWORDS.yonsei.some((keyword) => schoolName.includes(keyword))) {
-    return "yonsei"
-  }
-  return "cau"
-}
-
 const CHALLENGER_ROLE: PointsMemberRole = {
   color: "challenger-super-admin",
   label: "챌린저",
@@ -295,9 +275,7 @@ export function toPointsMember(item: SearchMemberItem): PointsMember {
     id: String(item.memberId ?? item.challengerId ?? ""),
     name: item.name ?? "",
     nickname: item.nickname ?? "",
-    school: guessSchool(item.schoolName),
     schoolLabel: item.schoolName ?? "",
-    region: "seoul",
     regionLabel: undefined,
     part: apiPart ? (PART_TAG[apiPart] ?? "pm") : "pm",
     sourcePart: apiPart,
