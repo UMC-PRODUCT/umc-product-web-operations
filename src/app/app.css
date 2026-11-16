@@ -8,11 +8,27 @@ body,
   height: 100%;
 }
 
+/* 스크롤은 유지하고 스크롤바만 숨김 (본문 Contents Area와 동일) */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   background: var(--umc-color-teal-grey-50, #fbfcfc);
   color: var(--umc-color-teal-grey-900, #0f1010);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
 }
 
 /* Dialog·Panel backdrop 딤 — Figma 기준 medium (DS 기본은 weak). CSS 변수만 덮어쓴다. */

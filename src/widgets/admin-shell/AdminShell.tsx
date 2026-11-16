@@ -90,7 +90,7 @@ function AdminShellFrame() {
         ) : (
           <div
             className={cn(
-              "flex min-w-0 flex-1 flex-col overflow-auto px-8 pt-12 pb-20",
+              "flex min-w-0 flex-1 [scrollbar-width:none] flex-col overflow-auto px-8 pt-12 pb-20 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
               isComposeLayout && "bg-background-neutral-weak",
             )}
           >

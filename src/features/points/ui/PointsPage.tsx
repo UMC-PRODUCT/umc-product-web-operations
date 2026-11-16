@@ -269,42 +269,40 @@ export function PointsPage({
           schoolId={schoolId}
           schoolOptions={schoolOptions}
         />
-        <div className="w-full min-w-0 [scrollbar-width:none] overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex w-[1158px] max-w-[1158px] shrink-0 flex-col items-center gap-(--umc-spacing-gap-20)">
-            <MemberTable
-              isError={isError}
-              isForbidden={isForbidden}
-              isLoading={isLoading}
-              members={isLoading || isError || isForbidden ? [] : members}
-              onAssignPoints={(memberId) => {
-                const challengerId = members.find(
-                  (item) => item.id === memberId,
-                )?.challengerId
-                if (challengerId == null) {
-                  return
-                }
-                void navigate({
-                  to: "/activity/points/$challengerId",
-                  params: { challengerId: String(challengerId) },
-                })
+        <div className="flex w-full min-w-0 flex-col items-center gap-(--umc-spacing-gap-20)">
+          <MemberTable
+            isError={isError}
+            isForbidden={isForbidden}
+            isLoading={isLoading}
+            members={isLoading || isError || isForbidden ? [] : members}
+            onAssignPoints={(memberId) => {
+              const challengerId = members.find(
+                (item) => item.id === memberId,
+              )?.challengerId
+              if (challengerId == null) {
+                return
+              }
+              void navigate({
+                to: "/activity/points/$challengerId",
+                params: { challengerId: String(challengerId) },
+              })
+            }}
+            onRetry={() => {
+              void membersQuery.refetch()
+            }}
+            query={keyword}
+          />
+          {showPagination ? (
+            <Pagination
+              className="w-full justify-center"
+              onPageChange={(nextPage) => {
+                onSearchChange({ page: toPointsListPageParam(nextPage - 1) })
+                sectionRef.current?.scrollIntoView({ block: "start" })
               }}
-              onRetry={() => {
-                void membersQuery.refetch()
-              }}
-              query={keyword}
+              page={page + 1}
+              totalPages={totalPages}
             />
-            {showPagination ? (
-              <Pagination
-                className="w-full justify-center"
-                onPageChange={(nextPage) => {
-                  onSearchChange({ page: toPointsListPageParam(nextPage - 1) })
-                  sectionRef.current?.scrollIntoView({ block: "start" })
-                }}
-                page={page + 1}
-                totalPages={totalPages}
-              />
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
     </section>

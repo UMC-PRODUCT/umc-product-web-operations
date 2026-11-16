@@ -79,32 +79,38 @@ function SkeletonRow({ isLast }: { isLast: boolean }) {
 
 export function MemberTableSkeleton() {
   return (
-    <DataTableShell
-      aria-busy="true"
-      aria-label="구성원 목록 불러오는 중"
-      role="status"
-    >
-      <div
-        className="bg-fill-primary-medium-100 text-body-3-medium text-brand-strong-800 flex w-full items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
-        role="row"
+    <div className="w-full min-w-0 overflow-x-auto rounded-(--umc-radius-12)">
+      <DataTableShell
+        aria-busy="true"
+        aria-label="구성원 목록 불러오는 중"
+        className="min-w-[1158px]"
+        role="status"
       >
-        <div className="flex h-7 w-full items-center">
-          {HEADER_COLUMNS.map((column, index) => (
-            <div
-              className={column.className}
-              key={column.label || `action-${index}`}
-              role="columnheader"
-            >
-              {column.label}
-            </div>
-          ))}
+        <div
+          className="bg-fill-primary-medium-100 text-body-3-medium text-brand-strong-800 flex w-full items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
+          role="row"
+        >
+          <div className="flex h-7 w-full items-center">
+            {HEADER_COLUMNS.map((column, index) => (
+              <div
+                className={column.className}
+                key={column.label || `action-${index}`}
+                role="columnheader"
+              >
+                {column.label}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-      <DataTableBody>
-        {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
-          <SkeletonRow isLast={index === SKELETON_ROW_COUNT - 1} key={index} />
-        ))}
-      </DataTableBody>
-    </DataTableShell>
+        <DataTableBody>
+          {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
+            <SkeletonRow
+              isLast={index === SKELETON_ROW_COUNT - 1}
+              key={index}
+            />
+          ))}
+        </DataTableBody>
+      </DataTableShell>
+    </div>
   )
 }

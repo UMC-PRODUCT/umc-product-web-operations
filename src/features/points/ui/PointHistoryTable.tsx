@@ -147,7 +147,7 @@ export function PointHistoryTable({
   })
 
   return (
-    <div className="w-full [scrollbar-width:none] overflow-x-auto rounded-(--umc-radius-12) [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="w-full min-w-0 overflow-x-auto rounded-(--umc-radius-12)">
       <div className="min-w-[1158px]">
         <div
           className="bg-fill-neutral-weak-75 text-body-3-medium text-neutral-default-900 border-neutral-disabled flex items-center rounded-t-(--umc-radius-12) border px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
