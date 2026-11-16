@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
 import { getSsoClient } from "@/shared/auth/sso-client"
+import { FullPageError } from "@/shared/ui/full-page-error"
 import { AuthBusyScreen } from "@/shared/ui/loading-spinner"
 
 export const Route = createFileRoute("/auth/callback")({
@@ -36,9 +37,10 @@ function CallbackPage() {
 
   if (failed) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <p role="alert">로그인에 실패했습니다. 다시 시도해 주세요.</p>
-      </div>
+      <FullPageError
+        body="다시 시도해 주세요."
+        title="로그인에 실패했습니다."
+      />
     )
   }
 

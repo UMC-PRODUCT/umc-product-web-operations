@@ -1,4 +1,4 @@
-import { Tag, TextButton } from "@umc-product/react"
+import { Skeleton, Tag, TextButton } from "@umc-product/react"
 
 import { cn } from "@/shared/lib/cn"
 
@@ -100,18 +100,6 @@ const TABLE_HEADER_ROW_CLASS =
 const TABLE_BODY_ROW_CLASS =
   "box-border flex h-[58px] items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12)"
 
-function Bone({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        "bg-fill-neutral-disabled rounded-(--umc-radius-6)",
-        className,
-      )}
-    />
-  )
-}
-
 function TableHeader({ columns }: { columns: NoticeColumn[] }) {
   return (
     <div
@@ -158,11 +146,11 @@ function SkeletonRow({
           role="cell"
         >
           {column.id === "required" ? (
-            <Bone className="h-6 w-[41px] shrink-0 shadow-(--umc-shadow-drop-neutral-3)" />
+            <Skeleton className="h-6 w-[41px] shrink-0 shadow-(--umc-shadow-drop-neutral-3)" />
           ) : column.id === "createdAt" ? (
-            <Bone className="h-[23px] w-[61px] shrink-0" />
+            <Skeleton className="h-[23px] w-[61px] shrink-0" />
           ) : (
-            <Bone className="h-[23px] min-w-0 flex-1" />
+            <Skeleton className="h-[23px] min-w-0 flex-1" />
           )}
         </div>
       ))}

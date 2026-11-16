@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { Button, Dialog, Tag, useToast } from "@umc-product/react"
+import { Button, Dialog, Divider, Tag, useToast } from "@umc-product/react"
 import { useEffect, useRef, useState } from "react"
 
 import { getServerErrorMessage } from "@/shared/api/server-error"
@@ -173,7 +173,7 @@ export function NoticeDetailPage({
               ) : null}
             </div>
 
-            <hr className="border-neutral-disabled m-0 w-full shrink-0 border-0 border-t" />
+            <Divider className="w-full [--umc-divider-color:var(--umc-color-border-neutral-disabled)] [--umc-divider-line-thickness:1px]" />
 
             <NoticeDetailBody body={notice.body} />
 

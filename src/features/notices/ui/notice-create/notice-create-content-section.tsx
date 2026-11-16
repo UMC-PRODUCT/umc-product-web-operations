@@ -1,5 +1,5 @@
 import { AddIcon, RemoveCircleIcon } from "@umc-product/icons"
-import { Button, TextFieldBox } from "@umc-product/react"
+import { Button, Divider, TextFieldBox } from "@umc-product/react"
 import { type ReactNode, useMemo } from "react"
 
 import { cn } from "@/shared/lib/cn"
@@ -174,7 +174,7 @@ export function NoticeCreateContentSection({
           />
         </div>
 
-        <hr className="border-neutral-weak-200 m-0 w-full shrink-0 border-0 border-t" />
+        <Divider className="w-full [--umc-divider-color:var(--umc-color-border-neutral-disabled)] [--umc-divider-line-thickness:1px]" />
 
         <div className="flex flex-col gap-(--umc-spacing-gap-20)">
           <NoticeCreateFormRow label="이미지">

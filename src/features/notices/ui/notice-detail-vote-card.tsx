@@ -3,6 +3,7 @@ import {
   Button,
   Checkbox,
   Dialog,
+  Divider,
   ProgressBar,
   Tag,
   useToast,
@@ -383,7 +384,7 @@ export function NoticeDetailVoteCard({
           </div>
         </div>
 
-        <hr className="border-neutral-disabled m-0 w-full border-0 border-t" />
+        <Divider className="w-full [--umc-divider-color:var(--umc-color-border-neutral-disabled)] [--umc-divider-line-thickness:1px]" />
 
         {isInputMode ? (
           <ul className="flex w-full list-none flex-col gap-(--umc-spacing-gap-16) p-0">
