@@ -10,6 +10,7 @@ import {
   resolveNoticeCreateContextGisuId,
   resolveNoticeCreatePartOptions,
 } from "../model/notice-create-part-options"
+import { noticeKeys } from "../model/notice-keys"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
 import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
@@ -253,7 +254,7 @@ export function NoticeEditPage({
       if (outcome.kind === "success") {
         allowLeaveRef.current = true
         showNoticePrimarySuccessToast(toast, NOTICE_EDIT_SUCCESS_TOAST_MESSAGE)
-        void queryClient.invalidateQueries({ queryKey: ["notices"] })
+        void queryClient.invalidateQueries({ queryKey: noticeKeys.all })
         await router.invalidate({
           filter: (match) => match.routeId === "/_admin/notices/$noticeId",
         })
@@ -378,7 +379,7 @@ export function NoticeEditPage({
               baselineAttachedVotePollRef.current = null
               setVoteDeleteDialogOpen(false)
               await queryClient.invalidateQueries({
-                queryKey: ["notice-detail", noticeId],
+                queryKey: noticeKeys.detail(noticeId),
               })
             } catch {
               showNoticeEditFailureToast(

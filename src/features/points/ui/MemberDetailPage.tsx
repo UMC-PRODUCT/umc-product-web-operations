@@ -10,6 +10,7 @@ import {
   grantChallengerPoint,
 } from "../api/challenger-points"
 import { canDeletePointHistory } from "../model/can-delete-point-history"
+import { challengerKeys } from "../model/challenger-keys"
 import { getHttpStatus, isForbiddenError } from "../model/http-status"
 import {
   challengerPointList,
@@ -51,10 +52,6 @@ type PendingAward = {
 
 const adminRouteApi = getRouteApi("/_admin")
 
-function challengerQueryKey(challengerId: number) {
-  return ["challenger", challengerId] as const
-}
-
 export function MemberDetailPage({
   memberId,
   challengerId,
@@ -77,8 +74,8 @@ export function MemberDetailPage({
   const challengerQuery = useQuery({
     queryKey:
       challengerId != null
-        ? challengerQueryKey(challengerId)
-        : ["challenger", "missing"],
+        ? challengerKeys.detail(challengerId)
+        : challengerKeys.missing(),
     queryFn: () => fetchChallenger(challengerId as number),
     enabled: challengerId != null && !isError && !isForbidden,
     retry: false,
@@ -110,7 +107,7 @@ export function MemberDetailPage({
       return
     }
     await queryClient.fetchQuery({
-      queryKey: challengerQueryKey(challengerId),
+      queryKey: challengerKeys.detail(challengerId),
       queryFn: () => fetchChallenger(challengerId),
       staleTime: 0,
     })
@@ -131,7 +128,7 @@ export function MemberDetailPage({
         challengerId,
         toGrantPointBody(payload),
       )
-      queryClient.setQueryData(challengerQueryKey(challengerId), updated)
+      queryClient.setQueryData(challengerKeys.detail(challengerId), updated)
       try {
         await refreshHistory()
       } catch {
@@ -260,8 +257,8 @@ export function MemberDetailPage({
             Awaited<ReturnType<typeof fetchChallenger>>
           >(
             challengerId != null
-              ? challengerQueryKey(challengerId)
-              : ["challenger", "missing"],
+              ? challengerKeys.detail(challengerId)
+              : challengerKeys.missing(),
           )
           const nextTotal = next
             ? buildSummary(challengerPointList(next).map(toPointHistoryItem))

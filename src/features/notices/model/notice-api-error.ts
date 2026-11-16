@@ -1,25 +1,24 @@
 import { isAxiosError } from "axios"
 
-export function getHttpStatus(error: unknown): number | undefined {
-  if (!isAxiosError(error)) {
-    return undefined
-  }
-  return error.response?.status
-}
+import {
+  getHttpStatus,
+  isForbiddenError,
+  isNetworkError,
+  isNotFoundError,
+} from "@/shared/lib/http-status"
+
+export { getHttpStatus }
 
 export function isNoticeForbiddenError(error: unknown): boolean {
-  return getHttpStatus(error) === 403
+  return isForbiddenError(error)
 }
 
 export function isNoticeNotFoundError(error: unknown): boolean {
-  return getHttpStatus(error) === 404
+  return isNotFoundError(error)
 }
 
 export function isNoticeNetworkError(error: unknown): boolean {
-  if (isAxiosError(error)) {
-    return !error.response
-  }
-  return false
+  return isNetworkError(error)
 }
 
 export function getNoticeApiErrorMessage(error: unknown): string | null {

@@ -17,6 +17,7 @@ import {
   isNoticeForbiddenError,
   isNoticeNetworkError,
 } from "./notice-api-error"
+import { noticeKeys } from "./notice-keys"
 import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
 import { canAccessStaffNoticeTab } from "./notice-notice-tab"
 
@@ -144,9 +145,7 @@ export function noticeListQueryKey(input: {
   })
   const noticeTab = resolveNoticeListNoticeTab(input.audience, input.session)
 
-  return [
-    "notices",
-    "list",
+  return noticeKeys.list([
     input.session.id,
     input.session.gisuId,
     input.audience,
@@ -159,7 +158,7 @@ export function noticeListQueryKey(input: {
     apiFilters.scopeStage,
     apiFilters.scope,
     apiFilters.staffRecipient,
-  ] as const
+  ])
 }
 
 export async function fetchNoticeListPage(input: {
@@ -300,7 +299,7 @@ export function syncNoticeViewCountInListCaches(
   views: number,
 ) {
   queryClient.setQueriesData<NoticeListQueryResult>(
-    { queryKey: ["notices", "list"] },
+    { queryKey: noticeKeys.lists() },
     (cached) => {
       if (!cached || cached.kind !== "success") {
         return cached
@@ -328,5 +327,5 @@ export function syncNoticeViewCountInListCaches(
     },
   )
 
-  void queryClient.invalidateQueries({ queryKey: ["notices", "list"] })
+  void queryClient.invalidateQueries({ queryKey: noticeKeys.lists() })
 }

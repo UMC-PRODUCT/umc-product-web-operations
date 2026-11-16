@@ -7,6 +7,7 @@ import { useSelectedGisu } from "@/entities/gisu"
 import { gisuOrganizationQueryOptions } from "@/entities/organization"
 
 import { MEMBER_SEARCH_PAGE_SIZE, searchMembers } from "../api/member-search"
+import { challengerKeys } from "../model/challenger-keys"
 import { isForbiddenError } from "../model/http-status"
 import {
   getPartFilterOptions,
@@ -123,19 +124,15 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
   }, [lockedSchool, organizationQuery.data, selectedChapterId])
 
   const membersQuery = useQuery({
-    queryKey: [
-      "challengers",
-      "search",
-      {
-        keyword,
-        gisuId: selectedGisu.gisuId,
-        part,
-        chapterId: selectedChapterId,
-        schoolId: selectedSchoolId,
-        page,
-        size: MEMBER_SEARCH_PAGE_SIZE,
-      },
-    ],
+    queryKey: challengerKeys.search({
+      keyword,
+      gisuId: selectedGisu.gisuId,
+      part,
+      chapterId: selectedChapterId,
+      schoolId: selectedSchoolId,
+      page,
+      size: MEMBER_SEARCH_PAGE_SIZE,
+    }),
     queryFn: () =>
       searchMembers({
         keyword: keyword || undefined,

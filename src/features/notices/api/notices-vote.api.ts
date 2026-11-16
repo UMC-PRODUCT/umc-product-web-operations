@@ -1,4 +1,5 @@
 import { api } from "@/shared/api/client"
+import { hasResponseBody } from "@/shared/api/has-response-body"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
 export type SubmitNoticeVoteResponseRequest = {
@@ -13,7 +14,7 @@ export async function submitNoticeVoteResponse(
     `/v1/notices/${noticeId}/votes/responses`,
     body,
   )
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<null>(data)
   }
 }
@@ -27,7 +28,7 @@ export async function updateNoticeVoteResponse(
     `/v1/notices/${noticeId}/votes/responses`,
     body,
   )
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<null>(data)
   }
 }

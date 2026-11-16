@@ -1,4 +1,5 @@
 import { api } from "@/shared/api/client"
+import { hasResponseBody } from "@/shared/api/has-response-body"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
 import type {
@@ -40,7 +41,7 @@ async function uploadToSignedUrl(
 /** STORAGE-002 — 업로드 완료 등록 */
 export async function confirmStorageUpload(fileId: string): Promise<void> {
   const { data } = await api.post<unknown>(`/v1/storage/${fileId}/confirm`, {})
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<unknown>(data)
   }
 }
@@ -48,7 +49,7 @@ export async function confirmStorageUpload(fileId: string): Promise<void> {
 /** STORAGE-003 — 파일 삭제 */
 export async function deleteStorageFile(fileId: string): Promise<void> {
   const { data } = await api.delete<unknown>(`/v1/storage/${fileId}`)
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<unknown>(data)
   }
 }
