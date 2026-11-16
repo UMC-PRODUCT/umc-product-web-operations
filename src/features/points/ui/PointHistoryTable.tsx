@@ -8,6 +8,7 @@ import { PartTag, Tag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
 import { cn } from "@/shared/lib/cn"
+import { DataTableBody } from "@/shared/ui/data-table-shell"
 
 import { formatPointScore } from "../model/point-history"
 
@@ -175,10 +176,7 @@ export function PointHistoryTable({
             )}
           </div>
         </div>
-        <div
-          className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l"
-          role="rowgroup"
-        >
+        <DataTableBody>
           {table.getRowModel().rows.map((row, index, rows) => {
             const isLast = index === rows.length - 1
             return (
@@ -209,7 +207,7 @@ export function PointHistoryTable({
               </div>
             )
           })}
-        </div>
+        </DataTableBody>
       </div>
     </div>
   )

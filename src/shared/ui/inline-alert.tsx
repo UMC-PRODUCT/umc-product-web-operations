@@ -74,7 +74,7 @@ export function InlineAlert({
       {action ? (
         <button
           className={cn(
-            "shrink-0 cursor-pointer border-0 bg-transparent p-0 whitespace-nowrap underline",
+            "ml-(--umc-spacing-gap-8) shrink-0 cursor-pointer border-0 bg-transparent p-0 whitespace-nowrap underline",
             "tracking-[-0.02em]",
             styles.action,
           )}

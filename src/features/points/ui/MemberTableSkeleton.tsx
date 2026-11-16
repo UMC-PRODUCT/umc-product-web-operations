@@ -1,6 +1,7 @@
 import { Skeleton } from "@umc-product/react"
 
 import { cn } from "@/shared/lib/cn"
+import { DataTableBody, DataTableShell } from "@/shared/ui/data-table-shell"
 
 const SKELETON_ROW_COUNT = 4
 
@@ -78,10 +79,9 @@ function SkeletonRow({ isLast }: { isLast: boolean }) {
 
 export function MemberTableSkeleton() {
   return (
-    <div
+    <DataTableShell
       aria-busy="true"
       aria-label="구성원 목록 불러오는 중"
-      className="w-full overflow-hidden rounded-(--umc-radius-12)"
       role="status"
     >
       <div
@@ -100,14 +100,11 @@ export function MemberTableSkeleton() {
           ))}
         </div>
       </div>
-      <div
-        className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l"
-        role="rowgroup"
-      >
+      <DataTableBody>
         {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
           <SkeletonRow isLast={index === SKELETON_ROW_COUNT - 1} key={index} />
         ))}
-      </div>
-    </div>
+      </DataTableBody>
+    </DataTableShell>
   )
 }

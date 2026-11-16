@@ -1,6 +1,7 @@
 import { Skeleton, Tag, TextButton } from "@umc-product/react"
 
 import { cn } from "@/shared/lib/cn"
+import { DataTableBody, DataTableShell } from "@/shared/ui/data-table-shell"
 
 import { NoticeListForbidden } from "./notice-list-forbidden"
 import { NoticeListNetworkError } from "./notice-list-network-error"
@@ -216,16 +217,10 @@ export function NoticeListTable({
 
   if (isLoading) {
     return (
-      <div
-        aria-busy
-        className="w-full overflow-hidden rounded-(--umc-radius-12)"
-      >
+      <DataTableShell aria-busy>
         <TableHeader columns={columns} />
 
-        <div
-          className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l bg-white"
-          role="rowgroup"
-        >
+        <DataTableBody className="bg-white">
           {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
             <SkeletonRow
               columns={columns}
@@ -233,8 +228,8 @@ export function NoticeListTable({
               key={`notice-skeleton-${index}`}
             />
           ))}
-        </div>
-      </div>
+        </DataTableBody>
+      </DataTableShell>
     )
   }
 
@@ -251,16 +246,10 @@ export function NoticeListTable({
   }
 
   return (
-    <div
-      aria-busy={false}
-      className="w-full overflow-hidden rounded-(--umc-radius-12)"
-    >
+    <DataTableShell aria-busy={false}>
       <TableHeader columns={columns} />
 
-      <div
-        className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l bg-white"
-        role="rowgroup"
-      >
+      <DataTableBody className="bg-white">
         {notices.map((notice, index) => {
           const isLast = index === notices.length - 1
 
@@ -292,7 +281,7 @@ export function NoticeListTable({
             </div>
           )
         })}
-      </div>
-    </div>
+      </DataTableBody>
+    </DataTableShell>
   )
 }

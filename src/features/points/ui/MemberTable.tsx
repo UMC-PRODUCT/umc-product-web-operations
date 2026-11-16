@@ -8,6 +8,8 @@ import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
 import { StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
+import { DataTableBody, DataTableShell } from "@/shared/ui/data-table-shell"
+
 import {
   memberStatusLabel,
   memberStatusTagColor,
@@ -197,7 +199,7 @@ export function MemberTable({
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-(--umc-radius-12)">
+    <DataTableShell>
       <div
         className="bg-fill-primary-medium-100 text-body-3-medium text-neutral-default-900 flex w-full items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
         role="row"
@@ -224,10 +226,7 @@ export function MemberTable({
           )}
         </div>
       </div>
-      <div
-        className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l"
-        role="rowgroup"
-      >
+      <DataTableBody>
         {table.getRowModel().rows.map((row, index, rows) => {
           const isLast = index === rows.length - 1
           return (
@@ -251,7 +250,7 @@ export function MemberTable({
             </div>
           )
         })}
-      </div>
-    </div>
+      </DataTableBody>
+    </DataTableShell>
   )
 }
