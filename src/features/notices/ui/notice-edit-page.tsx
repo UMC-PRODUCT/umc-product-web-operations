@@ -14,6 +14,7 @@ import {
 } from "../model/notice-create-part-options"
 import { noticeKeys } from "../model/notice-keys"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
+import { buildNoticeLocationState } from "../model/notice-location-state"
 import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
@@ -40,6 +41,7 @@ import {
 } from "./show-notice-error-toast"
 import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
 import { useNoticeLeaveConfirm } from "./use-notice-leave-confirm"
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 import { useNoticeVoteDraft } from "./use-notice-vote-draft"
 
 import type { NoticeCreateFormState } from "../model/notice-create-form"
@@ -48,19 +50,22 @@ import type { NoticePoll } from "../model/notice-detail.types"
 type NoticeEditPageProps = {
   initialAttachedVotePoll: NoticePoll | null
   initialForm: NoticeCreateFormState
-  listAudience?: "challenger" | "staff"
   noticeId: number
 }
 
 export function NoticeEditPage({
   initialAttachedVotePoll,
   initialForm,
-  listAudience,
   noticeId,
 }: NoticeEditPageProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const locationState = useNoticeLocationStateFromLocation()
+  const detailState = buildNoticeLocationState({
+    listAudience: locationState.listAudience,
+    listPage: locationState.listPage,
+  })
   const baselineFormRef = useRef(initialForm)
   const [form, setForm] = useState<NoticeCreateFormState>(initialForm)
   const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false)
@@ -102,7 +107,7 @@ export function NoticeEditPage({
     navigateTo: () => {
       void navigate({
         params: { noticeId: String(noticeId) },
-        search: listAudience ? { listAudience } : {},
+        state: detailState,
         to: "/notices/$noticeId",
       })
     },
@@ -190,7 +195,7 @@ export function NoticeEditPage({
     deletedDialogFocusStore.current = null
     setDeletedWhileEditingDialogOpen(false)
     void navigate({
-      search: listAudience ? { audience: listAudience } : {},
+      state: detailState,
       to: "/notices",
     })
   }
@@ -209,7 +214,7 @@ export function NoticeEditPage({
         ])
         await navigate({
           params: { noticeId: String(noticeId) },
-          search: listAudience ? { listAudience } : {},
+          state: detailState,
           to: "/notices/$noticeId",
         })
         return

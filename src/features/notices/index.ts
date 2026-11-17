@@ -9,6 +9,12 @@ export {
   parseNoticeListFiltersFromSearch,
   parseNoticeListPage,
 } from "./model/notice-list-route-search"
+export {
+  buildNoticeListReturnSearch,
+  buildNoticeLocationState,
+  parseNoticeLocationState,
+} from "./model/notice-location-state"
+export type { NoticeLocationState } from "./model/notice-location-state"
 export type { NoticeScopeStage } from "./model/notice-scope-stage"
 export { canCreateNotice } from "./model/notice-session"
 export type { NoticeOperatorSession } from "./model/notice-session"

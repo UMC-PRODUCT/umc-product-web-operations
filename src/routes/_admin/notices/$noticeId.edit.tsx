@@ -2,18 +2,10 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { NoticeEditPage } from "@/features/notices"
 import { loadNoticeEdit } from "@/features/notices"
-import { parseNoticeListAudienceOptional } from "@/features/notices"
 import { NoticeDetailStatusView } from "@/features/notices"
 import { NoticeEditForbiddenStatusView } from "@/features/notices"
 
-type NoticeEditSearch = {
-  listAudience?: ReturnType<typeof parseNoticeListAudienceOptional>
-}
-
 export const Route = createFileRoute("/_admin/notices/$noticeId/edit")({
-  validateSearch: (search: Record<string, unknown>): NoticeEditSearch => ({
-    listAudience: parseNoticeListAudienceOptional(search.listAudience),
-  }),
   // 상세와 같은 캐시를 쓰며, preload로 불필요 GET(조회수 증가)이 나지 않게 한다.
   staticData: { shellLayout: "compose" },
   preload: false,
@@ -24,10 +16,9 @@ export const Route = createFileRoute("/_admin/notices/$noticeId/edit")({
 
 function NoticeEditRoute() {
   const loaderData = Route.useLoaderData()
-  const { listAudience } = Route.useSearch()
 
   if (loaderData.kind === "forbidden") {
-    return <NoticeEditForbiddenStatusView listAudience={listAudience} />
+    return <NoticeEditForbiddenStatusView />
   }
 
   if (loaderData.kind === "deleted") {
@@ -38,7 +29,6 @@ function NoticeEditRoute() {
     <NoticeEditPage
       initialAttachedVotePoll={loaderData.attachedVotePoll}
       initialForm={loaderData.initialForm}
-      listAudience={listAudience}
       noticeId={loaderData.noticeId}
     />
   )

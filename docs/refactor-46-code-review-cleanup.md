@@ -206,13 +206,11 @@ API 타입이 feature마다 수기(`notice-api.types.ts` 등)로 있어, OpenAPI
 
 ## 공지 상세 URL 파라미터에 대한 후속 논의
 
-리팩토링 이후에도 공지 상세 라우트(`src/routes/_admin/notices/$noticeId.tsx`)에는 목록 탭 복원용 `listAudience`와, DEV QA용 `imageLoadState` / `imageLoadPause`가 search에 남아 있습니다. 이슈 본문의 필수 체크리스트와는 별도로, 리뷰에서 제거 가능 여부를 물을 때 참고할 분석을 아래에 붙입니다.
+리팩토링 이후 공지 상세 라우트에는 DEV QA용 `imageLoadState` / `imageLoadPause`가 search에 남아 있습니다. 목록 탭 복원용 `listAudience`는 URL search에서 제거하고 history state로 옮겼습니다.
 
-### `listAudience` (유지 후보 · 대안 논의)
+### `listAudience` / 목록 탭·페이지 (history · local state)
 
-챌린저/운영진 목록 탭을 상세·수정 왕복 후에도 복원하기 위해, 목록에서 상세로 들어갈 때 현재 탭을 넘기고, 상세→수정→상세→목록으로 돌아올 때도 같은 값을 이어 갑니다. URL에 두면 새로고침·공유·수정 화면을 거쳐도 탭이 유지되는 장점이 있습니다. 다만 상세 URL에 목록 UI 상태가 노출되고, 북마크·공유를 받은 사람에게는 불필요할 수 있습니다.
-
-대안으로 `navigate({ state: { listAudience } })`처럼 history state에 두면 URL은 `/notices/:id`만 유지되지만, 새로고침·새 탭·외부 공유 시 탭 정보가 사라져 기본 탭으로 돌아갑니다. sessionStorage에 두면 같은 탭 세션에서는 새로고침 후에도 복원 가능하지만, 탭·기기 간에는 공유되지 않고, 암묵적 상태라 디버깅·다중 창에서 어긋날 수 있습니다. 제품적으로 상세 URL을 깨끗이 유지할지, 새로고침·공유까지 탭 복원을 보장할지 중 무엇을 우선할지에 따라, 현재 URL search를 유지하거나 history state / sessionStorage로 옮길 수 있습니다.
+목록 탭(`audience`)과 페이지네이션은 URL search에 두지 않습니다. 탭은 `navigate({ state: { listAudience } })` history state로, 페이지는 목록 화면 로컬 state로 관리합니다. 필터(`q`, 지부·학교 등)만 URL에 남겨 뒤로가기 복원을 유지합니다. 상세·수정 왕복도 같은 history state로 탭을 이어 가며, 새로고침·새 탭·외부 공유 시 state가 없으면 기본 탭(`challenger`)·1페이지로 돌아갑니다.
 
 ### `imageLoadState` / `imageLoadPause` (제거·로컬 상태 전환 후보)
 
@@ -229,4 +227,4 @@ API 타입이 feature마다 수기(`notice-api.types.ts` 등)로 있어, OpenAPI
 | OpenAPI  | `api.d.ts` 생성만, 수기 타입 점진 치환                         | 일괄 교체 리스크, 스펙 401 |
 | DS       | `.umc-*__*` 일부, PageHeader 숨김, Dialog disabled, 라이트박스 | DS API/컴포넌트 부재       |
 | 시각 QA  | 0.14.2 + ErrorPage 일러스트 Figma 대조                         | 로그인·API·실기기 필요     |
-| 공지 URL | `listAudience` 보관 방식, `imageLoad*` 제거                    | 제품 결정·DEV mock 정리    |
+| 공지 URL | `imageLoad*` DEV search 제거                                   | DEV mock 정리              |

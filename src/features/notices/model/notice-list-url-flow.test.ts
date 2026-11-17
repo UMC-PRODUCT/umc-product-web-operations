@@ -33,7 +33,6 @@ function runFlow(
     next: buildNoticeListFilterSearchParams({
       audience,
       filters: normalized,
-      page,
     }),
   }
 }
@@ -42,9 +41,7 @@ describe("공지 목록 필터 URL 흐름", () => {
   describe("챌린저 탭", () => {
     it("유효한 URL은 보정 없이 그대로 다시 URL이 된다", () => {
       const search = {
-        audience: "challenger",
         chapterScope: "chapter:1",
-        page: 3,
         part: "WEB",
         q: "  모집  ",
         schoolScope: "school:10",
@@ -54,9 +51,7 @@ describe("공지 목록 필터 URL 흐름", () => {
 
       expect(normalized).toBe(filters)
       expect(next).toEqual({
-        audience: "challenger",
         chapterScope: "chapter:1",
-        page: 3,
         part: "WEB",
         q: "모집",
         schoolScope: "school:10",
@@ -79,7 +74,7 @@ describe("공지 목록 필터 URL 흐름", () => {
         part: null,
         schoolScope: null,
       })
-      expect(next).toEqual({ audience: "challenger", q: "공지" })
+      expect(next).toEqual({ q: "공지" })
     })
 
     it("옵션 로딩 중에는 옵션 기반 검증을 건너뛴다", () => {
@@ -97,7 +92,7 @@ describe("공지 목록 필터 URL 흐름", () => {
         lockedChapterScope: "chapter:1",
       })
 
-      expect(next).toEqual({ audience: "challenger" })
+      expect(next).toEqual({})
     })
 
     it("스키마에 맞지 않는 값(접두어·페이지)은 파싱 단계에서 걸러진다", () => {
@@ -107,7 +102,7 @@ describe("공지 목록 필터 URL 흐름", () => {
       )
 
       expect(page).toBe(1)
-      expect(next).toEqual({ audience: "challenger" })
+      expect(next).toEqual({})
     })
 
     it("보정 결과가 URL과 같으면 동기화가 필요 없다", () => {
@@ -116,14 +111,12 @@ describe("공지 목록 필터 URL 흐름", () => {
 
       expect(
         areNoticeListFilterSearchParamsEqual(clean.next, {
-          audience: "challenger",
           part: "WEB",
           q: "a",
         }),
       ).toBe(true)
       expect(
         areNoticeListFilterSearchParamsEqual(dirty.next, {
-          audience: "challenger",
           part: "IOS",
           q: "a",
         }),
@@ -135,7 +128,6 @@ describe("공지 목록 필터 URL 흐름", () => {
     it("파트 범위 + 받는 사람이 그대로 유지된다", () => {
       const { next } = runFlow(
         {
-          audience: "staff",
           part: "DESIGN",
           scopeStage: "part",
           staffRecipient: "SCHOOL_PART_LEADER",
@@ -144,7 +136,6 @@ describe("공지 목록 필터 URL 흐름", () => {
       )
 
       expect(next).toEqual({
-        audience: "staff",
         part: "DESIGN",
         scopeStage: "part",
         staffRecipient: "SCHOOL_PART_LEADER",
@@ -169,7 +160,7 @@ describe("공지 목록 필터 URL 흐름", () => {
         staffFixedStaffRecipient: "SCHOOL_PART_LEADER",
       })
 
-      expect(removed.next).toEqual({ audience: "staff" })
+      expect(removed.next).toEqual({})
       expect(fixed.next).toMatchObject({ staffRecipient: "SCHOOL_PART_LEADER" })
     })
 
@@ -184,7 +175,6 @@ describe("공지 목록 필터 URL 흐름", () => {
       )
 
       expect(next).toEqual({
-        audience: "staff",
         staffRecipient: "CENTRAL_MEMBER",
       })
     })
@@ -195,13 +185,13 @@ describe("공지 목록 필터 URL 흐름", () => {
         "staff",
       )
 
-      expect(next).toEqual({ audience: "staff", scopeStage: "school" })
+      expect(next).toEqual({ scopeStage: "school" })
     })
   })
 
   it("한 번 정규화된 URL을 다시 흘려도 결과가 변하지 않는다 (idempotent)", () => {
     const first = runFlow(
-      { chapterScope: "chapter:99", page: "2", part: "WEB", q: "x" },
+      { chapterScope: "chapter:99", part: "WEB", q: "x" },
       "challenger",
     )
     const second = runFlow({ ...first.next }, "challenger")

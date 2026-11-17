@@ -9,6 +9,7 @@ import { deleteNoticeById } from "../model/delete-notice"
 import { isNoticeNetworkError } from "../model/notice-api-error"
 import { syncNoticeViewCountInListCaches } from "../model/notice-list-query"
 import { parseNoticeListAudience } from "../model/notice-list-route-search"
+import { buildNoticeLocationState } from "../model/notice-location-state"
 import {
   NOTICE_DELETE_FAILURE_TOAST_MESSAGE,
   NOTICE_DELETE_TOAST_MESSAGE,
@@ -27,22 +28,15 @@ import {
 import { showNoticeErrorToast } from "./show-notice-error-toast"
 import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
 import { useNoticeDetailImageLoadFlow } from "./use-notice-detail-image-load-flow"
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 
 import type {
   NoticeDetail,
   NoticeImageLoadState,
 } from "../model/notice-detail.types"
-import type { NoticeAudience } from "../model/types"
-
-function buildNoticeListReturnSearch(input: { audience: NoticeAudience }) {
-  return {
-    audience: input.audience,
-  }
-}
 
 type NoticeDetailPageProps = {
   canManageNotice?: boolean
-  listAudience?: NoticeAudience
   notice: NoticeDetail
   /** TODO: API 연동 시 제거. mock loading → success 자동 전환 끔 */
   imageLoadPause?: boolean
@@ -57,14 +51,18 @@ type NoticeDetailPageProps = {
 export function NoticeDetailPage({
   canManageNotice = false,
   imageLoadPause,
-  listAudience,
   notice,
   imageLoadState,
 }: NoticeDetailPageProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
-  const returnAudience = parseNoticeListAudience(listAudience)
+  const locationState = useNoticeLocationStateFromLocation()
+  const returnAudience = parseNoticeListAudience(locationState.listAudience)
+  const detailState = buildNoticeLocationState({
+    listAudience: returnAudience,
+    listPage: locationState.listPage,
+  })
 
   useEffect(() => {
     syncNoticeViewCountInListCaches(queryClient, notice.id, notice.views)
@@ -148,7 +146,7 @@ export function NoticeDetailPage({
                     onClick={() => {
                       void navigate({
                         params: { noticeId: notice.id },
-                        search: { listAudience: returnAudience },
+                        state: detailState,
                         to: "/notices/$noticeId/edit",
                       })
                     }}
@@ -197,7 +195,7 @@ export function NoticeDetailPage({
         color="white"
         onClick={() => {
           void navigate({
-            search: buildNoticeListReturnSearch({ audience: returnAudience }),
+            state: detailState,
             to: "/notices",
           })
         }}
@@ -236,9 +234,7 @@ export function NoticeDetailPage({
             setIsDeleteDialogOpen(false)
             showNoticePrimarySuccessToast(toast, NOTICE_DELETE_TOAST_MESSAGE)
             void navigate({
-              search: buildNoticeListReturnSearch({
-                audience: returnAudience,
-              }),
+              state: detailState,
               to: "/notices",
             })
           } catch (error) {

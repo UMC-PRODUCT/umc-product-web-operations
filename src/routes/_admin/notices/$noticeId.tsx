@@ -8,7 +8,6 @@ import {
 import { useSelectedGisu } from "@/entities/gisu"
 import { NoticeDetailPage } from "@/features/notices"
 import { loadNoticeDetail } from "@/features/notices"
-import { parseNoticeListAudienceOptional } from "@/features/notices"
 import { canManageNoticeDetail } from "@/features/notices"
 import { NoticeDetailStatusView } from "@/features/notices"
 import { onlyInDev } from "@/shared/lib/dev-only"
@@ -16,11 +15,8 @@ import { onlyInDev } from "@/shared/lib/dev-only"
 import { toNoticeOperatorSession } from "./-notice-session"
 
 import type { NoticeImageLoadState } from "@/features/notices"
-import type { NoticeAudience } from "@/features/notices"
 
 type NoticeDetailSearch = {
-  /** 목록으로 돌아갈 때 복원할 탭(챌린저/운영진) */
-  listAudience?: NoticeAudience
   /** TODO: API 연동 시 제거. `pending` | `loading` | `success` */
   imageLoadState?: NoticeImageLoadState
   /** QA: `loading`에서 mock success 자동 전환 끔 */
@@ -51,7 +47,6 @@ function parseImageLoadState(
 
 export const Route = createFileRoute("/_admin/notices/$noticeId")({
   validateSearch: (search: Record<string, unknown>): NoticeDetailSearch => ({
-    listAudience: parseNoticeListAudienceOptional(search.listAudience),
     imageLoadState: onlyInDev(parseImageLoadState(search)),
     imageLoadPause: onlyInDev(
       search.imageLoadPause === "1" || search.imageLoadPause === true
@@ -79,7 +74,7 @@ function NoticeDetailRoute() {
   const session = toNoticeOperatorSession(adminSession, {
     gisuId: selectedGisuId,
   })
-  const { imageLoadPause, imageLoadState, listAudience } = Route.useSearch()
+  const { imageLoadPause, imageLoadState } = Route.useSearch()
 
   if (isEditRoute) {
     return <Outlet />
@@ -101,7 +96,6 @@ function NoticeDetailRoute() {
       canManageNotice={canManageNotice}
       imageLoadPause={imageLoadPause}
       imageLoadState={imageLoadState}
-      listAudience={listAudience}
       notice={notice}
     />
   )

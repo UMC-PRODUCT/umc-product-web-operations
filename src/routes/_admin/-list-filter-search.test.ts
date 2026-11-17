@@ -13,12 +13,13 @@ describe("공지 목록 라우트 validateSearch", () => {
   it("빈 URL은 모든 필터가 비어 있다", () => {
     const search = validateNotices({})
 
-    expect(search.audience).toBeUndefined()
     expect(search.q).toBeUndefined()
-    expect(search.page).toBeUndefined()
+    expect(search.chapterScope).toBeUndefined()
+    expect(search).not.toHaveProperty("audience")
+    expect(search).not.toHaveProperty("page")
   })
 
-  it("챌린저 필터를 읽고 1페이지는 생략한다", () => {
+  it("챌린저 필터를 읽는다", () => {
     expect(
       validateNotices({
         audience: "challenger",
@@ -28,16 +29,16 @@ describe("공지 목록 라우트 validateSearch", () => {
         q: "모집",
       }),
     ).toMatchObject({
-      audience: "challenger",
       chapterScope: "chapter:3",
       part: "WEB",
       q: "모집",
-      page: undefined,
     })
   })
 
-  it("2페이지 이상은 page로 유지한다", () => {
-    expect(validateNotices({ page: "4" }).page).toBe(4)
+  it("page·audience는 URL 계약에서 제외한다", () => {
+    const search = validateNotices({ page: "4", audience: "staff" })
+    expect(search).not.toHaveProperty("page")
+    expect(search).not.toHaveProperty("audience")
   })
 
   it("알 수 없는 값은 버린다", () => {
@@ -49,14 +50,12 @@ describe("공지 목록 라우트 validateSearch", () => {
     })
 
     expect(search).toMatchObject({
-      audience: undefined,
       chapterScope: undefined,
-      page: undefined,
       part: undefined,
     })
   })
 
-  it("운영진 탭은 받는 사람·범위 단계를 유지하고 챌린저 전용 값은 버린다", () => {
+  it("운영진 필터는 받는 사람·범위 단계를 유지하고 챌린저 전용 값은 버린다", () => {
     expect(
       validateNotices({
         audience: "staff",
@@ -66,8 +65,7 @@ describe("공지 목록 라우트 validateSearch", () => {
         staffRecipient: "SCHOOL_CORE",
       }),
     ).toMatchObject({
-      audience: "staff",
-      chapterScope: undefined,
+      chapterScope: "chapter:1",
       scope: "school:7",
       scopeStage: "school",
       staffRecipient: "SCHOOL_CORE",
@@ -76,10 +74,10 @@ describe("공지 목록 라우트 validateSearch", () => {
 
   it("검증 결과를 다시 검증해도 같다 (뒤로가기 복원 안정성)", () => {
     const once = validateNotices({
-      audience: "staff",
       part: "WEB",
       q: "x",
       scopeStage: "part",
+      staffRecipient: "SCHOOL_CORE",
     })
 
     expect(validateNotices(once)).toEqual(once)

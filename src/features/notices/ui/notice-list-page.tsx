@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { AddIcon } from "@umc-product/icons"
 import { Button, Pagination, Tab, TabList, Tabs } from "@umc-product/react"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { toOrganizationLists } from "@/entities/organization"
 
@@ -22,6 +22,7 @@ import {
   parseNoticeListAudience,
   parseNoticeListFiltersFromSearch,
 } from "../model/notice-list-route-search"
+import { buildNoticeLocationState } from "../model/notice-location-state"
 import {
   isNoticeSchoolExecutiveContext,
   NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS,
@@ -48,6 +49,7 @@ import {
 } from "../model/resolve-notice-list-ui-state"
 import { NoticeListFiltersBar } from "./notice-list-filters"
 import { NoticeListTable } from "./notice-list-table"
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeListFilterFields } from "../model/normalize-notice-list-filters"
@@ -57,9 +59,7 @@ import type { NoticeScopeStage } from "../model/notice-scope-stage"
 import type { Notice, NoticeAudience, NoticeListFilters } from "../model/types"
 
 type NoticeListPageProps = {
-  audience?: NoticeAudience
   listChapterScope?: string
-  listPage?: number
   listPart?: NoticePart
   routeListQuery?: string
   listSchoolScope?: string
@@ -132,19 +132,16 @@ function resolveListLoadState(
 function filtersFromListRouteSearch(input: {
   audience: NoticeAudience
   listChapterScope?: string
-  listPage?: number
   listPart?: NoticePart
   routeListQuery?: string
   listSchoolScope?: string
   listScope?: string
   listScopeStage?: NoticeScopeStage
   listStaffRecipient?: NoticeCreateStaffScope
-}): { filters: Omit<NoticeListFilters, "audience">; page: number } {
+}): Omit<NoticeListFilters, "audience"> {
   return parseNoticeListFiltersFromSearch(
     {
-      audience: input.audience,
       chapterScope: input.listChapterScope,
-      page: input.listPage,
       part: input.listPart,
       q: input.routeListQuery,
       schoolScope: input.listSchoolScope,
@@ -153,13 +150,11 @@ function filtersFromListRouteSearch(input: {
       staffRecipient: input.listStaffRecipient,
     },
     { audience: input.audience },
-  )
+  ).filters
 }
 
 export function NoticeListPage({
-  audience: audienceFromRoute,
   listChapterScope,
-  listPage,
   listPart,
   routeListQuery,
   listSchoolScope,
@@ -170,14 +165,21 @@ export function NoticeListPage({
   session,
 }: NoticeListPageProps) {
   const navigate = useNavigate()
-  const audience = parseNoticeListAudience(audienceFromRoute)
+  const locationState = useNoticeLocationStateFromLocation()
+  const audience = parseNoticeListAudience(locationState.listAudience)
+  const [page, setPage] = useState(() => locationState.listPage ?? 1)
   const showCreateNoticeButton = canCreateNotice(session)
-  const routeListState = useMemo(
+
+  useEffect(() => {
+    if (locationState.listPage != null) {
+      setPage(locationState.listPage)
+    }
+  }, [locationState.listPage])
+  const routeFilters = useMemo(
     () =>
       filtersFromListRouteSearch({
         audience,
         listChapterScope,
-        listPage,
         listPart,
         routeListQuery,
         listSchoolScope,
@@ -188,7 +190,6 @@ export function NoticeListPage({
     [
       audience,
       listChapterScope,
-      listPage,
       listPart,
       routeListQuery,
       listSchoolScope,
@@ -205,9 +206,14 @@ export function NoticeListPage({
     }
 
     previousGisuIdRef.current = session.gisuId
+    setPage(1)
     void navigate({
       replace: true,
-      search: { audience },
+      search: {},
+      state: buildNoticeLocationState({
+        listAudience: audience,
+        listPage: 1,
+      }),
       to: "/notices",
     })
   }, [audience, navigate, session.gisuId])
@@ -365,7 +371,7 @@ export function NoticeListPage({
 
   const filters = useMemo(
     () =>
-      normalizeNoticeListFilters(routeListState.filters, {
+      normalizeNoticeListFilters(routeFilters, {
         challengerLockedSchoolScope,
         chapterScopeOptions,
         lockedChapterScope: challengerLockedChapterScope,
@@ -382,43 +388,42 @@ export function NoticeListPage({
       chapterScopeOptions,
       isOrganizationLoading,
       partScopeOptions,
-      routeListState.filters,
+      routeFilters,
       schoolScopeOptions,
       staffFixedStaffRecipient,
       staffLockedSchoolScope,
       staffRecipientScopeAllowlist,
     ],
   )
-  const page = routeListState.page
 
-  const navigateToList = (
-    nextFilters: NoticeListFilterFields,
-    nextPage: number,
-  ) => {
+  const navigateToListFilters = (nextFilters: NoticeListFilterFields) => {
     const nextSearch = buildNoticeListFilterSearchParams({
       audience,
       filters: nextFilters,
-      page: nextPage,
     })
     const currentSearch = buildNoticeListFilterSearchParams({
       audience,
       filters,
-      page,
     })
 
     if (areNoticeListFilterSearchParamsEqual(nextSearch, currentSearch)) {
       return
     }
 
+    setPage(1)
     void navigate({
       replace: true,
       search: nextSearch,
+      state: buildNoticeLocationState({
+        listAudience: audience,
+        listPage: 1,
+      }),
       to: "/notices",
     })
   }
 
   const handleFiltersChange = (patch: Partial<NoticeListFilterFields>) => {
-    navigateToList({ ...filters, ...patch }, 1)
+    navigateToListFilters({ ...filters, ...patch })
   }
 
   const listQuery = useQuery(
@@ -541,8 +546,14 @@ export function NoticeListPage({
             className="w-auto shrink-0"
             onValueChange={(value) => {
               const nextAudience = value as NoticeAudience
+              setPage(1)
               void navigate({
-                search: { audience: nextAudience },
+                replace: true,
+                search: {},
+                state: buildNoticeLocationState({
+                  listAudience: nextAudience,
+                  listPage: 1,
+                }),
                 to: "/notices",
               })
             }}
@@ -589,7 +600,10 @@ export function NoticeListPage({
             onOpenNotice={(noticeId) => {
               void navigate({
                 params: { noticeId },
-                search: { listAudience: audience },
+                state: buildNoticeLocationState({
+                  listAudience: audience,
+                  listPage: page,
+                }),
                 to: "/notices/$noticeId",
               })
             }}
@@ -601,7 +615,19 @@ export function NoticeListPage({
           {showPagination ? (
             <Pagination
               onPageChange={(nextPage) => {
-                navigateToList(filters, nextPage)
+                setPage(nextPage)
+                void navigate({
+                  replace: true,
+                  search: buildNoticeListFilterSearchParams({
+                    audience,
+                    filters,
+                  }),
+                  state: buildNoticeLocationState({
+                    listAudience: audience,
+                    listPage: nextPage,
+                  }),
+                  to: "/notices",
+                })
               }}
               page={page}
               totalPages={totalPages}

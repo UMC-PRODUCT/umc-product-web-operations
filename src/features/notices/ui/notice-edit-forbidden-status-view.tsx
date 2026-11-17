@@ -3,22 +3,17 @@ import { Button } from "@umc-product/react"
 
 import { FullPageError } from "@/shared/ui/full-page-error"
 
+import { buildNoticeLocationState } from "../model/notice-location-state"
 import {
   NOTICE_EDIT_FORBIDDEN_DESCRIPTION,
   NOTICE_EDIT_FORBIDDEN_TITLE,
 } from "../model/notice-outcomes"
-
-import type { NoticeAudience } from "../model/types"
-
-type NoticeEditForbiddenStatusViewProps = {
-  listAudience?: NoticeAudience
-}
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 
 /** Figma 888:31367 — 공지 수정 권한 없음 (주소 직접 진입) */
-export function NoticeEditForbiddenStatusView({
-  listAudience,
-}: NoticeEditForbiddenStatusViewProps) {
+export function NoticeEditForbiddenStatusView() {
   const navigate = useNavigate()
+  const locationState = useNoticeLocationStateFromLocation()
 
   return (
     <FullPageError
@@ -27,7 +22,10 @@ export function NoticeEditForbiddenStatusView({
           color="white"
           onClick={() => {
             void navigate({
-              search: listAudience ? { audience: listAudience } : {},
+              state: buildNoticeLocationState({
+                listAudience: locationState.listAudience,
+                listPage: locationState.listPage,
+              }),
               to: "/notices",
             })
           }}

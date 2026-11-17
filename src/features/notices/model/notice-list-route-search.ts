@@ -162,10 +162,9 @@ export function parseNoticeListFiltersFromSearch(
   }
 }
 
+/** 목록 URL search — 탭(audience)·페이지는 history state / 로컬 state */
 export type NoticeListFilterSearchParams = {
-  audience: NoticeAudience
   chapterScope?: string
-  page?: number
   part?: NoticePart
   q?: string
   schoolScope?: string
@@ -177,11 +176,8 @@ export type NoticeListFilterSearchParams = {
 export function buildNoticeListFilterSearchParams(input: {
   audience: NoticeAudience
   filters: Omit<NoticeListFilters, "audience">
-  page: number
 }): NoticeListFilterSearchParams {
-  const search: NoticeListFilterSearchParams = {
-    audience: input.audience,
-  }
+  const search: NoticeListFilterSearchParams = {}
 
   const query = input.filters.query.trim()
   if (query) {
@@ -220,10 +216,6 @@ export function buildNoticeListFilterSearchParams(input: {
     }
   }
 
-  if (input.page > 1) {
-    search.page = input.page
-  }
-
   return search
 }
 
@@ -232,14 +224,12 @@ export function areNoticeListFilterSearchParamsEqual(
   right: NoticeListFilterSearchParams,
 ): boolean {
   return (
-    left.audience === right.audience &&
     (left.q ?? "") === (right.q ?? "") &&
     (left.chapterScope ?? null) === (right.chapterScope ?? null) &&
     (left.schoolScope ?? null) === (right.schoolScope ?? null) &&
     (left.scopeStage ?? null) === (right.scopeStage ?? null) &&
     (left.scope ?? null) === (right.scope ?? null) &&
     (left.part ?? null) === (right.part ?? null) &&
-    (left.staffRecipient ?? null) === (right.staffRecipient ?? null) &&
-    (left.page ?? 1) === (right.page ?? 1)
+    (left.staffRecipient ?? null) === (right.staffRecipient ?? null)
   )
 }
