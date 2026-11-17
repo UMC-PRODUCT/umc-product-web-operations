@@ -1,5 +1,5 @@
 export type DeletePointHistoryOutcome =
-  "success" | "network_error" | "already_deleted"
+  "success" | "network_error" | "server_error" | "already_deleted"
 
 const DELETE_DELAY_MS = 900
 

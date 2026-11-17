@@ -1,7 +1,9 @@
+import { useMutation } from "@tanstack/react-query"
 import {
   Button,
   Checkbox,
   Dialog,
+  Divider,
   ProgressBar,
   Tag,
   useToast,
@@ -21,7 +23,6 @@ import {
   cancelNoticeVoteResponse,
   saveNoticeVoteResponse,
 } from "../model/submit-notice-vote"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
   restoreNoticeDialogFocus,
@@ -199,7 +200,9 @@ export function NoticeDetailVoteCard({
   const [endDialogOpen, setEndDialogOpen] = useState(false)
   const endDialogFocusStore = useRef<HTMLElement | null>(null)
   const [isEndingPoll, setIsEndingPoll] = useState(false)
-  const [isSubmittingVote, setIsSubmittingVote] = useState(false)
+  const submitVoteMutation = useMutation({
+    mutationFn: saveNoticeVoteResponse,
+  })
 
   const voteLeaveStateRef = useRef({
     draftSelection,
@@ -279,7 +282,7 @@ export function NoticeDetailVoteCard({
   }
 
   const handleSubmitVote = async () => {
-    if (draftSelection.length === 0 || isSubmittingVote) {
+    if (draftSelection.length === 0 || submitVoteMutation.isPending) {
       return
     }
 
@@ -288,10 +291,9 @@ export function NoticeDetailVoteCard({
       return
     }
 
-    setIsSubmittingVote(true)
     try {
       if (!isPreview) {
-        await saveNoticeVoteResponse({
+        await submitVoteMutation.mutateAsync({
           noticeId: parsedNoticeId,
           optionIds: draftSelection.map((optionId) => Number(optionId)),
           hasExistingResponse: hasEverVoted,
@@ -317,8 +319,6 @@ export function NoticeDetailVoteCard({
         getServerErrorMessage(error) ??
           "투표를 저장하지 못했어요. 잠시 후 다시 시도해주세요.",
       )
-    } finally {
-      setIsSubmittingVote(false)
     }
   }
 
@@ -384,7 +384,7 @@ export function NoticeDetailVoteCard({
           </div>
         </div>
 
-        <hr className="border-neutral-disabled m-0 w-full border-0 border-t" />
+        <Divider className="w-full [--umc-divider-color:var(--umc-color-border-neutral-disabled)] [--umc-divider-line-thickness:1px]" />
 
         {isInputMode ? (
           <ul className="flex w-full list-none flex-col gap-(--umc-spacing-gap-16) p-0">
@@ -424,8 +424,8 @@ export function NoticeDetailVoteCard({
             {showVoteButton ? (
               <Button
                 color="brand"
-                disabled={isSubmittingVote}
-                isLoading={isSubmittingVote}
+                disabled={submitVoteMutation.isPending}
+                isLoading={submitVoteMutation.isPending}
                 onClick={() => {
                   void handleSubmitVote()
                 }}
@@ -473,7 +473,6 @@ export function NoticeDetailVoteCard({
         </p>
       </article>
 
-      {endDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         cancelLabel="취소"
         color="brand"

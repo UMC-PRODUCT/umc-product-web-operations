@@ -1,9 +1,9 @@
+import { Button } from "@umc-product/react"
+
+import { FullPageError } from "@/shared/ui/full-page-error"
+
 export function ForbiddenNotice() {
-  return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <p role="alert">이 작업을 수행할 권한이 없습니다.</p>
-    </div>
-  )
+  return <FullPageError title="이 작업을 수행할 권한이 없습니다." />
 }
 
 export function OperatorOnlyNotice({
@@ -14,30 +14,36 @@ export function OperatorOnlyNotice({
   onRelogin?: () => void
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6">
-      <p role="alert">운영진 계정만 로그인할 수 있습니다.</p>
-      {(onRelogin || onBack) && (
-        <div className="flex flex-col items-center gap-2">
-          {onRelogin ? (
-            <button
-              className="underline underline-offset-2"
-              onClick={onRelogin}
-              type="button"
-            >
-              다시 로그인
-            </button>
-          ) : null}
-          {onBack ? (
-            <button
-              className="underline underline-offset-2"
-              onClick={onBack}
-              type="button"
-            >
-              이전으로 돌아가기
-            </button>
-          ) : null}
-        </div>
-      )}
-    </div>
+    <FullPageError
+      actions={
+        onRelogin || onBack ? (
+          <>
+            {onRelogin ? (
+              <Button
+                color="brand"
+                onClick={onRelogin}
+                size="md"
+                type="button"
+                variant="fill"
+              >
+                다시 로그인
+              </Button>
+            ) : null}
+            {onBack ? (
+              <Button
+                color="neutral"
+                onClick={onBack}
+                size="md"
+                type="button"
+                variant="weak"
+              >
+                이전으로 돌아가기
+              </Button>
+            ) : null}
+          </>
+        ) : undefined
+      }
+      title="운영진 계정만 로그인할 수 있습니다."
+    />
   )
 }

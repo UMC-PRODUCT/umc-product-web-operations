@@ -1,3 +1,5 @@
+import { isRoleType } from "@/entities/member"
+
 import { toPointsMember } from "./map-search-member"
 
 import type {
@@ -5,44 +7,29 @@ import type {
   ChallengerPointInfo,
   PointType,
 } from "../api/challenger-points"
-import type { SearchMemberItem } from "../api/member-search"
 import type { PointHistoryItem } from "./point-history"
 import type { PointAwardTab } from "./point-types"
 import type { PointsMember } from "./types"
 
 const POINT_TYPE_LABEL: Record<PointType, string> = {
-  BEST_WORKBOOK: "베스트 워크북 선정",
+  BEST_WORKBOOK: "베스트 워크북",
   BEST_WORKBOOK_V2: "베스트 워크북 선정",
-  BLOG_CHALLENGE: "블로그 챌린지",
+  BLOG_CHALLENGE: "블로그 챌린지 참여",
   UMC_EVENT_REVIEW: "행사 리뷰어",
-  PEER_REVIEW_SUBMISSION: "피어리뷰 제출",
+  PEER_REVIEW_SUBMISSION: "Peer Review 작성",
   NO_WORKBOOK_MISSION: "과제 미수행",
-  STUDY_LATE: "스터디 지각",
-  STUDY_ABSENT: "스터디 불참",
-  EVENT_LATE: "행사 지각",
+  STUDY_LATE: "스터디 무단 지각",
+  STUDY_ABSENT: "스터디 무단 불참",
+  EVENT_LATE: "행사 무단 지각",
   EVENT_EARLY_LEAVE: "행사 중도 퇴실",
   EVENT_LATE_CANCEL: "행사 기간 외 취소",
-  EVENT_NO_SHOW: "노쇼",
+  EVENT_NO_SHOW: "노쇼(무단 결석)",
   WARNING: "경고",
-  OUT: "아웃",
+  OUT: "퇴출",
   CUSTOM: "기타",
-  PART_LEAD_FEEDBACK_LATE: "파트장 피드백 지각",
-  SCHOOL_CORE_MEETING_ABSENT: "회의 불참",
-  SCHOOL_CORE_TASK_NOT_COMPLETED: "업무 불이행",
-}
-
-const LABEL_TO_POINT_TYPE: Record<string, PointType> = {
-  "블로그 챌린지": "BLOG_CHALLENGE",
-  "베스트 워크북 선정": "BEST_WORKBOOK_V2",
-  "행사 리뷰어": "UMC_EVENT_REVIEW",
-  "과제 미수행": "NO_WORKBOOK_MISSION",
-  "스터디 지각": "STUDY_LATE",
-  "스터디 불참": "STUDY_ABSENT",
-  "행사 지각": "EVENT_LATE",
-  "행사 중도 퇴실": "EVENT_EARLY_LEAVE",
-  "행사 기간 외 취소": "EVENT_LATE_CANCEL",
-  노쇼: "EVENT_NO_SHOW",
-  "회의 불참": "SCHOOL_CORE_MEETING_ABSENT",
+  PART_LEAD_FEEDBACK_LATE: "기간 외 피드백",
+  SCHOOL_CORE_MEETING_ABSENT: "회의 무단 불참",
+  SCHOOL_CORE_TASK_NOT_COMPLETED: "업무 무단 불이행",
 }
 
 export function pointTypeLabel(pointType: string | null | undefined): string {
@@ -71,9 +58,8 @@ export function formatOccurredAt(value: string | null | undefined): string {
   return `${yyyy}.${mm}.${dd} ${hh}:${mi}`
 }
 
+/** 부호가 양수로 내려와도 벌점으로 뒤집을 유형. OUT(+1)·WARNING(0)은 제외. */
 const PENALTY_POINT_TYPES = new Set<PointType>([
-  "WARNING",
-  "OUT",
   "NO_WORKBOOK_MISSION",
   "STUDY_LATE",
   "STUDY_ABSENT",
@@ -142,6 +128,7 @@ export function challengerPointList(
 
 export function toGrantPointBody(input: {
   tab: PointAwardTab
+  pointType?: PointType
   typeLabel: string
   score: number
   reason: string
@@ -154,8 +141,8 @@ export function toGrantPointBody(input: {
       description,
     }
   }
-  const pointType = LABEL_TO_POINT_TYPE[input.typeLabel]
-  if (!pointType) {
+  const pointType = input.pointType ?? "CUSTOM"
+  if (pointType === "CUSTOM") {
     return {
       pointType: "CUSTOM" as const,
       pointValue: input.score,
@@ -165,12 +152,9 @@ export function toGrantPointBody(input: {
   return { pointType, description }
 }
 
-export function toDetailMember(
-  info: ChallengerInfo,
-  memberId: string,
-): PointsMember {
+export function toDetailMember(info: ChallengerInfo): PointsMember {
   const mapped = toPointsMember({
-    memberId: info.memberId ?? Number(memberId),
+    memberId: info.memberId,
     name: info.name,
     nickname: info.nickname,
     schoolName: info.schoolName,
@@ -180,28 +164,12 @@ export function toDetailMember(
     isAdminInActiveGisu: (info.roles?.length ?? 0) > 0,
     roleTypes: info.roles
       ?.map((role) => role.roleType)
-      .filter((role): role is NonNullable<typeof role> => Boolean(role)) as
-      SearchMemberItem["roleTypes"] | undefined,
+      .filter((role): role is string => Boolean(role))
+      .filter(isRoleType),
   })
   return {
     ...mapped,
-    id: memberId,
-    region: guessRegionFromChapter(info.chapterName),
+    id: String(info.memberId ?? info.challengerId),
     regionLabel: info.chapterName ?? undefined,
   }
-}
-
-function guessRegionFromChapter(
-  chapterName: string | null | undefined,
-): PointsMember["region"] {
-  if (!chapterName) {
-    return "seoul"
-  }
-  if (chapterName.includes("경기")) {
-    return "gyeonggi"
-  }
-  if (chapterName.includes("충청")) {
-    return "chungcheong"
-  }
-  return "seoul"
 }

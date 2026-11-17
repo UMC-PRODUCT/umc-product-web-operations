@@ -662,6 +662,7 @@ export function NoticeCreateVotePanel({
         onClick={onClose}
       />
       <div className="fixed inset-0 z-[calc(var(--umc-z-dialog,1000)+1)] flex items-center justify-center p-(--umc-spacing-padding-32)">
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Dimmed 닫기로 이벤트 전파 차단 */}
         <div
           aria-labelledby={titleId}
           aria-modal="true"
@@ -671,6 +672,9 @@ export function NoticeCreateVotePanel({
             "pb-(--umc-spacing-padding-20) shadow-(--umc-shadow-drop-neutral-2)",
           )}
           onClick={(event) => {
+            event.stopPropagation()
+          }}
+          onKeyDown={(event) => {
             event.stopPropagation()
           }}
           role="dialog"

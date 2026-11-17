@@ -29,20 +29,18 @@ describe("notice-list-route-search", () => {
     const built = buildNoticeListFilterSearchParams({
       audience: "challenger",
       filters,
-      page: 2,
     })
 
     expect(built).toEqual({
-      audience: "challenger",
-      page: 2,
       part: "WEB",
       q: "투표",
       schoolScope: encodeSchoolScope(2),
     })
 
-    const parsed = parseNoticeListFiltersFromSearch(built)
+    const parsed = parseNoticeListFiltersFromSearch(built, {
+      audience: "challenger",
+    })
     expect(parsed.filters).toEqual(filters)
-    expect(parsed.page).toBe(2)
   })
 
   it("round-trips staff list filters through search params", () => {
@@ -56,11 +54,9 @@ describe("notice-list-route-search", () => {
     const built = buildNoticeListFilterSearchParams({
       audience: "staff",
       filters,
-      page: 1,
     })
 
     expect(built).toEqual({
-      audience: "staff",
       part: "WEB",
       scopeStage: "part",
       staffRecipient: "SCHOOL_CORE",
@@ -76,7 +72,6 @@ describe("notice-list-route-search", () => {
     const scope = encodeSchoolScope(31)
     const parsed = parseNoticeListFiltersFromSearch(
       {
-        audience: "staff",
         scopeStage: "school",
         scope,
         staffRecipient: "SCHOOL_PART_LEADER",
@@ -93,9 +88,8 @@ describe("notice-list-route-search", () => {
     const left = buildNoticeListFilterSearchParams({
       audience: "staff",
       filters: emptyFilters,
-      page: 1,
     })
-    const right = { audience: "staff" as const }
+    const right = {}
 
     expect(areNoticeListFilterSearchParamsEqual(left, right)).toBe(true)
   })

@@ -6,6 +6,7 @@ import {
   toPointHistoryItem,
 } from "./map-point-history"
 import {
+  getPartFilterOptions,
   toChapterOptions,
   toMemberSearchPart,
   toOrganizationId,
@@ -94,6 +95,18 @@ describe("challenger search mapping", () => {
     expect(usesLegacyPartLabel(member.generationNumber)).toBe(true)
   })
 
+  it("uses API part enums for legacy generation filters", () => {
+    expect(getPartFilterOptions(10).map((option) => option.value)).toEqual([
+      "WEB",
+      "NODEJS",
+      "SPRINGBOOT",
+      "ANDROID",
+      "IOS",
+    ])
+    expect(toMemberSearchPart("SPRINGBOOT", 10)).toBe("SPRINGBOOT")
+    expect(toMemberSearchPart("web-pe", 11)).toBe("WEB_PRODUCT_ENGINEER")
+  })
+
   it("builds chapter and school options from the organization response", () => {
     const gisus = [
       {
@@ -180,11 +193,25 @@ describe("point grant body", () => {
     expect(
       toGrantPointBody({
         tab: "reward",
-        typeLabel: "블로그 챌린지",
+        pointType: "BLOG_CHALLENGE",
+        typeLabel: "블로그 챌린지 참여",
         score: 3,
         reason: "제출",
       }),
     ).toEqual({ pointType: "BLOG_CHALLENGE", description: "제출" })
+
+    expect(
+      toGrantPointBody({
+        tab: "reward",
+        pointType: "SCHOOL_CORE_TASK_NOT_COMPLETED",
+        typeLabel: "업무 무단 불이행",
+        score: -4,
+        reason: "미이행",
+      }),
+    ).toEqual({
+      pointType: "SCHOOL_CORE_TASK_NOT_COMPLETED",
+      description: "미이행",
+    })
 
     expect(
       toGrantPointBody({
@@ -229,8 +256,8 @@ describe("point grant body", () => {
     }).map(toPointHistoryItem)
 
     expect(history.map((item) => item.typeLabel)).toEqual([
-      "스터디 지각",
-      "블로그 챌린지",
+      "스터디 무단 지각",
+      "블로그 챌린지 참여",
     ])
     expect(history[0]?.score).toBe(-2)
   })
@@ -244,7 +271,7 @@ describe("point grant body", () => {
         description: "지각",
         createdAt: "2026-03-01T01:02:00.000Z",
       }).typeLabel,
-    ).toBe("스터디 지각")
+    ).toBe("스터디 무단 지각")
   })
 
   it("sums reward and penalty totals from signed scores", () => {

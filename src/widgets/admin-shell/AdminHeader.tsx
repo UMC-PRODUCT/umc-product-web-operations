@@ -10,9 +10,10 @@ import {
 } from "@umc-product/react"
 import { useEffect, useId, useRef, useState } from "react"
 
+import { useSelectedGisu } from "@/entities/gisu"
 import { adminSessionQueryKey } from "@/features/auth"
+import { noticeKeys } from "@/features/notices"
 import { getSsoClient } from "@/shared/auth/sso-client"
-import { useSelectedGisu } from "@/shared/model/selected-gisu"
 
 import { HEADER_NAV_ITEMS } from "./nav"
 import { resolveProfileRoles } from "./profile-roles"
@@ -117,7 +118,7 @@ export function AdminHeader({ currentPath, generation }: AdminHeaderProps) {
             onLogout={handleLogout}
             onSelectGisu={(gisuId) => {
               selectedGisu.setGisuId(gisuId)
-              void queryClient.invalidateQueries({ queryKey: ["notices"] })
+              void queryClient.invalidateQueries({ queryKey: noticeKeys.all })
               setOpen(false)
             }}
             profileImageUrl={session.profileImageUrl}

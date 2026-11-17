@@ -1,46 +1,25 @@
-import { queryOptions } from "@tanstack/react-query"
+import {
+  fetchOrganizationLists,
+  gisuOrganizationQueryKey,
+  gisuOrganizationQueryOptions,
+} from "@/entities/organization"
 
-import { fetchActiveGisuOrganization } from "../api/gisu-organization.api"
-import { normalizeGisuOrganizationLists } from "./map-gisu-organization"
+import type { OrganizationLists } from "@/entities/organization"
 
-import type {
-  NoticeListChapterOption,
-  NoticeListSchoolOption,
-} from "./map-gisu-organization"
-
-export type NoticeListOrganizationOptions = {
-  chapters: NoticeListChapterOption[]
-  schools: NoticeListSchoolOption[]
-  schoolsByChapterId: ReadonlyMap<number, NoticeListSchoolOption[]>
-}
+/** @deprecated Use OrganizationLists from @/entities/organization */
+export type NoticeListOrganizationOptions = OrganizationLists
 
 export function noticeListOrganizationQueryKey(gisuId: number | null) {
-  return ["notices", "organization", gisuId] as const
+  return gisuOrganizationQueryKey(gisuId)
 }
 
 export async function fetchNoticeListOrganizationOptions(
   gisuId: number | null,
 ): Promise<NoticeListOrganizationOptions> {
-  if (gisuId == null) {
-    return { chapters: [], schools: [], schoolsByChapterId: new Map() }
-  }
-
-  const gisu = await fetchActiveGisuOrganization(gisuId)
-  if (!gisu) {
-    return { chapters: [], schools: [], schoolsByChapterId: new Map() }
-  }
-
-  return normalizeGisuOrganizationLists({
-    chapters: gisu.chapters,
-    schools: gisu.schools,
-  })
+  return fetchOrganizationLists(gisuId)
 }
 
+/** 기수 조직 원본 쿼리. 목록 형태는 `toOrganizationLists`로 변환한다. */
 export function noticeListOrganizationQueryOptions(gisuId: number | null) {
-  return queryOptions({
-    queryKey: noticeListOrganizationQueryKey(gisuId),
-    queryFn: () => fetchNoticeListOrganizationOptions(gisuId),
-    enabled: gisuId != null,
-    staleTime: 60_000,
-  })
+  return gisuOrganizationQueryOptions(gisuId)
 }

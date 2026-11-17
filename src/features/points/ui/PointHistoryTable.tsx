@@ -8,6 +8,7 @@ import { PartTag, Tag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
 import { cn } from "@/shared/lib/cn"
+import { DataTableBody } from "@/shared/ui/data-table-shell"
 
 import { formatPointScore } from "../model/point-history"
 
@@ -146,7 +147,7 @@ export function PointHistoryTable({
   })
 
   return (
-    <div className="w-full [scrollbar-width:none] overflow-x-auto rounded-(--umc-radius-12) [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="w-full min-w-0 overflow-x-auto rounded-(--umc-radius-12)">
       <div className="min-w-[1158px]">
         <div
           className="bg-fill-neutral-weak-75 text-body-3-medium text-neutral-default-900 border-neutral-disabled flex items-center rounded-t-(--umc-radius-12) border px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
@@ -155,8 +156,8 @@ export function PointHistoryTable({
           <div className="flex h-7 w-full items-center">
             {table.getHeaderGroups().map((headerGroup) =>
               headerGroup.headers.map((header) => {
-                const meta = header.column.columnDef.meta as
-                  ColumnMeta | undefined
+                const meta: ColumnMeta | undefined =
+                  header.column.columnDef.meta
                 return (
                   <div
                     className={meta?.headerClass ?? ""}
@@ -175,10 +176,7 @@ export function PointHistoryTable({
             )}
           </div>
         </div>
-        <div
-          className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l"
-          role="rowgroup"
-        >
+        <DataTableBody>
           {table.getRowModel().rows.map((row, index, rows) => {
             const isLast = index === rows.length - 1
             return (
@@ -191,8 +189,8 @@ export function PointHistoryTable({
                 role="row"
               >
                 {row.getVisibleCells().map((cell) => {
-                  const meta = cell.column.columnDef.meta as
-                    ColumnMeta | undefined
+                  const meta: ColumnMeta | undefined =
+                    cell.column.columnDef.meta
                   return (
                     <div
                       className={cn("flex items-center", meta?.cellClass)}
@@ -209,7 +207,7 @@ export function PointHistoryTable({
               </div>
             )
           })}
-        </div>
+        </DataTableBody>
       </div>
     </div>
   )

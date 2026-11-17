@@ -1,14 +1,19 @@
 import "./notice-create-publish-dialog.css"
 
-import { useQuery } from "@tanstack/react-query"
-import { useBlocker, useNavigate } from "@tanstack/react-router"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import { toOrganizationLists } from "@/entities/organization"
+
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
+import {
+  normalizeNoticeCreateForm,
+  resetNoticeCreateOrganization,
+} from "../model/normalize-notice-create-form"
 import { isNoticeCentralUnrestrictedCreateContext } from "../model/notice-central-create-access"
 import {
-  applyNoticeChapterPresidentCreateFormLock,
   isNoticeChapterPresidentChallengerContext,
   resolveNoticeChapterPresidentChallengerLock,
 } from "../model/notice-chapter-president-access"
@@ -19,7 +24,6 @@ import {
 } from "../model/notice-create-form"
 import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
 import {
-  filterNoticeCreateParts,
   resolveNoticeCreateContextGisuId,
   resolveNoticeCreatePartOptions,
 } from "../model/notice-create-part-options"
@@ -28,23 +32,22 @@ import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
   NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE,
+  NOTICE_PUBLISH_TOAST_MESSAGE,
 } from "../model/notice-outcomes"
-import {
-  applyNoticeSchoolExecutiveChallengerCreateLock,
-  NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
-  resolveNoticeSchoolExecutiveLock,
-} from "../model/notice-school-executive-access"
+import { resolveNoticeSchoolExecutiveLock } from "../model/notice-school-executive-access"
 import {
   isNoticeSchoolStaffContext,
   resolveNoticeSchoolStaffLock,
 } from "../model/notice-school-staff-access"
-import { submitNoticeCreate } from "../model/submit-notice-create"
+import {
+  submitNoticeCreate,
+  type SubmitNoticeCreateProgress,
+} from "../model/submit-notice-create"
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
 import { NoticeCreatePublishDialogErrorToast } from "./notice-create/notice-create-publish-dialog-error-toast"
 import { NoticeCreateSummaryPanel } from "./notice-create/notice-create-summary-panel"
 import { NoticeCreateVotePanel } from "./notice-create/notice-create-vote-panel"
 import { NoticeVoteDeleteDialog } from "./notice-create/notice-vote-delete-dialog"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
   restoreNoticeDialogFocus,
@@ -54,9 +57,11 @@ import {
   showNoticeErrorToast,
   showNoticeImageUploadFailureToast,
 } from "./show-notice-error-toast"
+import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
+import { useNoticeLeaveConfirm } from "./use-notice-leave-confirm"
+import { useNoticeVoteDraft } from "./use-notice-vote-draft"
 
 import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
-import type { NoticeCreateVoteDraft } from "../model/notice-create-vote-draft"
 import type { NoticeOperatorSession } from "../model/notice-session"
 
 type NoticeCreatePageProps = {
@@ -73,42 +78,46 @@ export function NoticeCreatePage({
   const [form, setForm] = useState<NoticeCreateFormState>(
     INITIAL_NOTICE_CREATE_FORM,
   )
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false)
-  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
-  const allowLeaveRef = useRef(false)
-  const pendingLeaveToRef = useRef<string | null>(null)
-  const leaveDialogFocusStore = useRef<HTMLElement | null>(null)
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
-  const [publishNetworkError, setPublishNetworkError] = useState(false)
+  /** 게시 Dialog slot에 표시할 오류 문구 (null이면 없음) */
+  const [publishError, setPublishError] = useState<string | null>(null)
   const publishDialogFocusStore = useRef<HTMLElement | null>(null)
-  const [votePanelOpen, setVotePanelOpen] = useState(false)
-  const [voteDeleteDialogOpen, setVoteDeleteDialogOpen] = useState(false)
-  const [voteDraft, setVoteDraft] = useState<NoticeCreateVoteDraft | null>(null)
+  /** 게시 실패 후 재시도 시 완료된 단계(이미지·공지·첨부·투표)를 건너뛰기 위한 진행 상황 */
+  const submitProgressRef = useRef<SubmitNoticeCreateProgress | null>(null)
+  const {
+    clearVoteDraft,
+    closeVotePanel,
+    openVoteDeleteDialog,
+    openVotePanel,
+    saveVoteDraft,
+    setVoteDeleteDialogOpen,
+    voteDeleteDialogOpen,
+    voteDraft,
+    votePanelOpen,
+  } = useNoticeVoteDraft({
+    onDraftChange: () => {
+      submitProgressRef.current = null
+    },
+  })
 
   const isDirty = useMemo(
     () => isNoticeCreateFormDirty(form) || voteDraft != null,
     [form, voteDraft],
   )
 
-  const blocker = useBlocker({
-    enableBeforeUnload: isDirty,
-    shouldBlockFn: () => {
-      if (allowLeaveRef.current) {
-        return false
-      }
-      return isDirty
+  const {
+    allowLeave,
+    confirmLeave,
+    dismissLeaveDialog,
+    leaveDialogOpen,
+    requestLeave,
+  } = useNoticeLeaveConfirm({
+    isDirty,
+    navigateTo: (to) => {
+      void navigate({ to })
     },
-    withResolver: true,
   })
-
-  useEffect(() => {
-    if (blocker.status === "blocked") {
-      captureNoticeDialogFocus(leaveDialogFocusStore)
-      setLeaveDialogOpen(true)
-    }
-  }, [blocker.status])
-
   const gisuListQuery = useQuery(noticeCreateGisuListQueryOptions())
 
   const contextGisuId = useMemo(
@@ -118,6 +127,11 @@ export function NoticeCreatePage({
 
   const organizationQuery = useQuery(
     noticeListOrganizationQueryOptions(contextGisuId),
+  )
+
+  const organizationLists = useMemo(
+    () => toOrganizationLists(organizationQuery.data),
+    [organizationQuery.data],
   )
 
   const contextGeneration = useMemo(() => {
@@ -135,18 +149,6 @@ export function NoticeCreatePage({
     [contextGeneration],
   )
 
-  useEffect(() => {
-    if (session.gisuId == null) {
-      return
-    }
-    setForm((current) => {
-      if (current.gisuMode !== "specific" || current.targetGisuId != null) {
-        return current
-      }
-      return { ...current, targetGisuId: session.gisuId }
-    })
-  }, [session.gisuId])
-
   const chapterPresidentChallengerOnly = useMemo(
     () => isNoticeChapterPresidentChallengerContext(adminSession),
     [adminSession],
@@ -157,89 +159,86 @@ export function NoticeCreatePage({
     [adminSession],
   )
 
+  const chapterPresidentLockResult = useMemo(
+    () =>
+      resolveNoticeChapterPresidentChallengerLock(
+        adminSession,
+        organizationLists,
+      ),
+    [adminSession, organizationLists],
+  )
+
+  const chapterPresidentUnresolved =
+    chapterPresidentLockResult.status === "unresolved"
+
+  const chapterPresidentLockedChapterId =
+    chapterPresidentLockResult.status === "locked"
+      ? chapterPresidentLockResult.lock.chapterId
+      : null
+
   const chapterPresidentCreateLock = useMemo(() => {
-    const resolved = resolveNoticeChapterPresidentChallengerLock(
-      adminSession,
-      organizationQuery.data,
-    )
-    if (resolved == null || session.gisuId == null) {
+    if (chapterPresidentLockedChapterId == null || session.gisuId == null) {
       return null
     }
 
     return {
-      chapterId: resolved.chapterId,
+      chapterId: chapterPresidentLockedChapterId,
       targetGisuId: session.gisuId,
     }
-  }, [adminSession, organizationQuery.data, session.gisuId])
+  }, [chapterPresidentLockedChapterId, session.gisuId])
 
-  useEffect(() => {
-    if (!chapterPresidentChallengerOnly) {
-      return
-    }
-
-    setForm((current) => {
-      if (current.challengerEnabled && !current.staffEnabled) {
-        return current
-      }
-
-      return {
-        ...current,
-        challengerEnabled: true,
-        staffEnabled: false,
-      }
-    })
-  }, [chapterPresidentChallengerOnly])
-
-  useEffect(() => {
-    if (chapterPresidentCreateLock == null) {
-      return
-    }
-
-    setForm((current) => {
-      if (!current.challengerEnabled) {
-        return current
-      }
-
-      const next = applyNoticeChapterPresidentCreateFormLock({
-        form: { ...current, staffEnabled: false },
-        ...chapterPresidentCreateLock,
-      })
-
-      if (
-        next.gisuMode === current.gisuMode &&
-        next.targetGisuId === current.targetGisuId &&
-        next.orgMode === current.orgMode &&
-        next.chapterId === current.chapterId &&
-        next.schoolId === current.schoolId
-      ) {
-        return current
-      }
-
-      return next
-    })
-  }, [chapterPresidentCreateLock])
-
-  const schoolExecutiveCreateLock = useMemo(() => {
+  const schoolExecutiveLockedSchoolId = useMemo(() => {
     if (chapterPresidentCreateLock != null || session.gisuId == null) {
       return null
     }
 
     const resolved =
-      resolveNoticeSchoolExecutiveLock(adminSession, organizationQuery.data) ??
-      resolveNoticeSchoolStaffLock(adminSession, organizationQuery.data)
-    if (resolved == null) {
+      resolveNoticeSchoolExecutiveLock(adminSession, organizationLists) ??
+      resolveNoticeSchoolStaffLock(adminSession, organizationLists)
+    return resolved?.schoolId ?? null
+  }, [
+    adminSession,
+    chapterPresidentCreateLock,
+    organizationLists,
+    session.gisuId,
+  ])
+
+  const schoolExecutiveCreateLock = useMemo(() => {
+    if (schoolExecutiveLockedSchoolId == null || session.gisuId == null) {
       return null
     }
 
     return {
-      schoolId: resolved.schoolId,
+      schoolId: schoolExecutiveLockedSchoolId,
       targetGisuId: session.gisuId,
     }
+  }, [schoolExecutiveLockedSchoolId, session.gisuId])
+
+  const schoolStaffPartsRequired = useMemo(
+    () =>
+      isNoticeSchoolStaffContext(adminSession) &&
+      schoolExecutiveCreateLock != null,
+    [adminSession, schoolExecutiveCreateLock],
+  )
+
+  useEffect(() => {
+    setForm((current) =>
+      normalizeNoticeCreateForm(current, {
+        chapterPresidentChallengerOnly,
+        chapterPresidentCreateLock,
+        contextGeneration,
+        schoolExecutiveCreateLock,
+        sessionGisuId: session.gisuId,
+      }),
+    )
   }, [
-    adminSession,
-    chapterPresidentCreateLock,
-    organizationQuery.data,
+    chapterPresidentChallengerOnly,
+    chapterPresidentLockedChapterId,
+    contextGeneration,
+    schoolExecutiveLockedSchoolId,
     session.gisuId,
+    chapterPresidentCreateLock,
+    schoolExecutiveCreateLock,
   ])
 
   useEffect(() => {
@@ -250,86 +249,26 @@ export function NoticeCreatePage({
       return
     }
 
-    setForm((current) => ({
-      ...current,
-      chapterId: null,
-      schoolId: null,
-    }))
-  }, [chapterPresidentCreateLock, contextGisuId, schoolExecutiveCreateLock])
-
-  useEffect(() => {
-    if (schoolExecutiveCreateLock == null) {
-      return
-    }
-
-    setForm((current) => {
-      let next = applyNoticeSchoolExecutiveChallengerCreateLock({
-        form: current,
-        ...schoolExecutiveCreateLock,
-      })
-
-      if (
-        current.staffEnabled &&
-        current.staffScope !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE
-      ) {
-        next = {
-          ...next,
-          staffScope: NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
-        }
-      }
-
-      if (
-        next.gisuMode === current.gisuMode &&
-        next.targetGisuId === current.targetGisuId &&
-        next.orgMode === current.orgMode &&
-        next.chapterId === current.chapterId &&
-        next.schoolId === current.schoolId &&
-        next.staffScope === current.staffScope
-      ) {
-        return current
-      }
-
-      return next
-    })
-  }, [schoolExecutiveCreateLock])
-
-  const schoolStaffPartsRequired = useMemo(
-    () =>
-      isNoticeSchoolStaffContext(adminSession) &&
-      schoolExecutiveCreateLock != null,
-    [adminSession, schoolExecutiveCreateLock],
-  )
-
-  useEffect(() => {
-    setForm((current) => {
-      const nextParts = filterNoticeCreateParts(
-        current.parts,
-        contextGeneration,
-      )
-      if (
-        nextParts.length === current.parts.length &&
-        nextParts.every((part, index) => part === current.parts[index])
-      ) {
-        return current
-      }
-      return { ...current, parts: nextParts }
-    })
-  }, [contextGeneration])
-
+    setForm(resetNoticeCreateOrganization)
+  }, [
+    chapterPresidentCreateLock,
+    chapterPresidentLockedChapterId,
+    contextGisuId,
+    schoolExecutiveCreateLock,
+    schoolExecutiveLockedSchoolId,
+  ])
   const organization = useMemo(() => {
-    const chapters = organizationQuery.data?.chapters ?? []
-    const schools = organizationQuery.data?.schools ?? []
     const gisuOptions = (gisuListQuery.data ?? []).map((gisu) => ({
       value: String(gisu.gisuId),
       label: `${gisu.generation}기`,
     }))
 
-    return { chapters, gisuOptions, schools }
-  }, [
-    gisuListQuery.data,
-    organizationQuery.data?.chapters,
-    organizationQuery.data?.schools,
-  ])
+    return {
+      chapters: organizationLists.chapters,
+      gisuOptions,
+      schools: organizationLists.schools,
+    }
+  }, [gisuListQuery.data, organizationLists])
 
   const summaryLabels = useMemo(() => {
     const gisuLabel =
@@ -354,91 +293,27 @@ export function NoticeCreatePage({
   const targetSummaryLine = summary.targetLine
 
   const patchForm = (patch: Partial<NoticeCreateFormState>) => {
+    // 입력이 바뀌면 이전 실패 시도의 진행 상황은 더 이상 유효하지 않다
+    submitProgressRef.current = null
     setForm((current) => ({ ...current, ...patch }))
     if ("title" in patch || "content" in patch) {
       setShowRequiredFieldErrors(false)
     }
   }
 
-  const dismissLeaveDialog = () => {
-    setLeaveDialogOpen(false)
-    pendingLeaveToRef.current = null
-    if (blocker.status === "blocked") {
-      blocker.reset?.()
-    }
-    restoreNoticeDialogFocus(leaveDialogFocusStore)
-  }
-
-  const confirmLeave = () => {
-    setLeaveDialogOpen(false)
-    leaveDialogFocusStore.current = null
-    allowLeaveRef.current = true
-    const pendingTo = pendingLeaveToRef.current
-    pendingLeaveToRef.current = null
-
-    if (pendingTo != null) {
-      void navigate({ to: pendingTo })
-      return
-    }
-
-    blocker.proceed?.()
-  }
-
-  const requestLeave = (to = "/notices") => {
-    if (allowLeaveRef.current || !isDirty) {
-      void navigate({ to })
-      return
-    }
-    captureNoticeDialogFocus(leaveDialogFocusStore)
-    pendingLeaveToRef.current = to
-    setLeaveDialogOpen(true)
-  }
-
-  const dismissPublishDialog = () => {
-    if (isSubmitting) {
-      return
-    }
-    setPublishNetworkError(false)
-    setPublishDialogOpen(false)
-    restoreNoticeDialogFocus(publishDialogFocusStore)
-  }
-
-  const openPublishDialog = () => {
-    if (isSubmitting) {
-      return
-    }
-    setPublishNetworkError(false)
-    captureNoticeDialogFocus(publishDialogFocusStore)
-    setPublishDialogOpen(true)
-  }
-
-  const handlePublishConfirm = async () => {
-    if (isSubmitting) {
-      return
-    }
-
-    setIsSubmitting(true)
-    setPublishNetworkError(false)
-    setShowRequiredFieldErrors(true)
-
-    try {
-      const outcome = await submitNoticeCreate({
-        adminSession,
-        form,
-        session,
-        operationGisuId: contextGisuId,
-        targetGeneration: contextGeneration,
-        voteDraft,
-      })
-
+  const submitMutation = useMutation({
+    mutationFn: submitNoticeCreate,
+    onSuccess: async (outcome, variables) => {
       if (outcome.kind === "success") {
+        submitProgressRef.current = null
         restoreNoticeDialogFocus(publishDialogFocusStore)
         publishDialogFocusStore.current = null
         setPublishDialogOpen(false)
-        allowLeaveRef.current = true
+        allowLeave()
+        showNoticePrimarySuccessToast(toast, NOTICE_PUBLISH_TOAST_MESSAGE)
         await navigate({
           to: "/notices",
-          search: { publishOutcome: "success" },
+          search: {},
         })
         return
       }
@@ -447,7 +322,7 @@ export function NoticeCreatePage({
         setPublishDialogOpen(false)
         restoreNoticeDialogFocus(publishDialogFocusStore)
         const hasTitleOrContentError =
-          !form.title.trim() || !form.content.trim()
+          !variables.form.title.trim() || !variables.form.content.trim()
         if (!hasTitleOrContentError) {
           showNoticeErrorToast(toast, outcome.message)
         }
@@ -464,14 +339,62 @@ export function NoticeCreatePage({
         return
       }
 
-      setPublishNetworkError(true)
-    } catch {
+      if (outcome.kind === "server_error") {
+        setPublishError(outcome.message)
+        return
+      }
+
+      setPublishError(NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
+    },
+    onError: () => {
       setPublishDialogOpen(false)
       restoreNoticeDialogFocus(publishDialogFocusStore)
-      setPublishNetworkError(true)
-    } finally {
-      setIsSubmitting(false)
+      setPublishError(NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
+    },
+  })
+  const isSubmitting = submitMutation.isPending
+
+  const dismissPublishDialog = () => {
+    if (isSubmitting) {
+      return
     }
+    setPublishError(null)
+    setPublishDialogOpen(false)
+    restoreNoticeDialogFocus(publishDialogFocusStore)
+  }
+
+  const openPublishDialog = () => {
+    if (chapterPresidentUnresolved) {
+      return
+    }
+    if (isSubmitting) {
+      return
+    }
+    setPublishError(null)
+    captureNoticeDialogFocus(publishDialogFocusStore)
+    setPublishDialogOpen(true)
+  }
+
+  const handlePublishConfirm = () => {
+    if (isSubmitting) {
+      return
+    }
+
+    setPublishError(null)
+    setShowRequiredFieldErrors(true)
+
+    const progress = submitProgressRef.current ?? {}
+    submitProgressRef.current = progress
+
+    submitMutation.mutate({
+      adminSession,
+      form,
+      session,
+      operationGisuId: contextGisuId,
+      targetGeneration: contextGeneration,
+      voteDraft,
+      progress,
+    })
   }
 
   return (
@@ -483,6 +406,11 @@ export function NoticeCreatePage({
         <p className="text-body-3-regular text-neutral-medium-600">
           공지 대상과 내용을 설정하고 게시해요
         </p>
+        {chapterPresidentUnresolved ? (
+          <p className="text-body-3-regular text-status-error-500" role="alert">
+            소속 지부를 확인할 수 없습니다. 관리자에게 문의해 주세요.
+          </p>
+        ) : null}
       </div>
 
       <div className="flex w-full items-start gap-(--umc-spacing-gap-24)">
@@ -505,22 +433,16 @@ export function NoticeCreatePage({
             )
           }}
           organization={organization}
-          onVoteAddClick={() => {
-            setVotePanelOpen(true)
-          }}
-          onVoteDeleteClick={() => {
-            setVoteDeleteDialogOpen(true)
-          }}
-          onVoteEditClick={() => {
-            setVotePanelOpen(true)
-          }}
+          onVoteAddClick={openVotePanel}
+          onVoteDeleteClick={openVoteDeleteDialog}
+          onVoteEditClick={openVotePanel}
           showRequiredFieldErrors={showRequiredFieldErrors}
           targetSummaryLine={targetSummaryLine}
           voteDraft={voteDraft}
         />
         <NoticeCreateSummaryPanel
           audienceTags={summary.audienceTags}
-          isSubmitting={isSubmitting}
+          isSubmitting={isSubmitting || chapterPresidentUnresolved}
           onCancel={() => {
             requestLeave("/notices")
           }}
@@ -532,9 +454,6 @@ export function NoticeCreatePage({
         />
       </div>
 
-      {publishDialogOpen || isSubmitting ? (
-        <NoticeDialogDimmed intensity="medium" />
-      ) : null}
       <Dialog
         cancelLabel="돌아가기"
         className={
@@ -550,14 +469,14 @@ export function NoticeCreatePage({
         }
         onCancel={dismissPublishDialog}
         onConfirm={() => {
-          void handlePublishConfirm()
+          handlePublishConfirm()
         }}
         onOpenChange={(open) => {
           if (isSubmitting) {
             return
           }
           if (!open) {
-            setPublishNetworkError(false)
+            setPublishError(null)
             restoreNoticeDialogFocus(publishDialogFocusStore)
           }
           setPublishDialogOpen(open)
@@ -565,36 +484,24 @@ export function NoticeCreatePage({
         open={publishDialogOpen || isSubmitting}
         title="공지를 올릴까요?"
       >
-        {publishNetworkError ? (
-          <NoticeCreatePublishDialogErrorToast
-            message={NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE}
-          />
+        {publishError != null ? (
+          <NoticeCreatePublishDialogErrorToast message={publishError} />
         ) : null}
       </Dialog>
 
       <NoticeCreateVotePanel
         initialDraft={voteDraft ?? undefined}
-        onClose={() => {
-          setVotePanelOpen(false)
-        }}
-        onCreate={(draft) => {
-          setVoteDraft(draft)
-          setVotePanelOpen(false)
-        }}
+        onClose={closeVotePanel}
+        onCreate={saveVoteDraft}
         open={votePanelOpen}
       />
 
-      {voteDeleteDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <NoticeVoteDeleteDialog
-        onConfirm={() => {
-          setVoteDraft(null)
-          setVoteDeleteDialogOpen(false)
-        }}
+        onConfirm={clearVoteDraft}
         onOpenChange={setVoteDeleteDialogOpen}
         open={voteDeleteDialogOpen}
       />
 
-      {leaveDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         cancelLabel="계속 작성"
         color="brand"

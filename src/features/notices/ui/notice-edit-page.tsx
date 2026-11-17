@@ -1,7 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
+
+import { toOrganizationLists } from "@/entities/organization"
 
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
 import { deleteNoticeVoteByNoticeId } from "../model/delete-notice-vote"
@@ -10,7 +12,9 @@ import {
   resolveNoticeCreateContextGisuId,
   resolveNoticeCreatePartOptions,
 } from "../model/notice-create-part-options"
+import { noticeKeys } from "../model/notice-keys"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
+import { buildNoticeLocationState } from "../model/notice-location-state"
 import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
@@ -27,11 +31,7 @@ import {
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
 import { NoticeCreateVotePanel } from "./notice-create/notice-create-vote-panel"
 import { NoticeVoteDeleteDialog } from "./notice-create/notice-vote-delete-dialog"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
-import {
-  captureNoticeDialogFocus,
-  restoreNoticeDialogFocus,
-} from "./notice-dialog-focus"
+import { captureNoticeDialogFocus } from "./notice-dialog-focus"
 import { NoticeEditSummaryPanel } from "./notice-edit/notice-edit-summary-panel"
 import {
   showNoticeCreateForbiddenToast,
@@ -40,48 +40,54 @@ import {
   showNoticeImageUploadFailureToast,
 } from "./show-notice-error-toast"
 import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
+import { useNoticeLeaveConfirm } from "./use-notice-leave-confirm"
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
+import { useNoticeVoteDraft } from "./use-notice-vote-draft"
 
 import type { NoticeCreateFormState } from "../model/notice-create-form"
-import type { NoticeCreateVoteDraft } from "../model/notice-create-vote-draft"
 import type { NoticePoll } from "../model/notice-detail.types"
 
 type NoticeEditPageProps = {
   initialAttachedVotePoll: NoticePoll | null
   initialForm: NoticeCreateFormState
-  listAudience?: "challenger" | "staff"
   noticeId: number
 }
 
 export function NoticeEditPage({
   initialAttachedVotePoll,
   initialForm,
-  listAudience,
   noticeId,
 }: NoticeEditPageProps) {
   const navigate = useNavigate()
-  const router = useRouter()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const locationState = useNoticeLocationStateFromLocation()
+  const detailState = buildNoticeLocationState({
+    listAudience: locationState.listAudience,
+    listPage: locationState.listPage,
+  })
   const baselineFormRef = useRef(initialForm)
   const [form, setForm] = useState<NoticeCreateFormState>(initialForm)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false)
-  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
   const [deletedWhileEditingDialogOpen, setDeletedWhileEditingDialogOpen] =
     useState(false)
-  const allowLeaveRef = useRef(false)
-  const pendingLeaveToRef = useRef<string | null>(null)
-  const leaveDialogFocusStore = useRef<HTMLElement | null>(null)
   const deletedDialogFocusStore = useRef<HTMLElement | null>(null)
   const baselineAttachedVotePollRef = useRef(initialAttachedVotePoll)
   const [attachedVotePoll, setAttachedVotePoll] = useState(
     initialAttachedVotePoll,
   )
-  const [votePanelOpen, setVotePanelOpen] = useState(false)
-  const [voteDraft, setVoteDraft] = useState<NoticeCreateVoteDraft | null>(null)
-  const [voteDeleteDialogOpen, setVoteDeleteDialogOpen] = useState(false)
+  const {
+    clearVoteDraft,
+    closeVotePanel,
+    openVoteDeleteDialog,
+    openVotePanel,
+    saveVoteDraft,
+    setVoteDeleteDialogOpen,
+    voteDeleteDialogOpen,
+    voteDraft,
+    votePanelOpen,
+  } = useNoticeVoteDraft()
   const voteDeleteTargetRef = useRef<"attached" | "draft">("attached")
-  const [isDeletingVote, setIsDeletingVote] = useState(false)
   const isDirty = useMemo(
     () =>
       isNoticeEditFormDirty(form, baselineFormRef.current) ||
@@ -90,24 +96,22 @@ export function NoticeEditPage({
     [attachedVotePoll, form, voteDraft],
   )
 
-  const blocker = useBlocker({
-    enableBeforeUnload: isDirty,
-    shouldBlockFn: () => {
-      if (allowLeaveRef.current) {
-        return false
-      }
-      return isDirty
+  const {
+    allowLeave,
+    confirmLeave,
+    dismissLeaveDialog,
+    leaveDialogOpen,
+    requestLeave,
+  } = useNoticeLeaveConfirm({
+    isDirty,
+    navigateTo: () => {
+      void navigate({
+        params: { noticeId: String(noticeId) },
+        state: detailState,
+        to: "/notices/$noticeId",
+      })
     },
-    withResolver: true,
   })
-
-  useEffect(() => {
-    if (blocker.status === "blocked") {
-      captureNoticeDialogFocus(leaveDialogFocusStore)
-      setLeaveDialogOpen(true)
-    }
-  }, [blocker.status])
-
   const gisuListQuery = useQuery(noticeCreateGisuListQueryOptions())
 
   const contextGisuId = useMemo(
@@ -117,6 +121,11 @@ export function NoticeEditPage({
 
   const organizationQuery = useQuery(
     noticeListOrganizationQueryOptions(contextGisuId),
+  )
+
+  const organizationLists = useMemo(
+    () => toOrganizationLists(organizationQuery.data),
+    [organizationQuery.data],
   )
 
   const contextGeneration = useMemo(() => {
@@ -135,19 +144,17 @@ export function NoticeEditPage({
   )
 
   const organization = useMemo(() => {
-    const chapters = organizationQuery.data?.chapters ?? []
-    const schools = organizationQuery.data?.schools ?? []
     const gisuOptions = (gisuListQuery.data ?? []).map((gisu) => ({
       value: String(gisu.gisuId),
       label: `${gisu.generation}기`,
     }))
 
-    return { chapters, gisuOptions, schools }
-  }, [
-    gisuListQuery.data,
-    organizationQuery.data?.chapters,
-    organizationQuery.data?.schools,
-  ])
+    return {
+      chapters: organizationLists.chapters,
+      gisuOptions,
+      schools: organizationLists.schools,
+    }
+  }, [gisuListQuery.data, organizationLists])
 
   const summaryLabels = useMemo(() => {
     const gisuLabel =
@@ -178,37 +185,9 @@ export function NoticeEditPage({
     }
   }
 
-  const dismissLeaveDialog = () => {
-    setLeaveDialogOpen(false)
-    pendingLeaveToRef.current = null
-    if (blocker.status === "blocked") {
-      blocker.reset?.()
-    }
-    restoreNoticeDialogFocus(leaveDialogFocusStore)
-  }
-
-  const confirmLeave = () => {
-    setLeaveDialogOpen(false)
-    leaveDialogFocusStore.current = null
-    allowLeaveRef.current = true
-    const pendingTo = pendingLeaveToRef.current
-    pendingLeaveToRef.current = null
-
-    if (pendingTo != null) {
-      void navigate({
-        params: { noticeId: String(noticeId) },
-        search: listAudience ? { listAudience } : {},
-        to: "/notices/$noticeId",
-      })
-      return
-    }
-
-    blocker.proceed?.()
-  }
-
   const openDeletedWhileEditingDialog = () => {
     captureNoticeDialogFocus(deletedDialogFocusStore)
-    allowLeaveRef.current = true
+    allowLeave()
     setDeletedWhileEditingDialogOpen(true)
   }
 
@@ -216,50 +195,26 @@ export function NoticeEditPage({
     deletedDialogFocusStore.current = null
     setDeletedWhileEditingDialogOpen(false)
     void navigate({
-      search: listAudience ? { audience: listAudience } : {},
+      state: detailState,
       to: "/notices",
     })
   }
 
-  const requestLeave = () => {
-    if (allowLeaveRef.current || !isDirty) {
-      void navigate({
-        params: { noticeId: String(noticeId) },
-        search: listAudience ? { listAudience } : {},
-        to: "/notices/$noticeId",
-      })
-      return
-    }
-    captureNoticeDialogFocus(leaveDialogFocusStore)
-    pendingLeaveToRef.current = `/notices/${noticeId}`
-    setLeaveDialogOpen(true)
-  }
-
-  const handleSubmit = async () => {
-    if (isSubmitting) {
-      return
-    }
-
-    setIsSubmitting(true)
-    setShowRequiredFieldErrors(true)
-
-    try {
-      const outcome = await submitNoticeEdit({
-        form,
-        noticeId,
-        voteDraft: attachedVotePoll == null ? voteDraft : null,
-      })
-
+  const submitMutation = useMutation({
+    mutationFn: submitNoticeEdit,
+    onSuccess: async (outcome, variables) => {
       if (outcome.kind === "success") {
-        allowLeaveRef.current = true
+        allowLeave()
         showNoticePrimarySuccessToast(toast, NOTICE_EDIT_SUCCESS_TOAST_MESSAGE)
-        void queryClient.invalidateQueries({ queryKey: ["notices"] })
-        await router.invalidate({
-          filter: (match) => match.routeId === "/_admin/notices/$noticeId",
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: noticeKeys.lists() }),
+          queryClient.invalidateQueries({
+            queryKey: noticeKeys.detail(noticeId),
+          }),
+        ])
         await navigate({
           params: { noticeId: String(noticeId) },
-          search: listAudience ? { listAudience } : {},
+          state: detailState,
           to: "/notices/$noticeId",
         })
         return
@@ -267,7 +222,7 @@ export function NoticeEditPage({
 
       if (outcome.kind === "validation_error") {
         const hasTitleOrContentError =
-          !form.title.trim() || !form.content.trim()
+          !variables.form.title.trim() || !variables.form.content.trim()
         if (!hasTitleOrContentError) {
           showNoticeErrorToast(toast, outcome.message)
         }
@@ -287,12 +242,51 @@ export function NoticeEditPage({
         return
       }
 
+      if (outcome.kind === "server_error") {
+        showNoticeEditFailureToast(toast, outcome.message)
+        return
+      }
+
       showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
-    } catch {
+    },
+    onError: () => {
       showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
-    } finally {
-      setIsSubmitting(false)
+    },
+  })
+  const isSubmitting = submitMutation.isPending
+
+  const deleteVoteMutation = useMutation({
+    mutationFn: deleteNoticeVoteByNoticeId,
+    onSuccess: async () => {
+      setAttachedVotePoll(null)
+      baselineAttachedVotePollRef.current = null
+      setVoteDeleteDialogOpen(false)
+      await queryClient.invalidateQueries({
+        queryKey: noticeKeys.detail(noticeId),
+      })
+    },
+    onError: () => {
+      showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
+    },
+  })
+  const isDeletingVote = deleteVoteMutation.isPending
+
+  const handleSubmit = () => {
+    if (isSubmitting) {
+      return
     }
+
+    setShowRequiredFieldErrors(true)
+
+    submitMutation.mutate({
+      baselineImageIds: baselineFormRef.current.existingImages.map(
+        (image) => image.fileId,
+      ),
+      baselineLinks: baselineFormRef.current.links,
+      form,
+      noticeId,
+      voteDraft: attachedVotePoll == null ? voteDraft : null,
+    })
   }
 
   return (
@@ -320,17 +314,13 @@ export function NoticeEditPage({
               NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
             )
           }}
-          onVoteAddClick={() => {
-            setVotePanelOpen(true)
-          }}
+          onVoteAddClick={openVotePanel}
           onVoteDeleteClick={() => {
             voteDeleteTargetRef.current =
               attachedVotePoll != null ? "attached" : "draft"
-            setVoteDeleteDialogOpen(true)
+            openVoteDeleteDialog()
           }}
-          onVoteEditClick={() => {
-            setVotePanelOpen(true)
-          }}
+          onVoteEditClick={openVotePanel}
           organization={organization}
           showRequiredFieldErrors={showRequiredFieldErrors}
           targetSummaryLine={targetSummaryLine}
@@ -338,57 +328,27 @@ export function NoticeEditPage({
         />
         <NoticeEditSummaryPanel
           isSubmitting={isSubmitting}
-          onCancel={requestLeave}
-          onSubmitClick={() => {
-            void handleSubmit()
+          onCancel={() => {
+            requestLeave(`/notices/${noticeId}`)
           }}
+          onSubmitClick={handleSubmit}
         />
       </div>
 
-      {leaveDialogOpen ||
-      deletedWhileEditingDialogOpen ||
-      voteDeleteDialogOpen ||
-      votePanelOpen ? (
-        <NoticeDialogDimmed intensity="medium" />
-      ) : null}
       <NoticeCreateVotePanel
         initialDraft={voteDraft ?? undefined}
-        onClose={() => {
-          setVotePanelOpen(false)
-        }}
-        onCreate={(draft) => {
-          setVoteDraft(draft)
-          setVotePanelOpen(false)
-        }}
+        onClose={closeVotePanel}
+        onCreate={saveVoteDraft}
         open={votePanelOpen}
       />
       <NoticeVoteDeleteDialog
         confirmLoading={isDeletingVote}
         onConfirm={() => {
           if (voteDeleteTargetRef.current === "draft") {
-            setVoteDraft(null)
-            setVoteDeleteDialogOpen(false)
+            clearVoteDraft()
             return
           }
-          void (async () => {
-            setIsDeletingVote(true)
-            try {
-              await deleteNoticeVoteByNoticeId(noticeId)
-              setAttachedVotePoll(null)
-              baselineAttachedVotePollRef.current = null
-              setVoteDeleteDialogOpen(false)
-              await queryClient.invalidateQueries({
-                queryKey: ["notice-detail", noticeId],
-              })
-            } catch {
-              showNoticeEditFailureToast(
-                toast,
-                NOTICE_EDIT_FAILURE_TOAST_MESSAGE,
-              )
-            } finally {
-              setIsDeletingVote(false)
-            }
-          })()
+          deleteVoteMutation.mutate(noticeId)
         }}
         onOpenChange={setVoteDeleteDialogOpen}
         open={voteDeleteDialogOpen}

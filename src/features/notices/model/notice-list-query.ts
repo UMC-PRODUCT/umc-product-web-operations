@@ -1,12 +1,18 @@
 import { queryOptions } from "@tanstack/react-query"
 
-import { fetchGisuList } from "@/shared/api/gisu-list"
+import {
+  buildGisuGenerationLookup,
+  gisuListQueryOptions,
+} from "@/entities/gisu"
+import {
+  gisuOrganizationQueryOptions,
+  toOrganizationLists,
+} from "@/entities/organization"
 
 import { listNotices, searchNotices } from "../api/notices-query.api"
 import {
-  applyChallengerNoticeListClientFilters,
-  applyStaffNoticeListClientFilters,
   buildNoticeListRequest,
+  filterStaffNoticeSummariesByRecipient,
   normalizeNoticeListFiltersForApi,
   NOTICE_LIST_PAGE_SIZE,
   resolveNoticeListNoticeTab,
@@ -17,10 +23,12 @@ import {
   isNoticeForbiddenError,
   isNoticeNetworkError,
 } from "./notice-api-error"
-import { buildGisuGenerationLookup } from "./notice-gisu-generation"
-import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
+import { noticeKeys } from "./notice-keys"
+import { canAccessStaffNoticeTab } from "./notice-notice-tab"
 
 import type { QueryClient } from "@tanstack/react-query"
+
+import type { GisuListItem } from "@/entities/gisu"
 
 import type { GetNoticeSummaryResponse } from "../api/notice-api.types"
 import type { NoticeListRequest } from "./build-notice-list-params"
@@ -68,21 +76,6 @@ export type NoticeListQueryResult =
   | { kind: "network_error" }
   | { kind: "missing_gisu" }
 
-function needsNoticeListClientSidePagination(
-  audience: NoticeAudience,
-  apiFilters: ReturnType<typeof normalizeNoticeListFiltersForApi>,
-): boolean {
-  if (audience === "challenger") {
-    return (
-      apiFilters.chapterScope != null ||
-      apiFilters.schoolScope != null ||
-      apiFilters.part != null
-    )
-  }
-
-  return apiFilters.staffRecipient != null || apiFilters.scopeStage != null
-}
-
 async function fetchNoticeListSummariesPage(
   request: NoticeListRequest,
   page: number,
@@ -92,41 +85,6 @@ async function fetchNoticeListSummariesPage(
   }
 
   return listNotices({ ...request.params, page })
-}
-
-async function fetchAllNoticeListSummaries(
-  request: NoticeListRequest,
-): Promise<GetNoticeSummaryResponse[]> {
-  const firstPage = await fetchNoticeListSummariesPage(request, 0)
-  const summaries = [...firstPage.content]
-  const totalPages = Number(firstPage.totalPages) || 1
-
-  for (let page = 1; page < totalPages; page++) {
-    const nextPage = await fetchNoticeListSummariesPage(request, page)
-    summaries.push(...nextPage.content)
-  }
-
-  return summaries
-}
-
-function paginateNoticeListSummaries(
-  content: GetNoticeSummaryResponse[],
-  page: number,
-): {
-  pageContent: GetNoticeSummaryResponse[]
-  totalElements: number
-  totalPages: number
-} {
-  const totalElements = content.length
-  const totalPages =
-    totalElements > 0 ? Math.ceil(totalElements / NOTICE_LIST_PAGE_SIZE) : 0
-  const start = page * NOTICE_LIST_PAGE_SIZE
-
-  return {
-    pageContent: content.slice(start, start + NOTICE_LIST_PAGE_SIZE),
-    totalElements,
-    totalPages,
-  }
 }
 
 export function noticeListQueryKey(input: {
@@ -144,9 +102,7 @@ export function noticeListQueryKey(input: {
   })
   const noticeTab = resolveNoticeListNoticeTab(input.audience, input.session)
 
-  return [
-    "notices",
-    "list",
+  return noticeKeys.list([
     input.session.id,
     input.session.gisuId,
     input.audience,
@@ -159,15 +115,20 @@ export function noticeListQueryKey(input: {
     apiFilters.scopeStage,
     apiFilters.scope,
     apiFilters.staffRecipient,
-  ] as const
+  ])
 }
 
 export async function fetchNoticeListPage(input: {
   audience: NoticeAudience
   filters: NoticeListQueryFilterFields
   page: number
+  queryClient: QueryClient
   session: NoticeOperatorSession
 }): Promise<NoticeListQueryResult> {
+  if (input.audience === "staff" && !canAccessStaffNoticeTab(input.session)) {
+    return { kind: "forbidden" }
+  }
+
   const request = buildNoticeListRequest({
     audience: input.audience,
     filters: input.filters,
@@ -182,47 +143,28 @@ export async function fetchNoticeListPage(input: {
     audience: input.audience,
     filters: input.filters,
   })
-  const useClientSidePagination = needsNoticeListClientSidePagination(
-    input.audience,
-    apiFilters,
-  )
+  const listFiltersActive =
+    request.params.chapterId != null ||
+    request.params.schoolId != null ||
+    request.params.part != null ||
+    apiFilters.staffRecipient != null
 
   try {
-    const listRequest = useClientSidePagination
-      ? buildNoticeListRequest({
-          audience: input.audience,
-          filters: input.filters,
-          page: 0,
-          session: input.session,
-        })
-      : request
-
-    if (!listRequest) {
+    const sessionGisuId = input.session.gisuId
+    if (sessionGisuId == null) {
       return { kind: "missing_gisu" }
     }
 
-    const [page, gisuList, organization] = await Promise.all([
-      useClientSidePagination
-        ? fetchAllNoticeListSummaries(listRequest).then((summaries) => ({
-            content: summaries,
-            totalElements: summaries.length,
-            totalPages: 1,
-          }))
-        : fetchNoticeListSummariesPage(listRequest, input.page),
-      fetchGisuList().catch(
-        () => [] as Awaited<ReturnType<typeof fetchGisuList>>,
-      ),
-      fetchNoticeListOrganizationOptions(input.session.gisuId).catch(
-        () =>
-          ({
-            chapters: [],
-            schools: [],
-            schoolsByChapterId: new Map(),
-          }) satisfies Awaited<
-            ReturnType<typeof fetchNoticeListOrganizationOptions>
-          >,
-      ),
+    const [page, gisuList, organizationGisu] = await Promise.all([
+      fetchNoticeListSummariesPage(request, input.page),
+      input.queryClient
+        .ensureQueryData(gisuListQueryOptions())
+        .catch((): GisuListItem[] => []),
+      input.queryClient
+        .ensureQueryData(gisuOrganizationQueryOptions(sessionGisuId))
+        .catch(() => null),
     ])
+    const organization = toOrganizationLists(organizationGisu)
     const gisuGenerationById = buildGisuGenerationLookup(gisuList)
     const { chapterNameById, schoolNameById } =
       buildNoticeOrganizationNameLookup(organization)
@@ -232,26 +174,19 @@ export async function fetchNoticeListPage(input: {
       schoolNameById,
     }
 
+    // chapter/school/part는 서버 필터. 받는 사람(staffRecipient)만 API 미지원이라 현재 페이지에 클라이언트 필터 적용.
     let content = page.content
-    if (input.audience === "staff") {
-      content = applyStaffNoticeListClientFilters(content, apiFilters)
-    } else {
-      content = applyChallengerNoticeListClientFilters(content, apiFilters)
+    if (input.audience === "staff" && apiFilters.staffRecipient != null) {
+      content = filterStaffNoticeSummariesByRecipient(
+        content,
+        apiFilters.staffRecipient,
+      )
     }
 
-    let totalElements = Number(page.totalElements) || 0
-    let totalPages =
+    const totalElements = Number(page.totalElements) || 0
+    const totalPages =
       Number(page.totalPages) ||
       (totalElements > 0 ? Math.ceil(totalElements / NOTICE_LIST_PAGE_SIZE) : 0)
-
-    if (useClientSidePagination) {
-      const paginated = paginateNoticeListSummaries(content, input.page)
-      content = paginated.pageContent
-      totalElements = paginated.totalElements
-      totalPages = paginated.totalPages
-    }
-
-    const gisuId = input.session.gisuId!
 
     return {
       kind: "success",
@@ -259,8 +194,8 @@ export async function fetchNoticeListPage(input: {
         mapNoticeSummaryForListPage(
           summary,
           targetDisplayContext,
-          gisuId,
-          useClientSidePagination,
+          sessionGisuId,
+          listFiltersActive,
         ),
       ),
       totalElements,
@@ -285,7 +220,8 @@ export function noticeListQueryOptions(input: {
 }) {
   return queryOptions({
     queryKey: noticeListQueryKey(input),
-    queryFn: () => fetchNoticeListPage(input),
+    queryFn: ({ client }) =>
+      fetchNoticeListPage({ ...input, queryClient: client }),
   })
 }
 
@@ -296,7 +232,7 @@ export function syncNoticeViewCountInListCaches(
   views: number,
 ) {
   queryClient.setQueriesData<NoticeListQueryResult>(
-    { queryKey: ["notices", "list"] },
+    { queryKey: noticeKeys.lists() },
     (cached) => {
       if (!cached || cached.kind !== "success") {
         return cached
@@ -324,5 +260,5 @@ export function syncNoticeViewCountInListCaches(
     },
   )
 
-  void queryClient.invalidateQueries({ queryKey: ["notices", "list"] })
+  void queryClient.invalidateQueries({ queryKey: noticeKeys.lists() })
 }

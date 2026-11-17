@@ -29,22 +29,18 @@ api.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
     if (!isAxiosError(error) || error.response?.status !== 401) {
-      return Promise.reject(error)
+      throw error
     }
 
     const config = error.config
     if (!config || isAuthEndpoint(requestUrl(config)) || config._retry) {
-      return Promise.reject(error)
+      throw error
     }
 
     config._retry = true
-    try {
-      const accessToken = await getSsoClient().recoverFromUnauthorized()
-      config.headers.set("Authorization", `Bearer ${accessToken}`)
-      return api.request(config)
-    } catch (renewError) {
-      return Promise.reject(renewError)
-    }
+    const accessToken = await getSsoClient().recoverFromUnauthorized()
+    config.headers.set("Authorization", `Bearer ${accessToken}`)
+    return api.request(config)
   },
 )
 
@@ -52,6 +48,3 @@ function requestUrl(config: InternalAxiosRequestConfig) {
   const baseURL = config.baseURL ?? ""
   return `${baseURL}${config.url ?? ""}`
 }
-
-/** @deprecated `api`를 사용한다 */
-export const apiClient = api

@@ -1,6 +1,4 @@
-import { CheckCircleIcon } from "@umc-product/icons"
-
-import { cn } from "@/shared/lib/cn"
+import { InlineAlert } from "@/shared/ui/inline-alert"
 
 type NoticeCreatePublishDialogErrorToastProps = {
   message: string
@@ -11,18 +9,8 @@ export function NoticeCreatePublishDialogErrorToast({
   message,
 }: NoticeCreatePublishDialogErrorToastProps) {
   return (
-    <div
-      className={cn("umc-toast w-full max-w-full min-w-[400px]")}
-      data-color="error"
-      data-icon=""
-      role="alert"
-    >
-      <div className="umc-toast__main">
-        <span aria-hidden className="umc-toast__icon">
-          <CheckCircleIcon size={24} weight="fill" />
-        </span>
-        <p className="umc-toast__message">{message}</p>
-      </div>
-    </div>
+    <InlineAlert className="max-w-full min-w-[400px]" shake tone="error">
+      {message}
+    </InlineAlert>
   )
 }

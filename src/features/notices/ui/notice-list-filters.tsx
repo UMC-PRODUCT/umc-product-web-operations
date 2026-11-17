@@ -1,5 +1,5 @@
 import { SearchField, Select } from "@umc-product/react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 
@@ -20,6 +20,7 @@ import {
 import { NOTICE_FILTER_SELECT_TYPO_CLASS } from "./constants"
 
 import type { NoticePart } from "../api/notice-api.types"
+import type { NoticeListFilterFields } from "../model/normalize-notice-list-filters"
 import type { NoticeCreateStaffScope } from "../model/notice-create-form"
 import type { NoticeCreatePartOption } from "../model/notice-create-part-options"
 import type { NoticeScopeStage } from "../model/notice-scope-stage"
@@ -31,13 +32,9 @@ type NoticeListFiltersProps = {
   chapterOptions: { id: number; name: string }[]
   schoolOptions: { schoolId: number; schoolName: string }[]
   partOptions: NoticeCreatePartOption[]
-  onChapterScopeChange: (scope: NoticeListFilters["chapterScope"]) => void
+  /** 여러 필드를 한 번에 갱신해 URL 이동이 한 번만 일어나도록 한다 */
+  onFiltersChange: (patch: Partial<NoticeListFilterFields>) => void
   onQueryChange: (query: string) => void
-  onPartChange: (part: NoticePart | null) => void
-  onSchoolScopeChange: (scope: NoticeListFilters["schoolScope"]) => void
-  onScopeChange: (scope: NoticeListFilters["scope"]) => void
-  onScopeStageChange: (scopeStage: NoticeScopeStage | null) => void
-  onStaffRecipientChange: (recipient: NoticeCreateStaffScope | null) => void
   /** 지부장 챌린저 탭: 지부 전체 + 본인 지부만 선택 */
   lockedChapterScope?: string | null
   /** 지부장 운영진 탭: 범위·대상 필터 비활성 */
@@ -64,13 +61,8 @@ export function NoticeListFiltersBar({
   chapterOptions,
   schoolOptions,
   partOptions,
-  onChapterScopeChange,
+  onFiltersChange,
   onQueryChange,
-  onPartChange,
-  onSchoolScopeChange,
-  onScopeChange,
-  onScopeStageChange,
-  onStaffRecipientChange,
   lockedChapterScope = null,
   staffListFiltersDisabled = false,
   challengerLockedSchoolScope = null,
@@ -87,17 +79,34 @@ export function NoticeListFiltersBar({
     NOTICE_LIST_SEARCH_DEBOUNCE_MS,
   )
 
-  useEffect(() => {
-    setQueryInput(filters.query)
-  }, [filters.query])
+  /** 마지막으로 URL과 맞춘 검색어. 우리가 보낸 값이 되돌아온 경우 입력창을 덮어쓰지 않는다 */
+  const syncedQueryRef = useRef(filters.query.trim())
 
   useEffect(() => {
-    if (debouncedQuery === filters.query) {
+    const urlQuery = filters.query.trim()
+    if (urlQuery === syncedQueryRef.current) {
       return
     }
 
-    onQueryChange(debouncedQuery)
-  }, [debouncedQuery, filters.query, onQueryChange])
+    syncedQueryRef.current = urlQuery
+    setQueryInput(filters.query)
+  }, [filters.query])
+
+  const onQueryChangeRef = useRef(onQueryChange)
+
+  useEffect(() => {
+    onQueryChangeRef.current = onQueryChange
+  }, [onQueryChange])
+
+  useEffect(() => {
+    const nextQuery = debouncedQuery.trim()
+    if (nextQuery === syncedQueryRef.current) {
+      return
+    }
+
+    syncedQueryRef.current = nextQuery
+    onQueryChangeRef.current(debouncedQuery)
+  }, [debouncedQuery])
 
   const chapterSelectOptions = useMemo(
     () =>
@@ -209,152 +218,6 @@ export function NoticeListFiltersBar({
     filters.staffRecipient != null &&
     isStaffCentralNoticeTab(filters.staffRecipient)
 
-  useEffect(() => {
-    if (filters.chapterScope == null) {
-      return
-    }
-
-    const isValid = chapterSelectOptions.some(
-      (option) => option.value === filters.chapterScope,
-    )
-    if (!isValid) {
-      onChapterScopeChange(null)
-    }
-  }, [chapterSelectOptions, filters.chapterScope, onChapterScopeChange])
-
-  useEffect(() => {
-    if (filters.schoolScope == null) {
-      return
-    }
-
-    const isValid = schoolSelectOptions.some(
-      (option) => option.value === filters.schoolScope,
-    )
-    if (!isValid) {
-      onSchoolScopeChange(null)
-    }
-  }, [filters.schoolScope, onSchoolScopeChange, schoolSelectOptions])
-
-  useEffect(() => {
-    if (filters.part == null) {
-      return
-    }
-
-    const isValid = partOptions.some((option) => option.value === filters.part)
-    if (!isValid) {
-      onPartChange(null)
-    }
-  }, [filters.part, onPartChange, partOptions])
-
-  useEffect(() => {
-    if (!filters.scopeStage || filters.scopeStage === "part") {
-      return
-    }
-
-    const isValidScope = staffTargetSelectOptions.some(
-      (option) => option.value === filters.scope,
-    )
-    if (filters.scope != null && !isValidScope) {
-      onScopeChange(null)
-    }
-  }, [
-    filters.scope,
-    filters.scopeStage,
-    onScopeChange,
-    staffTargetSelectOptions,
-  ])
-
-  useEffect(() => {
-    if (filters.scopeStage !== "part" || filters.part == null) {
-      return
-    }
-
-    const isValidPart = partOptions.some(
-      (option) => option.value === filters.part,
-    )
-    if (!isValidPart) {
-      onPartChange(null)
-    }
-  }, [filters.part, filters.scopeStage, onPartChange, partOptions])
-
-  useEffect(() => {
-    if (!staffScopeTargetFiltersLocked) {
-      return
-    }
-
-    if (
-      filters.scopeStage != null ||
-      filters.scope != null ||
-      filters.part != null
-    ) {
-      onScopeStageChange(null)
-    }
-  }, [
-    filters.part,
-    filters.scope,
-    filters.scopeStage,
-    onScopeStageChange,
-    staffScopeTargetFiltersLocked,
-  ])
-
-  useEffect(() => {
-    if (staffLockedSchoolScope == null || filters.scopeStage !== "school") {
-      return
-    }
-
-    if (filters.scope === staffLockedSchoolScope) {
-      return
-    }
-
-    onScopeChange(staffLockedSchoolScope)
-  }, [filters.scope, filters.scopeStage, onScopeChange, staffLockedSchoolScope])
-
-  useEffect(() => {
-    if (staffRecipientScopeAllowlist == null) {
-      return
-    }
-
-    if (
-      filters.staffRecipient == null ||
-      staffRecipientScopeAllowlist.includes(filters.staffRecipient)
-    ) {
-      return
-    }
-
-    onStaffRecipientChange(null)
-  }, [
-    filters.staffRecipient,
-    onStaffRecipientChange,
-    staffRecipientScopeAllowlist,
-  ])
-
-  useEffect(() => {
-    if (staffFixedStaffRecipient == null) {
-      return
-    }
-
-    if (filters.staffRecipient === staffFixedStaffRecipient) {
-      return
-    }
-
-    onStaffRecipientChange(staffFixedStaffRecipient)
-  }, [filters.staffRecipient, onStaffRecipientChange, staffFixedStaffRecipient])
-
-  useEffect(() => {
-    if (challengerLockedSchoolScope == null) {
-      return
-    }
-
-    if (
-      filters.schoolScope == null ||
-      filters.schoolScope === challengerLockedSchoolScope
-    ) {
-      return
-    }
-
-    onSchoolScopeChange(null)
-  }, [challengerLockedSchoolScope, filters.schoolScope, onSchoolScopeChange])
-
   const staffSchoolTargetLocked =
     staffLockedSchoolScope != null && filters.scopeStage === "school"
 
@@ -370,10 +233,11 @@ export function NoticeListFiltersBar({
               const chapterScope = isNoticeListFilterAllValue(value)
                 ? null
                 : value
-              onChapterScopeChange(chapterScope)
-              if (chapterScope != null) {
-                onSchoolScopeChange(null)
-              }
+              onFiltersChange(
+                chapterScope != null
+                  ? { chapterScope, schoolScope: null }
+                  : { chapterScope },
+              )
             }}
             options={
               lockedChapterSelectOptions ?? [
@@ -394,10 +258,11 @@ export function NoticeListFiltersBar({
               const schoolScope = isNoticeListFilterAllValue(value)
                 ? null
                 : value
-              onSchoolScopeChange(schoolScope)
-              if (schoolScope != null) {
-                onChapterScopeChange(null)
-              }
+              onFiltersChange(
+                schoolScope != null
+                  ? { chapterScope: null, schoolScope }
+                  : { schoolScope },
+              )
             }}
             options={
               lockedSchoolSelectOptions ?? [
@@ -415,11 +280,11 @@ export function NoticeListFiltersBar({
             className={NOTICE_FILTER_SELECT_TYPO_CLASS}
             disabled={isOrganizationLoading}
             onValueChange={(value) => {
-              onPartChange(
-                isNoticeListFilterAllValue(value)
+              onFiltersChange({
+                part: isNoticeListFilterAllValue(value)
                   ? null
                   : (value as NoticePart),
-              )
+              })
             }}
             options={challengerPartSelectOptions}
             placeholder="파트 전체"
@@ -446,13 +311,17 @@ export function NoticeListFiltersBar({
               const staffRecipient = isNoticeListFilterAllValue(value)
                 ? null
                 : (value as NoticeCreateStaffScope)
-              onStaffRecipientChange(staffRecipient)
-              if (
+              onFiltersChange(
                 staffRecipient != null &&
-                isStaffCentralNoticeTab(staffRecipient)
-              ) {
-                onScopeStageChange(null)
-              }
+                  isStaffCentralNoticeTab(staffRecipient)
+                  ? {
+                      part: null,
+                      scope: null,
+                      scopeStage: null,
+                      staffRecipient,
+                    }
+                  : { staffRecipient },
+              )
             }}
             options={staffRecipientSelectOptions}
             placeholder="받는 사람"
@@ -469,12 +338,13 @@ export function NoticeListFiltersBar({
               staffScopeTargetFiltersLocked
             }
             onValueChange={(value) => {
-              if (isNoticeListFilterAllValue(value)) {
-                onScopeStageChange(null)
-                return
-              }
-
-              onScopeStageChange(value as NoticeScopeStage)
+              onFiltersChange({
+                part: null,
+                scope: null,
+                scopeStage: isNoticeListFilterAllValue(value)
+                  ? null
+                  : (value as NoticeScopeStage),
+              })
             }}
             options={STAFF_NOTICE_LIST_SCOPE_STAGE_OPTIONS}
             placeholder="범위 전체"
@@ -497,21 +367,14 @@ export function NoticeListFiltersBar({
                 return
               }
 
-              if (isNoticeListFilterAllValue(value)) {
-                if (filters.scopeStage === "part") {
-                  onPartChange(null)
-                } else {
-                  onScopeChange(null)
-                }
-                return
-              }
+              const nextValue = isNoticeListFilterAllValue(value) ? null : value
 
               if (filters.scopeStage === "part") {
-                onPartChange(value as NoticePart)
+                onFiltersChange({ part: nextValue as NoticePart | null })
                 return
               }
 
-              onScopeChange(value)
+              onFiltersChange({ scope: nextValue })
             }}
             options={
               staffSchoolTargetLocked

@@ -21,6 +21,10 @@ export function resolveNoticeListNoticeTab(
   return resolveNoticeTab(audience, session)
 }
 
+/**
+ * 운영진 "받는 사람" 필터. API에 대응 파라미터가 없어 현재 페이지 응답에만 클라이언트로 적용한다.
+ * (totalElements/totalPages는 서버 값 그대로이므로 필터 시 한 페이지 항목 수가 적을 수 있다.)
+ */
 export function filterStaffNoticeSummariesByRecipient(
   content: GetNoticeSummaryResponse[],
   staffRecipient: NoticeCreateStaffScope,
@@ -28,128 +32,6 @@ export function filterStaffNoticeSummariesByRecipient(
   return content.filter(
     (summary) => summary.targetInfo?.targetNoticeTab === staffRecipient,
   )
-}
-
-function staffSummaryMatchesSchoolFilter(
-  summary: GetNoticeSummaryResponse,
-  schoolId: number,
-): boolean {
-  const targetSchoolId = summary.targetInfo?.targetSchoolId
-  if (targetSchoolId == null) {
-    return false
-  }
-
-  return Number(targetSchoolId) === schoolId
-}
-
-function staffSummaryMatchesPartFilter(
-  summary: GetNoticeSummaryResponse,
-  part: NonNullable<NoticeListQueryFilterFields["part"]>,
-): boolean {
-  const targetParts = summary.targetInfo?.targetParts
-  if (targetParts == null || targetParts.length === 0) {
-    return true
-  }
-
-  return targetParts.includes(part)
-}
-
-/** 운영진 목록: 범위·대상·받는 사람은 targetInfo 기준 클라이언트 필터 (NOTICE-001/002) */
-export function applyStaffNoticeListClientFilters(
-  content: GetNoticeSummaryResponse[],
-  apiFilters: NoticeListQueryFilterFields,
-): GetNoticeSummaryResponse[] {
-  let result = content
-
-  if (apiFilters.staffRecipient != null) {
-    result = filterStaffNoticeSummariesByRecipient(
-      result,
-      apiFilters.staffRecipient,
-    )
-  }
-
-  if (apiFilters.scopeStage === "school") {
-    const { schoolId } = parseNoticeScopeFilter(apiFilters.scope)
-    if (schoolId != null) {
-      result = result.filter((summary) =>
-        staffSummaryMatchesSchoolFilter(summary, schoolId),
-      )
-    }
-  }
-
-  if (apiFilters.scopeStage === "part" && apiFilters.part != null) {
-    result = result.filter((summary) =>
-      staffSummaryMatchesPartFilter(summary, apiFilters.part!),
-    )
-  }
-
-  return result
-}
-
-function challengerSummaryMatchesChapterFilter(
-  summary: GetNoticeSummaryResponse,
-  chapterId: number,
-): boolean {
-  const targetChapterId = summary.targetInfo?.targetChapterId
-  if (targetChapterId == null) {
-    return false
-  }
-
-  return Number(targetChapterId) === chapterId
-}
-
-function challengerSummaryMatchesSchoolFilter(
-  summary: GetNoticeSummaryResponse,
-  schoolId: number,
-): boolean {
-  const targetSchoolId = summary.targetInfo?.targetSchoolId
-  if (targetSchoolId == null) {
-    return false
-  }
-
-  return Number(targetSchoolId) === schoolId
-}
-
-function challengerSummaryMatchesPartFilter(
-  summary: GetNoticeSummaryResponse,
-  part: NonNullable<NoticeListQueryFilterFields["part"]>,
-): boolean {
-  const targetParts = summary.targetInfo?.targetParts
-  if (targetParts == null || targetParts.length === 0) {
-    return true
-  }
-
-  return targetParts.includes(part)
-}
-
-/** 챌린저 목록: 지부·학교·파트는 targetInfo 기준 클라이언트 필터 */
-export function applyChallengerNoticeListClientFilters(
-  content: GetNoticeSummaryResponse[],
-  apiFilters: NoticeListQueryFilterFields,
-): GetNoticeSummaryResponse[] {
-  let result = content
-
-  const { chapterId } = parseNoticeScopeFilter(apiFilters.chapterScope)
-  if (chapterId != null) {
-    result = result.filter((summary) =>
-      challengerSummaryMatchesChapterFilter(summary, chapterId),
-    )
-  }
-
-  const { schoolId } = parseNoticeScopeFilter(apiFilters.schoolScope)
-  if (schoolId != null) {
-    result = result.filter((summary) =>
-      challengerSummaryMatchesSchoolFilter(summary, schoolId),
-    )
-  }
-
-  if (apiFilters.part != null) {
-    result = result.filter((summary) =>
-      challengerSummaryMatchesPartFilter(summary, apiFilters.part!),
-    )
-  }
-
-  return result
 }
 
 export function normalizeNoticeListFiltersForApi(input: {
@@ -270,7 +152,30 @@ export function buildNoticeListRequest(input: {
     sort: ["createdAt,DESC"],
   }
 
-  // 챌린저·운영진: org/part 필터는 API가 아닌 targetInfo 클라이언트 필터
+  const chapterId =
+    input.audience === "challenger"
+      ? parseNoticeScopeFilter(apiFilters.chapterScope).chapterId
+      : null
+  let schoolId: number | null = null
+  if (input.audience === "challenger") {
+    schoolId = parseNoticeScopeFilter(apiFilters.schoolScope).schoolId
+  } else if (apiFilters.scopeStage === "school") {
+    schoolId = parseNoticeScopeFilter(apiFilters.scope).schoolId
+  }
+  const part =
+    input.audience === "challenger" || apiFilters.scopeStage === "part"
+      ? apiFilters.part
+      : null
+
+  if (chapterId != null) {
+    base.chapterId = chapterId
+  }
+  if (schoolId != null) {
+    base.schoolId = schoolId
+  }
+  if (part != null) {
+    base.part = part
+  }
 
   const keyword = apiFilters.query
   if (keyword.length > 0) {

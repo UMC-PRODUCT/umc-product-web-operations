@@ -1,9 +1,10 @@
-import { getRouteApi, useNavigate } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { useCallback, useEffect } from "react"
 
-import type { NoticeImageLoadState } from "../model/notice-detail.types"
+import { buildNoticeLocationState } from "../model/notice-location-state"
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 
-const noticeDetailRouteApi = getRouteApi("/_admin/notices/$noticeId")
+import type { NoticeImageLoadState } from "../model/notice-detail.types"
 
 const LOADING_MOCK_MS = 1500
 const SUCCESS_AUTO_DISMISS_MS = 3000
@@ -20,14 +21,22 @@ export function useNoticeDetailImageLoadFlow({
   noticeId,
 }: UseNoticeDetailImageLoadFlowOptions) {
   const navigate = useNavigate()
-  const { listAudience } = noticeDetailRouteApi.useSearch()
+  const locationState = useNoticeLocationStateFromLocation()
+
+  const detailState = useCallback(
+    () =>
+      buildNoticeLocationState({
+        listAudience: locationState.listAudience,
+        listPage: locationState.listPage,
+      }),
+    [locationState.listAudience, locationState.listPage],
+  )
 
   const baseDetailSearch = useCallback(
     (extra: Record<string, unknown> = {}) => ({
-      ...(listAudience ? { listAudience } : {}),
       ...extra,
     }),
-    [listAudience],
+    [],
   )
 
   const startLoadImages = () => {
@@ -35,6 +44,7 @@ export function useNoticeDetailImageLoadFlow({
       params: { noticeId },
       replace: true,
       search: baseDetailSearch({ imageLoadState: "loading" }),
+      state: detailState(),
       to: "/notices/$noticeId",
     })
   }
@@ -44,6 +54,7 @@ export function useNoticeDetailImageLoadFlow({
       params: { noticeId },
       replace: true,
       search: baseDetailSearch(),
+      state: detailState(),
       to: "/notices/$noticeId",
     })
   }
@@ -58,6 +69,7 @@ export function useNoticeDetailImageLoadFlow({
         params: { noticeId },
         replace: true,
         search: baseDetailSearch({ imageLoadState: "success" }),
+        state: detailState(),
         to: "/notices/$noticeId",
       })
     }, LOADING_MOCK_MS)
@@ -65,7 +77,14 @@ export function useNoticeDetailImageLoadFlow({
     return () => {
       window.clearTimeout(timer)
     }
-  }, [baseDetailSearch, imageLoadPause, imageLoadState, navigate, noticeId])
+  }, [
+    baseDetailSearch,
+    detailState,
+    imageLoadPause,
+    imageLoadState,
+    navigate,
+    noticeId,
+  ])
 
   useEffect(() => {
     if (imageLoadState !== "success") {
@@ -77,6 +96,7 @@ export function useNoticeDetailImageLoadFlow({
         params: { noticeId },
         replace: true,
         search: baseDetailSearch(),
+        state: detailState(),
         to: "/notices/$noticeId",
       })
     }, SUCCESS_AUTO_DISMISS_MS)
@@ -84,7 +104,7 @@ export function useNoticeDetailImageLoadFlow({
     return () => {
       window.clearTimeout(timer)
     }
-  }, [baseDetailSearch, imageLoadState, noticeId, navigate])
+  }, [baseDetailSearch, detailState, imageLoadState, noticeId, navigate])
 
   return {
     clearImageLoadSearch,

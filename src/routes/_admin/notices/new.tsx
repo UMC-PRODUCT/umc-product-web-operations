@@ -1,12 +1,13 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router"
 
+import { useSelectedGisu } from "@/entities/gisu"
 import { NoticeCreatePage } from "@/features/notices"
-import { canCreateNotice } from "@/features/notices/model/notice-session"
-import { useSelectedGisu } from "@/shared/model/selected-gisu"
+import { canCreateNotice } from "@/features/notices"
 
 import { toNoticeOperatorSession } from "./-notice-session"
 
 export const Route = createFileRoute("/_admin/notices/new")({
+  staticData: { shellLayout: "compose" },
   component: NoticeCreateRoute,
 })
 

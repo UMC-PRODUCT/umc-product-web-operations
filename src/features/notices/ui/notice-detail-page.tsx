@@ -1,6 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { Button, Dialog, Tag, useToast } from "@umc-product/react"
+import { Button, Dialog, Divider, Tag, useToast } from "@umc-product/react"
 import { useEffect, useRef, useState } from "react"
 
 import { getServerErrorMessage } from "@/shared/api/server-error"
@@ -9,7 +9,11 @@ import { deleteNoticeById } from "../model/delete-notice"
 import { isNoticeNetworkError } from "../model/notice-api-error"
 import { syncNoticeViewCountInListCaches } from "../model/notice-list-query"
 import { parseNoticeListAudience } from "../model/notice-list-route-search"
-import { NOTICE_DELETE_FAILURE_TOAST_MESSAGE } from "../model/notice-outcomes"
+import { buildNoticeLocationState } from "../model/notice-location-state"
+import {
+  NOTICE_DELETE_FAILURE_TOAST_MESSAGE,
+  NOTICE_DELETE_TOAST_MESSAGE,
+} from "../model/notice-outcomes"
 import { NoticeDetailBody } from "./notice-detail-body"
 import { NoticeDetailImageGallery } from "./notice-detail-image-gallery"
 import { NoticeDetailImageLoadInlineToast } from "./notice-detail-image-load-inline-toast"
@@ -17,37 +21,22 @@ import { NoticeDetailLinkCard } from "./notice-detail-link-card"
 import { NoticeDetailLoadingContents } from "./notice-detail-loading-contents"
 import { NoticeDetailMetaRow } from "./notice-detail-meta-row"
 import { NoticeDetailVoteCard } from "./notice-detail-vote-card"
-import { NoticeDialogDimmed } from "./notice-dialog-dimmed"
 import {
   captureNoticeDialogFocus,
   restoreNoticeDialogFocus,
 } from "./notice-dialog-focus"
 import { showNoticeErrorToast } from "./show-notice-error-toast"
+import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toast"
 import { useNoticeDetailImageLoadFlow } from "./use-notice-detail-image-load-flow"
-import { useNoticeDetailImageRegisterSuccessToast } from "./use-notice-detail-image-register-success-toast"
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 
-import type { DeleteNoticeOutcome } from "../model/mock-delete-notice"
 import type {
   NoticeDetail,
   NoticeImageLoadState,
 } from "../model/notice-detail.types"
-import type { NoticeAudience } from "../model/types"
-
-function buildNoticeListReturnSearch(input: {
-  audience: NoticeAudience
-  deleteOutcome?: "success"
-}) {
-  return {
-    audience: input.audience,
-    ...(input.deleteOutcome ? { deleteOutcome: input.deleteOutcome } : {}),
-  }
-}
 
 type NoticeDetailPageProps = {
   canManageNotice?: boolean
-  /** TODO: API 연동 시 제거. 삭제 결과 시뮬레이션용 */
-  deleteOutcome?: DeleteNoticeOutcome
-  listAudience?: NoticeAudience
   notice: NoticeDetail
   /** TODO: API 연동 시 제거. mock loading → success 자동 전환 끔 */
   imageLoadPause?: boolean
@@ -61,16 +50,19 @@ type NoticeDetailPageProps = {
  */
 export function NoticeDetailPage({
   canManageNotice = false,
-  deleteOutcome,
   imageLoadPause,
-  listAudience,
   notice,
   imageLoadState,
 }: NoticeDetailPageProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
-  const returnAudience = parseNoticeListAudience(listAudience)
+  const locationState = useNoticeLocationStateFromLocation()
+  const returnAudience = parseNoticeListAudience(locationState.listAudience)
+  const detailState = buildNoticeLocationState({
+    listAudience: returnAudience,
+    listPage: locationState.listPage,
+  })
 
   useEffect(() => {
     syncNoticeViewCountInListCaches(queryClient, notice.id, notice.views)
@@ -81,15 +73,15 @@ export function NoticeDetailPage({
     noticeId: notice.id,
   })
 
-  useNoticeDetailImageRegisterSuccessToast({ imageLoadState })
-
   const showImageLoadInlineToast =
     imageLoadState === "pending" || imageLoadState === "loading"
 
   const createdMeta = `${notice.authorDisplay} · ${notice.createdAt}`
   const isImageLoading = imageLoadState === "loading"
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const deleteMutation = useMutation({
+    mutationFn: deleteNoticeById,
+  })
   const deleteDialogFocusStore = useRef<HTMLElement | null>(null)
 
   return (
@@ -154,7 +146,7 @@ export function NoticeDetailPage({
                     onClick={() => {
                       void navigate({
                         params: { noticeId: notice.id },
-                        search: { listAudience: returnAudience },
+                        state: detailState,
                         to: "/notices/$noticeId/edit",
                       })
                     }}
@@ -179,7 +171,7 @@ export function NoticeDetailPage({
               ) : null}
             </div>
 
-            <hr className="border-neutral-disabled m-0 w-full shrink-0 border-0 border-t" />
+            <Divider className="w-full [--umc-divider-color:var(--umc-color-border-neutral-disabled)] [--umc-divider-line-thickness:1px]" />
 
             <NoticeDetailBody body={notice.body} />
 
@@ -203,7 +195,7 @@ export function NoticeDetailPage({
         color="white"
         onClick={() => {
           void navigate({
-            search: buildNoticeListReturnSearch({ audience: returnAudience }),
+            state: detailState,
             to: "/notices",
           })
         }}
@@ -215,13 +207,12 @@ export function NoticeDetailPage({
       >
         목록으로
       </Button>
-      {isDeleteDialogOpen ? <NoticeDialogDimmed intensity="medium" /> : null}
       <Dialog
         title="이 공지를 삭제할까요?"
         description="삭제하면 챌린저 앱에서도 사라지고 되돌릴 수 없어요"
         open={isDeleteDialogOpen}
         onOpenChange={(open) => {
-          if (isDeleting && !open) {
+          if (deleteMutation.isPending && !open) {
             return
           }
           setIsDeleteDialogOpen(open)
@@ -233,25 +224,17 @@ export function NoticeDetailPage({
         cancelLabel="돌아가기"
         color="error"
         onConfirm={async () => {
-          if (isDeleting) {
+          if (deleteMutation.isPending) {
             return
           }
 
-          setIsDeleting(true)
           try {
-            if (deleteOutcome === "network_error") {
-              showNoticeErrorToast(toast, NOTICE_DELETE_FAILURE_TOAST_MESSAGE)
-              return
-            }
-
-            await deleteNoticeById(Number(notice.id))
+            await deleteMutation.mutateAsync(Number(notice.id))
             deleteDialogFocusStore.current = null
             setIsDeleteDialogOpen(false)
+            showNoticePrimarySuccessToast(toast, NOTICE_DELETE_TOAST_MESSAGE)
             void navigate({
-              search: buildNoticeListReturnSearch({
-                audience: returnAudience,
-                deleteOutcome: "success",
-              }),
+              state: detailState,
               to: "/notices",
             })
           } catch (error) {
@@ -264,8 +247,6 @@ export function NoticeDetailPage({
               getServerErrorMessage(error) ??
                 NOTICE_DELETE_FAILURE_TOAST_MESSAGE,
             )
-          } finally {
-            setIsDeleting(false)
           }
         }}
       />

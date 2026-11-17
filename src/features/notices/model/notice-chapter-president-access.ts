@@ -30,6 +30,11 @@ export type NoticeChapterPresidentChallengerLock = {
   schoolOptions: NoticeListOrganizationOptions["schools"]
 }
 
+export type NoticeChapterPresidentLockResult =
+  | { status: "not-applicable" }
+  | { status: "locked"; lock: NoticeChapterPresidentChallengerLock }
+  | { status: "unresolved" }
+
 function resolvePresidentChapter(
   session: Pick<NoticeAdminAccessContext, "schoolId">,
   organization: NoticeListOrganizationOptions,
@@ -40,15 +45,17 @@ function resolvePresidentChapter(
     return chapters[0] ?? null
   }
 
-  if (session.schoolId != null) {
-    for (const [chapterId, schools] of schoolsByChapterId) {
-      if (schools.some((school) => school.schoolId === session.schoolId)) {
-        return chapters.find((chapter) => chapter.id === chapterId) ?? null
-      }
+  if (session.schoolId == null) {
+    return null
+  }
+
+  for (const [chapterId, schools] of schoolsByChapterId) {
+    if (schools.some((school) => school.schoolId === session.schoolId)) {
+      return chapters.find((chapter) => chapter.id === chapterId) ?? null
     }
   }
 
-  return chapters[0] ?? null
+  return null
 }
 
 function resolveChapterSchoolOptions(
@@ -73,29 +80,33 @@ export function resolveNoticeChapterPresidentChallengerLock(
     "isSuperAdmin" | "scope" | "roleTypes" | "schoolId"
   >,
   organization: NoticeListOrganizationOptions | null | undefined,
-): NoticeChapterPresidentChallengerLock | null {
-  if (
-    !isNoticeChapterPresidentChallengerContext(session) ||
-    organization == null
-  ) {
-    return null
+): NoticeChapterPresidentLockResult {
+  if (!isNoticeChapterPresidentChallengerContext(session)) {
+    return { status: "not-applicable" }
+  }
+
+  if (organization == null) {
+    return { status: "unresolved" }
   }
 
   const chapter = resolvePresidentChapter(session, organization)
   if (chapter == null) {
-    return null
+    return { status: "unresolved" }
   }
 
   const chapterScope = encodeChapterScope(chapter.id)
   if (chapterScope == null) {
-    return null
+    return { status: "unresolved" }
   }
 
   return {
-    chapterId: chapter.id,
-    chapterName: chapter.name,
-    chapterScope,
-    schoolOptions: resolveChapterSchoolOptions(organization, chapter.id),
+    status: "locked",
+    lock: {
+      chapterId: chapter.id,
+      chapterName: chapter.name,
+      chapterScope,
+      schoolOptions: resolveChapterSchoolOptions(organization, chapter.id),
+    },
   }
 }
 

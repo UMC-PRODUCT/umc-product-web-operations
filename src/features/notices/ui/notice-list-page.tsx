@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
-import { useNavigate, useRouterState } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { AddIcon } from "@umc-product/icons"
 import { Button, Pagination, Tab, TabList, Tabs } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import { toOrganizationLists } from "@/entities/organization"
+
 import { normalizeNoticeListFiltersForApi } from "../model/build-notice-list-params"
+import { normalizeNoticeListFilters } from "../model/normalize-notice-list-filters"
 import { resolveNoticeChapterPresidentChallengerLock } from "../model/notice-chapter-president-access"
 import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
 import { resolveNoticeCreatePartOptions } from "../model/notice-create-part-options"
@@ -17,9 +20,9 @@ import {
   areNoticeListFilterSearchParamsEqual,
   buildNoticeListFilterSearchParams,
   parseNoticeListAudience,
-  parseNoticeListAudienceOptional,
   parseNoticeListFiltersFromSearch,
 } from "../model/notice-list-route-search"
+import { buildNoticeLocationState } from "../model/notice-location-state"
 import {
   isNoticeSchoolExecutiveContext,
   NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS,
@@ -30,6 +33,10 @@ import {
   NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS,
   resolveNoticeSchoolStaffLock,
 } from "../model/notice-school-staff-access"
+import {
+  encodeChapterScope,
+  encodeSchoolScope,
+} from "../model/notice-scope-filter"
 import {
   canCreateNotice,
   type NoticeOperatorSession,
@@ -42,24 +49,17 @@ import {
 } from "../model/resolve-notice-list-ui-state"
 import { NoticeListFiltersBar } from "./notice-list-filters"
 import { NoticeListTable } from "./notice-list-table"
-import { useNoticeListOutcomeToasts } from "./use-notice-list-outcome-toasts"
+import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 
 import type { NoticePart } from "../api/notice-api.types"
+import type { NoticeListFilterFields } from "../model/normalize-notice-list-filters"
 import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
 import type { NoticeCreateStaffScope } from "../model/notice-create-form"
-import type {
-  NoticeDeleteOutcome,
-  NoticeImageRegisterOutcome,
-  NoticeListLoadOutcome,
-  NoticePublishOutcome,
-} from "../model/notice-outcomes"
 import type { NoticeScopeStage } from "../model/notice-scope-stage"
 import type { Notice, NoticeAudience, NoticeListFilters } from "../model/types"
 
 type NoticeListPageProps = {
-  audience?: NoticeAudience
   listChapterScope?: string
-  listPage?: number
   listPart?: NoticePart
   routeListQuery?: string
   listSchoolScope?: string
@@ -68,14 +68,6 @@ type NoticeListPageProps = {
   listStaffRecipient?: NoticeCreateStaffScope
   adminSession: NoticeAdminAccessContext
   session: NoticeOperatorSession
-  /** TODO: API 연동 시 제거. 삭제 성공 Toast 시뮬레이션용 */
-  deleteOutcome?: NoticeDeleteOutcome
-  /** TODO: API 연동 시 제거. 이미지 등록 성공 Toast 시뮬레이션용 */
-  imageRegisterOutcome?: NoticeImageRegisterOutcome
-  /** TODO: API 연동 시 제거. 목록 조회 결과 시뮬레이션용 */
-  listOutcome?: NoticeListLoadOutcome
-  /** TODO: API 연동 시 제거. 등록 성공 Toast 시뮬레이션용 */
-  publishOutcome?: NoticePublishOutcome
 }
 
 const DEFAULT_FILTERS: Omit<NoticeListFilters, "audience"> = {
@@ -89,7 +81,6 @@ const DEFAULT_FILTERS: Omit<NoticeListFilters, "audience"> = {
 }
 
 function resolveListLoadState(
-  mockOutcome: NoticeListLoadOutcome | undefined,
   queryResult: NoticeListQueryResult | undefined,
   isFetching: boolean,
 ): {
@@ -99,26 +90,6 @@ function resolveListLoadState(
   notices: Notice[]
   registeredTotal: number
 } {
-  if (mockOutcome === "network_error") {
-    return {
-      isError: true,
-      isForbidden: false,
-      isLoading: false,
-      notices: [],
-      registeredTotal: 0,
-    }
-  }
-
-  if (mockOutcome === "forbidden") {
-    return {
-      isError: false,
-      isForbidden: true,
-      isLoading: false,
-      notices: [],
-      registeredTotal: 0,
-    }
-  }
-
   if (!queryResult) {
     return {
       isError: false,
@@ -161,19 +132,16 @@ function resolveListLoadState(
 function filtersFromListRouteSearch(input: {
   audience: NoticeAudience
   listChapterScope?: string
-  listPage?: number
   listPart?: NoticePart
   routeListQuery?: string
   listSchoolScope?: string
   listScope?: string
   listScopeStage?: NoticeScopeStage
   listStaffRecipient?: NoticeCreateStaffScope
-}): { filters: Omit<NoticeListFilters, "audience">; page: number } {
+}): Omit<NoticeListFilters, "audience"> {
   return parseNoticeListFiltersFromSearch(
     {
-      audience: input.audience,
       chapterScope: input.listChapterScope,
-      page: input.listPage,
       part: input.listPart,
       q: input.routeListQuery,
       schoolScope: input.listSchoolScope,
@@ -182,13 +150,11 @@ function filtersFromListRouteSearch(input: {
       staffRecipient: input.listStaffRecipient,
     },
     { audience: input.audience },
-  )
+  ).filters
 }
 
 export function NoticeListPage({
-  audience: audienceFromRoute,
   listChapterScope,
-  listPage,
   listPart,
   routeListQuery,
   listSchoolScope,
@@ -197,31 +163,23 @@ export function NoticeListPage({
   listStaffRecipient,
   adminSession,
   session,
-  deleteOutcome,
-  imageRegisterOutcome,
-  listOutcome,
-  publishOutcome,
 }: NoticeListPageProps) {
   const navigate = useNavigate()
-  const pathname = useRouterState({
-    select: (state) => state.location.pathname,
-  })
-  const locationSearch = useRouterState({
-    select: (state) => state.location.search,
-  })
-  useNoticeListOutcomeToasts({
-    deleteOutcome,
-    imageRegisterOutcome,
-    publishOutcome,
-  })
-  const audience = parseNoticeListAudience(audienceFromRoute)
+  const locationState = useNoticeLocationStateFromLocation()
+  const audience = parseNoticeListAudience(locationState.listAudience)
+  const [page, setPage] = useState(() => locationState.listPage ?? 1)
   const showCreateNoticeButton = canCreateNotice(session)
-  const routeListState = useMemo(
+
+  useEffect(() => {
+    if (locationState.listPage != null) {
+      setPage(locationState.listPage)
+    }
+  }, [locationState.listPage])
+  const routeFilters = useMemo(
     () =>
       filtersFromListRouteSearch({
         audience,
         listChapterScope,
-        listPage,
         listPart,
         routeListQuery,
         listSchoolScope,
@@ -232,7 +190,6 @@ export function NoticeListPage({
     [
       audience,
       listChapterScope,
-      listPage,
       listPart,
       routeListQuery,
       listSchoolScope,
@@ -241,75 +198,6 @@ export function NoticeListPage({
       listStaffRecipient,
     ],
   )
-  const [filters, setFilters] = useState(routeListState.filters)
-  const [page, setPage] = useState(routeListState.page)
-  const skipNextUrlSyncRef = useRef(false)
-
-  useEffect(() => {
-    setFilters(routeListState.filters)
-    setPage(routeListState.page)
-    skipNextUrlSyncRef.current = true
-  }, [routeListState])
-
-  useEffect(() => {
-    if (pathname !== "/notices" && pathname !== "/notices/") {
-      return
-    }
-
-    if (skipNextUrlSyncRef.current) {
-      skipNextUrlSyncRef.current = false
-      return
-    }
-
-    const searchRecord = locationSearch as Record<string, unknown>
-    const urlAudience = parseNoticeListAudience(
-      parseNoticeListAudienceOptional(searchRecord.audience) ?? audience,
-    )
-    const { filters: filtersInUrl, page: pageInUrl } =
-      parseNoticeListFiltersFromSearch(searchRecord, { audience: urlAudience })
-    const nextSearch = buildNoticeListFilterSearchParams({
-      audience: urlAudience,
-      filters: {
-        chapterScope: filters.chapterScope,
-        part: filters.part,
-        query: filters.query,
-        schoolScope: filters.schoolScope,
-        scope: filters.scope,
-        scopeStage: filters.scopeStage,
-        staffRecipient: filters.staffRecipient,
-      },
-      page,
-    })
-    const currentSearch = buildNoticeListFilterSearchParams({
-      audience: urlAudience,
-      filters: filtersInUrl,
-      page: pageInUrl,
-    })
-
-    if (areNoticeListFilterSearchParamsEqual(nextSearch, currentSearch)) {
-      return
-    }
-
-    void navigate({
-      replace: true,
-      search: nextSearch,
-      to: "/notices",
-    })
-  }, [
-    audience,
-    filters.chapterScope,
-    filters.part,
-    filters.query,
-    filters.schoolScope,
-    filters.scope,
-    filters.scopeStage,
-    filters.staffRecipient,
-    locationSearch,
-    navigate,
-    page,
-    pathname,
-  ])
-
   const previousGisuIdRef = useRef(session.gisuId)
 
   useEffect(() => {
@@ -318,27 +206,17 @@ export function NoticeListPage({
     }
 
     previousGisuIdRef.current = session.gisuId
-    skipNextUrlSyncRef.current = true
-    setFilters(DEFAULT_FILTERS)
     setPage(1)
     void navigate({
       replace: true,
-      search: { audience },
+      search: {},
+      state: buildNoticeLocationState({
+        listAudience: audience,
+        listPage: 1,
+      }),
       to: "/notices",
     })
   }, [audience, navigate, session.gisuId])
-
-  useEffect(() => {
-    setPage(1)
-  }, [
-    filters.chapterScope,
-    filters.part,
-    filters.query,
-    filters.schoolScope,
-    filters.scope,
-    filters.scopeStage,
-    filters.staffRecipient,
-  ])
 
   const gisuListQuery = useQuery(noticeCreateGisuListQueryOptions())
 
@@ -361,24 +239,36 @@ export function NoticeListPage({
     noticeListOrganizationQueryOptions(session.gisuId),
   )
 
-  const chapterPresidentContext = useMemo(
+  const organizationLists = useMemo(
+    () => toOrganizationLists(organizationQuery.data),
+    [organizationQuery.data],
+  )
+
+  const chapterPresidentLockResult = useMemo(
     () =>
       resolveNoticeChapterPresidentChallengerLock(
         adminSession,
-        organizationQuery.data,
+        organizationLists,
       ),
-    [adminSession, organizationQuery.data],
+    [adminSession, organizationLists],
   )
 
+  const chapterPresidentContext =
+    chapterPresidentLockResult.status === "locked"
+      ? chapterPresidentLockResult.lock
+      : null
+
+  const chapterPresidentUnresolved =
+    chapterPresidentLockResult.status === "unresolved"
+
   const schoolExecutiveLock = useMemo(
-    () =>
-      resolveNoticeSchoolExecutiveLock(adminSession, organizationQuery.data),
-    [adminSession, organizationQuery.data],
+    () => resolveNoticeSchoolExecutiveLock(adminSession, organizationLists),
+    [adminSession, organizationLists],
   )
 
   const schoolStaffLock = useMemo(
-    () => resolveNoticeSchoolStaffLock(adminSession, organizationQuery.data),
-    [adminSession, organizationQuery.data],
+    () => resolveNoticeSchoolStaffLock(adminSession, organizationLists),
+    [adminSession, organizationLists],
   )
 
   const schoolScopedOrganizationLock = schoolExecutiveLock ?? schoolStaffLock
@@ -417,14 +307,20 @@ export function NoticeListPage({
     : null
 
   const staffListFiltersDisabled =
-    audience === "staff" && chapterPresidentContext != null
+    (audience === "staff" && chapterPresidentContext != null) ||
+    chapterPresidentUnresolved
 
-  const challengerLockedChapterScope =
-    chapterPresidentChallengerLock?.chapterScope ??
-    schoolExecutiveChallengerLock?.chapterScope ??
-    null
+  const challengerLockedChapterScope = chapterPresidentUnresolved
+    ? null
+    : (chapterPresidentChallengerLock?.chapterScope ??
+      schoolExecutiveChallengerLock?.chapterScope ??
+      null)
 
   const challengerListSchoolOptions = useMemo(() => {
+    if (chapterPresidentUnresolved) {
+      return []
+    }
+
     if (chapterPresidentChallengerLock != null) {
       return chapterPresidentChallengerLock.schoolOptions
     }
@@ -438,29 +334,97 @@ export function NoticeListPage({
       ]
     }
 
-    return organizationQuery.data?.schools ?? []
+    return organizationLists.schools
   }, [
     chapterPresidentChallengerLock,
-    organizationQuery.data?.schools,
+    chapterPresidentUnresolved,
+    organizationLists.schools,
     schoolExecutiveChallengerLock,
   ])
 
-  useEffect(() => {
-    if (challengerLockedChapterScope == null) {
+  const chapterScopeOptions = useMemo(
+    () =>
+      organizationLists.chapters.map((chapter) =>
+        encodeChapterScope(chapter.id),
+      ),
+    [organizationLists.chapters],
+  )
+
+  const schoolScopeOptions = useMemo(
+    () =>
+      challengerListSchoolOptions.map((school) =>
+        encodeSchoolScope(school.schoolId),
+      ),
+    [challengerListSchoolOptions],
+  )
+
+  const partScopeOptions = useMemo(
+    () => partFilterOptions.map((option) => option.value),
+    [partFilterOptions],
+  )
+
+  const challengerLockedSchoolScope =
+    schoolExecutiveChallengerLock?.schoolScope ?? null
+  const staffLockedSchoolScope = schoolExecutiveStaffLock?.schoolScope ?? null
+  const isOrganizationLoading =
+    organizationQuery.isLoading || gisuListQuery.isLoading
+
+  const filters = useMemo(
+    () =>
+      normalizeNoticeListFilters(routeFilters, {
+        challengerLockedSchoolScope,
+        chapterScopeOptions,
+        lockedChapterScope: challengerLockedChapterScope,
+        optionsReady: !isOrganizationLoading,
+        partOptions: partScopeOptions,
+        schoolScopeOptions,
+        staffFixedStaffRecipient,
+        staffLockedSchoolScope,
+        staffRecipientScopeAllowlist,
+      }),
+    [
+      challengerLockedChapterScope,
+      challengerLockedSchoolScope,
+      chapterScopeOptions,
+      isOrganizationLoading,
+      partScopeOptions,
+      routeFilters,
+      schoolScopeOptions,
+      staffFixedStaffRecipient,
+      staffLockedSchoolScope,
+      staffRecipientScopeAllowlist,
+    ],
+  )
+
+  const navigateToListFilters = (nextFilters: NoticeListFilterFields) => {
+    const nextSearch = buildNoticeListFilterSearchParams({
+      audience,
+      filters: nextFilters,
+    })
+    const currentSearch = buildNoticeListFilterSearchParams({
+      audience,
+      filters,
+    })
+
+    if (areNoticeListFilterSearchParamsEqual(nextSearch, currentSearch)) {
       return
     }
 
-    setFilters((current) => {
-      if (
-        current.chapterScope == null ||
-        current.chapterScope === challengerLockedChapterScope
-      ) {
-        return current
-      }
-
-      return { ...current, chapterScope: null }
+    setPage(1)
+    void navigate({
+      replace: true,
+      search: nextSearch,
+      state: buildNoticeLocationState({
+        listAudience: audience,
+        listPage: 1,
+      }),
+      to: "/notices",
     })
-  }, [challengerLockedChapterScope])
+  }
+
+  const handleFiltersChange = (patch: Partial<NoticeListFilterFields>) => {
+    navigateToListFilters({ ...filters, ...patch })
+  }
 
   const listQuery = useQuery(
     noticeListQueryOptions({
@@ -481,7 +445,6 @@ export function NoticeListPage({
   )
 
   const listState = resolveListLoadState(
-    listOutcome,
     listQuery.data,
     listQuery.isFetching && !listQuery.data,
   )
@@ -501,7 +464,7 @@ export function NoticeListPage({
     isNoticeListScopeOutOfOrganization({
       audience,
       filters,
-      organization: organizationQuery.data ?? null,
+      organization: organizationQuery.data == null ? null : organizationLists,
     })
 
   const isForbidden = listState.isForbidden || isClientFilterForbidden
@@ -567,7 +530,6 @@ export function NoticeListPage({
             className="shrink-0"
             leadingIcon={<AddIcon aria-hidden size={14} />}
             onClick={() => {
-              skipNextUrlSyncRef.current = true
               void navigate({ to: "/notices/new", search: {} })
             }}
             size="sm"
@@ -584,11 +546,14 @@ export function NoticeListPage({
             className="w-auto shrink-0"
             onValueChange={(value) => {
               const nextAudience = value as NoticeAudience
-              skipNextUrlSyncRef.current = true
-              setFilters(DEFAULT_FILTERS)
               setPage(1)
               void navigate({
-                search: { audience: nextAudience },
+                replace: true,
+                search: {},
+                state: buildNoticeLocationState({
+                  listAudience: nextAudience,
+                  listPage: 1,
+                }),
                 to: "/notices",
               })
             }}
@@ -607,45 +572,19 @@ export function NoticeListPage({
 
         <NoticeListFiltersBar
           key={`${audience}-${session.gisuId ?? "none"}`}
-          chapterOptions={organizationQuery.data?.chapters ?? []}
+          chapterOptions={organizationLists.chapters}
           filters={{ ...filters, audience }}
-          isOrganizationLoading={
-            organizationQuery.isLoading || gisuListQuery.isLoading
-          }
-          challengerLockedSchoolScope={
-            schoolExecutiveChallengerLock?.schoolScope ?? null
-          }
+          isOrganizationLoading={isOrganizationLoading}
+          challengerLockedSchoolScope={challengerLockedSchoolScope}
           lockedChapterScope={challengerLockedChapterScope}
           staffListFiltersDisabled={staffListFiltersDisabled}
           staffFixedStaffRecipient={staffFixedStaffRecipient}
-          staffLockedSchoolScope={schoolExecutiveStaffLock?.schoolScope ?? null}
+          staffLockedSchoolScope={staffLockedSchoolScope}
           staffRecipientScopeAllowlist={staffRecipientScopeAllowlist}
           partOptions={partFilterOptions}
-          onChapterScopeChange={(chapterScope) => {
-            setFilters((current) => ({ ...current, chapterScope }))
-          }}
-          onPartChange={(part) => {
-            setFilters((current) => ({ ...current, part }))
-          }}
+          onFiltersChange={handleFiltersChange}
           onQueryChange={(query) => {
-            setFilters((current) => ({ ...current, query }))
-          }}
-          onSchoolScopeChange={(schoolScope) => {
-            setFilters((current) => ({ ...current, schoolScope }))
-          }}
-          onScopeChange={(scope) => {
-            setFilters((current) => ({ ...current, scope }))
-          }}
-          onScopeStageChange={(scopeStage) => {
-            setFilters((current) => ({
-              ...current,
-              part: null,
-              scope: null,
-              scopeStage,
-            }))
-          }}
-          onStaffRecipientChange={(staffRecipient) => {
-            setFilters((current) => ({ ...current, staffRecipient }))
+            handleFiltersChange({ query })
           }}
           schoolOptions={challengerListSchoolOptions}
         />
@@ -659,22 +598,13 @@ export function NoticeListPage({
             isLoading={listState.isLoading}
             notices={listState.notices}
             onOpenNotice={(noticeId) => {
-              const listSearch = buildNoticeListFilterSearchParams({
-                audience,
-                filters: { ...filters, query: filters.query },
-                page,
-              })
-
               void navigate({
-                replace: true,
-                search: listSearch,
-                to: "/notices",
-              }).then(() => {
-                void navigate({
-                  params: { noticeId },
-                  search: { listAudience: audience },
-                  to: "/notices/$noticeId",
-                })
+                params: { noticeId },
+                state: buildNoticeLocationState({
+                  listAudience: audience,
+                  listPage: page,
+                }),
+                to: "/notices/$noticeId",
               })
             }}
             onRetry={() => {
@@ -684,7 +614,21 @@ export function NoticeListPage({
           />
           {showPagination ? (
             <Pagination
-              onPageChange={setPage}
+              onPageChange={(nextPage) => {
+                setPage(nextPage)
+                void navigate({
+                  replace: true,
+                  search: buildNoticeListFilterSearchParams({
+                    audience,
+                    filters,
+                  }),
+                  state: buildNoticeLocationState({
+                    listAudience: audience,
+                    listPage: nextPage,
+                  }),
+                  to: "/notices",
+                })
+              }}
               page={page}
               totalPages={totalPages}
             />

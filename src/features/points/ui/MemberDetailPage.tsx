@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { CheckCircleIcon } from "@umc-product/icons"
 import { useToast } from "@umc-product/react"
@@ -10,14 +10,18 @@ import {
   grantChallengerPoint,
 } from "../api/challenger-points"
 import { canDeletePointHistory } from "../model/can-delete-point-history"
-import { getHttpStatus, isForbiddenError } from "../model/http-status"
+import { challengerKeys } from "../model/challenger-keys"
+import {
+  getHttpStatus,
+  isForbiddenError,
+  isNetworkError,
+} from "../model/http-status"
 import {
   challengerPointList,
   toDetailMember,
   toGrantPointBody,
   toPointHistoryItem,
 } from "../model/map-point-history"
-import { mockAwardPoint } from "../model/mock-award-point"
 import {
   buildSummary,
   formatAwardToastMessage,
@@ -27,30 +31,27 @@ import { AwardPointsModal } from "./AwardPointsModal"
 import { DeletePointHistoryDialog } from "./DeletePointHistoryDialog"
 import { MemberDetailNetworkError } from "./MemberDetailNetworkError"
 import { MemberDetailPermissionDenied } from "./MemberDetailPermissionDenied"
+import { MemberDetailSkeleton } from "./MemberDetailSkeleton"
 import { MemberProfileCard } from "./MemberProfileCard"
 import { PointHistoryEmpty } from "./PointHistoryEmpty"
 import { PointHistoryTable } from "./PointHistoryTable"
 
-import type { AwardPointOutcome } from "../model/mock-award-point"
-import type { DeletePointHistoryOutcome } from "../model/mock-delete-point-history"
+import type { PointType } from "../api/challenger-points"
 import type { PointHistoryItem } from "../model/point-history"
 import type { PointAwardTab } from "../model/point-types"
 
 type MemberDetailPageProps = {
-  memberId: string
-  challengerId?: number
-  /** 쿼리로 에러/권한 화면을 열 때 사용한다. */
+  /** URL 경로의 챌린저 id. 유효하지 않으면 null */
+  challengerId: number | null
+  /** 쿼리로 에러/권한 화면을 열 때 사용한다. (개발 모드 전용) */
   isError?: boolean
   isForbidden?: boolean
-  /** 쿼리로 삭제 결과를 흉내 낼 때만 전달한다. */
-  deleteOutcome?: DeletePointHistoryOutcome
-  /** 쿼리로 부여 결과를 흉내 낼 때만 전달한다. */
-  awardOutcome?: AwardPointOutcome
   onRetry?: () => void
 }
 
 type PendingAward = {
   tab: PointAwardTab
+  pointType?: PointType
   typeLabel: string
   score: number
   reason: string
@@ -58,17 +59,10 @@ type PendingAward = {
 
 const adminRouteApi = getRouteApi("/_admin")
 
-function challengerQueryKey(challengerId: number) {
-  return ["challenger", challengerId] as const
-}
-
 export function MemberDetailPage({
-  memberId,
   challengerId,
   isError = false,
   isForbidden = false,
-  deleteOutcome,
-  awardOutcome,
   onRetry,
 }: MemberDetailPageProps) {
   const { session } = adminRouteApi.useRouteContext()
@@ -86,8 +80,8 @@ export function MemberDetailPage({
   const challengerQuery = useQuery({
     queryKey:
       challengerId != null
-        ? challengerQueryKey(challengerId)
-        : ["challenger", "missing"],
+        ? challengerKeys.detail(challengerId)
+        : challengerKeys.missing(),
     queryFn: () => fetchChallenger(challengerId as number),
     enabled: challengerId != null && !isError && !isForbidden,
     retry: false,
@@ -103,10 +97,8 @@ export function MemberDetailPage({
   const summary = useMemo(() => buildSummary(history), [history])
   const member = useMemo(
     () =>
-      challengerQuery.data
-        ? toDetailMember(challengerQuery.data, memberId)
-        : undefined,
-    [challengerQuery.data, memberId],
+      challengerQuery.data ? toDetailMember(challengerQuery.data) : undefined,
+    [challengerQuery.data],
   )
 
   const forbidden = isForbidden || isForbiddenError(challengerQuery.error)
@@ -119,7 +111,7 @@ export function MemberDetailPage({
       return
     }
     await queryClient.fetchQuery({
-      queryKey: challengerQueryKey(challengerId),
+      queryKey: challengerKeys.detail(challengerId),
       queryFn: () => fetchChallenger(challengerId),
       staleTime: 0,
     })
@@ -130,30 +122,21 @@ export function MemberDetailPage({
     setAwardOpen(true)
   }
 
-  const handleAwardSubmit = async (payload: PendingAward) => {
-    if (awardOutcome) {
-      const outcome = await mockAwardPoint(awardOutcome)
-      if (outcome === "success") {
-        setAwardOpen(false)
-        toast.show({
-          message: formatAwardToastMessage(payload.typeLabel, payload.score),
-          color: "brand",
-          icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
-        })
+  const awardMutation = useMutation({
+    mutationFn: async (payload: PendingAward) => {
+      if (challengerId == null) {
+        throw new Error("MISSING_CHALLENGER")
       }
-      return outcome
-    }
-
-    if (challengerId == null) {
-      return "network_error" as const
-    }
-
-    try {
       const updated = await grantChallengerPoint(
         challengerId,
         toGrantPointBody(payload),
       )
-      queryClient.setQueryData(challengerQueryKey(challengerId), updated)
+      return { updated, payload }
+    },
+    onSuccess: async ({ updated, payload }) => {
+      if (challengerId != null) {
+        queryClient.setQueryData(challengerKeys.detail(challengerId), updated)
+      }
       try {
         await refreshHistory()
       } catch {
@@ -165,12 +148,28 @@ export function MemberDetailPage({
         color: "brand",
         icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
       })
+    },
+  })
+
+  const deletePointMutation = useMutation({
+    mutationFn: (historyId: string) => deleteChallengerPoint(Number(historyId)),
+  })
+
+  const handleAwardSubmit = async (payload: PendingAward) => {
+    try {
+      await awardMutation.mutateAsync(payload)
       return "success" as const
     } catch (error) {
+      if (error instanceof Error && error.message === "MISSING_CHALLENGER") {
+        return "server_error" as const
+      }
       if (isForbiddenError(error)) {
         return "forbidden" as const
       }
-      return "network_error" as const
+      // 무응답만 network_error, HTTP 4xx·5xx 응답은 server_error
+      return isNetworkError(error)
+        ? ("network_error" as const)
+        : ("server_error" as const)
     }
   }
 
@@ -198,14 +197,18 @@ export function MemberDetailPage({
     )
   }
 
-  if (challengerQuery.isPending || !member) {
-    return challengerId == null ? (
+  if (challengerId == null) {
+    return (
       <section className="flex flex-col gap-(--umc-spacing-gap-20)">
         <p className="text-body-3-regular text-neutral-medium-600">
           구성원을 찾을 수 없어요
         </p>
       </section>
-    ) : null
+    )
+  }
+
+  if (challengerQuery.isPending || !member) {
+    return <MemberDetailSkeleton />
   }
 
   return (
@@ -244,6 +247,7 @@ export function MemberDetailPage({
 
       <AwardPointsModal
         initialTab={awardTab}
+        isSubmitting={awardMutation.isPending}
         member={member}
         onOpenChange={setAwardOpen}
         onSubmit={handleAwardSubmit}
@@ -256,46 +260,34 @@ export function MemberDetailPage({
         onAlreadyDeleted={() => {
           void refreshHistory()
         }}
-        onConfirm={
-          deleteOutcome
-            ? undefined
-            : async (historyId) => {
-                try {
-                  await deleteChallengerPoint(Number(historyId))
-                  return "success"
-                } catch (error) {
-                  const status = getHttpStatus(error)
-                  if (status === 404) {
-                    return "already_deleted"
-                  }
-                  if (status === 403) {
-                    return "forbidden"
-                  }
-                  return "network_error"
-                }
-              }
-        }
-        onDeleted={async (historyId) => {
-          const previousTotal = summary.total
-          if (deleteOutcome) {
-            const target = history.find((item) => item.id === historyId)
-            const nextTotal = target
-              ? previousTotal - target.score
-              : previousTotal
-            toast.show({
-              message: formatDeleteToastMessage(previousTotal, nextTotal),
-              color: "brand",
-              icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
-            })
-            return
+        onConfirm={async (historyId) => {
+          try {
+            await deletePointMutation.mutateAsync(historyId)
+            return "success"
+          } catch (error) {
+            const status = getHttpStatus(error)
+            if (status === 404) {
+              return "already_deleted"
+            }
+            if (status === 403) {
+              return "forbidden"
+            }
+            return isNetworkError(error) ? "network_error" : "server_error"
           }
-          await refreshHistory()
+        }}
+        onDeleted={async () => {
+          const previousTotal = summary.total
+          try {
+            await refreshHistory()
+          } catch {
+            // 삭제 API는 성공했으므로 토스트는 유지하고, 이력 재조회 실패는 네트워크 오류로 돌리지 않는다.
+          }
           const next = queryClient.getQueryData<
             Awaited<ReturnType<typeof fetchChallenger>>
           >(
             challengerId != null
-              ? challengerQueryKey(challengerId)
-              : ["challenger", "missing"],
+              ? challengerKeys.detail(challengerId)
+              : challengerKeys.missing(),
           )
           const nextTotal = next
             ? buildSummary(challengerPointList(next).map(toPointHistoryItem))
@@ -314,7 +306,6 @@ export function MemberDetailPage({
           }
         }}
         open={deleteOpen}
-        simulateOutcome={deleteOutcome}
       />
     </section>
   )

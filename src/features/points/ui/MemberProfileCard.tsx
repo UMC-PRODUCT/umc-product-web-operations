@@ -1,7 +1,11 @@
 import { AddIcon, PersonIcon } from "@umc-product/icons"
 import { Button, StatusTag } from "@umc-product/react"
 
-import { getPartLabel, getRegionLabel } from "../model/member-labels"
+import {
+  memberStatusLabel,
+  memberStatusTagColor,
+} from "../model/map-search-member"
+import { getPartLabel } from "../model/member-labels"
 import { formatPointScore } from "../model/point-history"
 
 import type { MemberPointSummary } from "../model/point-history"
@@ -51,10 +55,10 @@ export function MemberProfileCard({
 }: MemberProfileCardProps) {
   const meta = [
     member.schoolLabel,
-    member.regionLabel ?? getRegionLabel(member.region),
+    member.regionLabel,
     member.partLabel ?? getPartLabel(member.part),
     member.generation,
-  ]
+  ].filter((item): item is string => Boolean(item && item.trim()))
 
   return (
     <section className="border-neutral-disabled flex w-full flex-col gap-(--umc-spacing-gap-20) overflow-hidden rounded-(--umc-radius-12) border bg-white p-(--umc-spacing-padding-32)">
@@ -72,7 +76,9 @@ export function MemberProfileCard({
               <h1 className="text-title-2-semibold text-neutral-default-900 truncate">
                 {member.name} / {member.nickname}
               </h1>
-              <StatusTag color="brand">활동</StatusTag>
+              <StatusTag color={memberStatusTagColor(member.status)}>
+                {memberStatusLabel(member.status)}
+              </StatusTag>
             </div>
             {/* log — school | region | part | generation */}
             <div className="text-body-1-regular text-teal-grey-700 flex flex-wrap items-center gap-(--umc-spacing-gap-12)">

@@ -1,13 +1,14 @@
 import {
+  formatGisuGenerationLabel,
+  type GisuGenerationLookup,
+} from "@/entities/gisu"
+
+import {
   formatNoticeDetailDateTime,
   formatNoticeListDate,
   formatNoticeVotePeriod,
 } from "./format-notice-date"
 import { NOTICE_CREATE_STAFF_SCOPE_OPTIONS } from "./notice-create-form"
-import {
-  formatGisuGenerationLabel,
-  type GisuGenerationLookup,
-} from "./notice-gisu-generation"
 import { NOTICE_PART_LABELS } from "./notice-part-options"
 import { recomputePollPercents } from "./notice-poll-vote"
 import { parseNoticeMemberId } from "./notice-viewer"

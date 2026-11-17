@@ -1,19 +1,25 @@
-import { fetchGisuList } from "@/shared/api/gisu-list"
+import {
+  buildGisuGenerationLookup,
+  gisuListQueryOptions,
+} from "@/entities/gisu"
+import {
+  gisuOrganizationQueryOptions,
+  toOrganizationLists,
+} from "@/entities/organization"
 
-import { getNoticeDetail } from "../api/notices-query.api"
 import { buildNoticeOrganizationNameLookup } from "./map-gisu-organization"
 import { mapNoticeDetailResponse } from "./map-notice-from-api"
 import {
   isNoticeForbiddenError,
   isNoticeNotFoundError,
 } from "./notice-api-error"
-import { buildGisuGenerationLookup } from "./notice-gisu-generation"
-import { fetchNoticeListOrganizationOptions } from "./notice-list-organization-query"
+import { noticeDetailQueryOptions } from "./notice-detail-query"
+
+import type { QueryClient } from "@tanstack/react-query"
+
+import type { GisuListItem } from "@/entities/gisu"
 
 import type { NoticeDetail } from "./notice-detail.types"
-
-/** QA: Figma NT-D01 권한 없음 — `/notices/403` */
-export const NOTICE_DETAIL_FORBIDDEN_MOCK_ID = "403"
 
 export type NoticeDetailLoaderData =
   | { kind: "success"; notice: NoticeDetail }
@@ -22,29 +28,32 @@ export type NoticeDetailLoaderData =
 
 export async function loadNoticeDetail(
   noticeId: string,
+  queryClient: QueryClient,
 ): Promise<NoticeDetailLoaderData> {
-  if (noticeId === NOTICE_DETAIL_FORBIDDEN_MOCK_ID) {
-    return { kind: "forbidden" }
-  }
-
   const parsedId = Number(noticeId)
   if (!Number.isFinite(parsedId)) {
     return { kind: "deleted" }
   }
 
   try {
-    const detail = await getNoticeDetail(parsedId)
+    const detail = await queryClient.ensureQueryData(
+      noticeDetailQueryOptions(parsedId),
+    )
     const targetGisuRaw = detail.targetInfo?.targetGisuId
     const targetGisuId = targetGisuRaw == null ? null : Number(targetGisuRaw)
+    const resolvedGisuId = Number.isFinite(targetGisuId) ? targetGisuId : null
 
-    const [gisuList, organization] = await Promise.all([
-      fetchGisuList().catch(
-        () => [] as Awaited<ReturnType<typeof fetchGisuList>>,
-      ),
-      fetchNoticeListOrganizationOptions(
-        Number.isFinite(targetGisuId) ? targetGisuId : null,
-      ),
+    const [gisuList, organizationGisu] = await Promise.all([
+      queryClient
+        .ensureQueryData(gisuListQueryOptions())
+        .catch((): GisuListItem[] => []),
+      resolvedGisuId == null
+        ? Promise.resolve(null)
+        : queryClient
+            .ensureQueryData(gisuOrganizationQueryOptions(resolvedGisuId))
+            .catch(() => null),
     ])
+    const organization = toOrganizationLists(organizationGisu)
     const gisuGenerationById = buildGisuGenerationLookup(gisuList)
     const { chapterNameById, schoolNameById } =
       buildNoticeOrganizationNameLookup(organization)
@@ -66,8 +75,4 @@ export async function loadNoticeDetail(
     }
     throw error
   }
-}
-
-export function shouldHideNoticeDetailPageHeader(noticeId: string): boolean {
-  return noticeId === NOTICE_DETAIL_FORBIDDEN_MOCK_ID
 }

@@ -7,6 +7,7 @@ import {
   OperatorOnlyNotice,
 } from "@/features/auth"
 import { getSsoClient } from "@/shared/auth/sso-client"
+import { FullPageError } from "@/shared/ui/full-page-error"
 import { AuthBusyScreen, LoadingSpinner } from "@/shared/ui/loading-spinner"
 
 const DevLoginForm = import.meta.env.DEV
@@ -117,11 +118,7 @@ function LoginPage() {
   }
 
   if (phase === "error") {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <p role="alert">로그인 상태를 확인하지 못했습니다.</p>
-      </div>
-    )
+    return <FullPageError title="로그인 상태를 확인하지 못했습니다." />
   }
 
   return <AuthBusyScreen label="로그인 중" />

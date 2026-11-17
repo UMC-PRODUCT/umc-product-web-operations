@@ -1,31 +1,14 @@
 import { api } from "@/shared/api/client"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
+import type { MemberPart, RoleType } from "@/entities/member"
+
 /** CHALLENGER-201 `/api/v2/challenger/search` part 필터·응답 */
-export type MemberSearchPart =
-  | "PLAN"
-  | "DESIGN"
-  | "WEB"
-  | "WEB_PRODUCT_ENGINEER"
-  | "ANDROID"
-  | "IOS"
-  | "MOBILE_PRODUCT_ENGINEER"
-  | "NODEJS"
-  | "SPRINGBOOT"
-  | "ADMIN"
+export type MemberSearchPart = MemberPart
 
 export type ChallengerStatus = "ACTIVE" | "GRADUATED" | "EXPELLED" | "WITHDRAWN"
 
-export type ChallengerSearchRoleType =
-  | "CENTRAL_PRESIDENT"
-  | "CENTRAL_VICE_PRESIDENT"
-  | "CENTRAL_OPERATING_TEAM_MEMBER"
-  | "CENTRAL_EDUCATION_TEAM_MEMBER"
-  | "CHAPTER_PRESIDENT"
-  | "SCHOOL_PRESIDENT"
-  | "SCHOOL_VICE_PRESIDENT"
-  | "SCHOOL_PART_LEADER"
-  | "SCHOOL_ETC_ADMIN"
+export type ChallengerSearchRoleType = RoleType
 
 /** 챌린저 단위 검색 행 — 기수별로 별도 row */
 export type SearchMemberItem = {

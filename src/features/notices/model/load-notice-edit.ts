@@ -1,10 +1,12 @@
-import { getNoticeDetail } from "../api/notices-query.api"
 import { mapNoticeDetailToEditForm } from "./map-notice-detail-to-edit-form"
 import { mapNoticeVoteInfoToPoll } from "./map-notice-from-api"
 import {
   isNoticeForbiddenError,
   isNoticeNotFoundError,
 } from "./notice-api-error"
+import { noticeDetailQueryOptions } from "./notice-detail-query"
+
+import type { QueryClient } from "@tanstack/react-query"
 
 import type { NoticeCreateFormState } from "./notice-create-form"
 import type { NoticePoll } from "./notice-detail.types"
@@ -22,6 +24,7 @@ export type NoticeEditLoaderData =
 
 export async function loadNoticeEdit(
   noticeId: string,
+  queryClient: QueryClient,
 ): Promise<NoticeEditLoaderData> {
   const parsedId = Number(noticeId)
   if (!Number.isFinite(parsedId)) {
@@ -29,7 +32,9 @@ export async function loadNoticeEdit(
   }
 
   try {
-    const detail = await getNoticeDetail(parsedId)
+    const detail = await queryClient.ensureQueryData(
+      noticeDetailQueryOptions(parsedId),
+    )
     return {
       kind: "success",
       attachedVotePoll: detail.vote

@@ -1,13 +1,7 @@
-import { queryOptions } from "@tanstack/react-query"
+import { gisuKeys, gisuListQueryOptions } from "@/entities/gisu"
 
-import { fetchGisuList } from "@/shared/api/gisu-list"
-
-export const noticeCreateGisuListQueryKey = ["gisu", "list"] as const
+export const noticeCreateGisuListQueryKey = gisuKeys.list()
 
 export function noticeCreateGisuListQueryOptions() {
-  return queryOptions({
-    queryKey: noticeCreateGisuListQueryKey,
-    queryFn: fetchGisuList,
-    staleTime: 60_000,
-  })
+  return gisuListQueryOptions()
 }

@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
-import { EyeInvisibleIcon, TrashIcon } from "@umc-product/icons"
 import { Button } from "@umc-product/react"
+
+import { FullPageError } from "@/shared/ui/full-page-error"
 
 export type NoticeDetailStatusVariant = "forbidden" | "deleted"
 
@@ -27,33 +28,26 @@ export function NoticeDetailStatusView({
 }: NoticeDetailStatusViewProps) {
   const navigate = useNavigate()
   const { description, title } = STATUS_COPY[variant]
-  const StatusIcon = variant === "deleted" ? TrashIcon : EyeInvisibleIcon
 
   return (
-    <div
-      className="flex w-full flex-col items-center gap-(--umc-spacing-gap-16) pt-[80px] pb-[40px]"
+    <FullPageError
+      actions={
+        <Button
+          color="white"
+          onClick={() => {
+            void navigate({ to: "/notices" })
+          }}
+          size="xs"
+          type="button"
+          variant="fill"
+        >
+          목록으로
+        </Button>
+      }
+      body={description}
+      placement="content"
       role="status"
-    >
-      <StatusIcon aria-hidden className="text-icon-disabled" size={48} />
-      <div className="flex w-full flex-col items-center gap-(--umc-spacing-gap-8) text-center">
-        <p className="text-title-4-semibold text-neutral-strong-800 w-full">
-          {title}
-        </p>
-        <p className="text-body-3-regular text-neutral-medium-600 w-full">
-          {description}
-        </p>
-      </div>
-      <Button
-        color="white"
-        onClick={() => {
-          void navigate({ to: "/notices" })
-        }}
-        size="xs"
-        type="button"
-        variant="fill"
-      >
-        목록으로
-      </Button>
-    </div>
+      title={title}
+    />
   )
 }

@@ -1,6 +1,7 @@
-import { Tag, TextButton } from "@umc-product/react"
+import { Skeleton, Tag, TextButton } from "@umc-product/react"
 
 import { cn } from "@/shared/lib/cn"
+import { DataTableBody, DataTableShell } from "@/shared/ui/data-table-shell"
 
 import { NoticeListForbidden } from "./notice-list-forbidden"
 import { NoticeListNetworkError } from "./notice-list-network-error"
@@ -100,18 +101,6 @@ const TABLE_HEADER_ROW_CLASS =
 const TABLE_BODY_ROW_CLASS =
   "box-border flex h-[58px] items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12)"
 
-function Bone({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        "bg-fill-neutral-disabled rounded-(--umc-radius-6)",
-        className,
-      )}
-    />
-  )
-}
-
 function TableHeader({ columns }: { columns: NoticeColumn[] }) {
   return (
     <div
@@ -158,11 +147,11 @@ function SkeletonRow({
           role="cell"
         >
           {column.id === "required" ? (
-            <Bone className="h-6 w-[41px] shrink-0 shadow-(--umc-shadow-drop-neutral-3)" />
+            <Skeleton className="h-6 w-[41px] shrink-0 shadow-(--umc-shadow-drop-neutral-3)" />
           ) : column.id === "createdAt" ? (
-            <Bone className="h-[23px] w-[61px] shrink-0" />
+            <Skeleton className="h-[23px] w-[61px] shrink-0" />
           ) : (
-            <Bone className="h-[23px] min-w-0 flex-1" />
+            <Skeleton className="h-[23px] min-w-0 flex-1" />
           )}
         </div>
       ))}
@@ -228,16 +217,10 @@ export function NoticeListTable({
 
   if (isLoading) {
     return (
-      <div
-        aria-busy
-        className="w-full overflow-hidden rounded-(--umc-radius-12)"
-      >
+      <DataTableShell aria-busy>
         <TableHeader columns={columns} />
 
-        <div
-          className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l bg-white"
-          role="rowgroup"
-        >
+        <DataTableBody className="bg-white">
           {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
             <SkeletonRow
               columns={columns}
@@ -245,8 +228,8 @@ export function NoticeListTable({
               key={`notice-skeleton-${index}`}
             />
           ))}
-        </div>
-      </div>
+        </DataTableBody>
+      </DataTableShell>
     )
   }
 
@@ -263,16 +246,10 @@ export function NoticeListTable({
   }
 
   return (
-    <div
-      aria-busy={false}
-      className="w-full overflow-hidden rounded-(--umc-radius-12)"
-    >
+    <DataTableShell aria-busy={false}>
       <TableHeader columns={columns} />
 
-      <div
-        className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l bg-white"
-        role="rowgroup"
-      >
+      <DataTableBody className="bg-white">
         {notices.map((notice, index) => {
           const isLast = index === notices.length - 1
 
@@ -304,7 +281,7 @@ export function NoticeListTable({
             </div>
           )
         })}
-      </div>
-    </div>
+      </DataTableBody>
+    </DataTableShell>
   )
 }

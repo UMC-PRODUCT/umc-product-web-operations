@@ -1,22 +1,10 @@
-import { Tag } from "@umc-product/react"
+import { Divider, Skeleton, Tag } from "@umc-product/react"
 
 import { cn } from "@/shared/lib/cn"
 
 /** Figma NT-D01 불러오는 중 (516:12424) — 이미지 불러오기 중 본문 스켈레톤 */
 type NoticeDetailLoadingContentsProps = {
   showRequiredTag?: boolean
-}
-
-function Bone({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        "bg-fill-neutral-disabled rounded-(--umc-radius-6)",
-        className,
-      )}
-    />
-  )
 }
 
 const IMAGE_PLACEHOLDER_CLASS = cn(
@@ -41,21 +29,21 @@ export function NoticeDetailLoadingContents({
               필독
             </Tag>
           ) : null}
-          <Bone className="h-[25px] w-[330px] max-w-full" />
+          <Skeleton className="h-[25px] w-[330px] max-w-full" />
           <div className="flex w-full flex-wrap items-start gap-(--umc-spacing-gap-12)">
-            <Bone className="h-[21px] w-[191px] max-w-full" />
-            <Bone className="h-[21px] w-[171px] max-w-full" />
-            <Bone className="h-[21px] w-[109px] max-w-full" />
+            <Skeleton className="h-[21px] w-[191px] max-w-full" />
+            <Skeleton className="h-[21px] w-[171px] max-w-full" />
+            <Skeleton className="h-[21px] w-[109px] max-w-full" />
           </div>
         </div>
       </div>
 
-      <hr className="border-neutral-disabled m-0 w-full shrink-0 border-0 border-t" />
+      <Divider className="w-full [--umc-divider-color:var(--umc-color-border-neutral-disabled)] [--umc-divider-line-thickness:1px]" />
 
       <div className="flex w-full max-w-[774px] flex-col gap-(--umc-spacing-gap-8)">
-        <Bone className="h-[21px] w-full" />
-        <Bone className="h-[21px] w-full" />
-        <Bone className="h-[21px] w-full" />
+        <Skeleton className="h-[21px] w-full" />
+        <Skeleton className="h-[21px] w-full" />
+        <Skeleton className="h-[21px] w-full" />
       </div>
 
       <div className="flex shrink-0 gap-(--umc-spacing-gap-12)">

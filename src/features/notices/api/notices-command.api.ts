@@ -1,4 +1,5 @@
 import { api } from "@/shared/api/client"
+import { hasResponseBody } from "@/shared/api/has-response-body"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
 import type {
@@ -35,7 +36,7 @@ export async function patchNotice(
   body: UpdateNoticeRequest,
 ): Promise<void> {
   const { data } = await api.patch<unknown>(`/v1/notices/${noticeId}`, body)
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<null>(data)
   }
 }
@@ -50,7 +51,7 @@ export async function replaceNoticeLinks(
     `/v1/notices/${noticeId}/links`,
     payload,
   )
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<null>(data)
   }
 }
@@ -65,7 +66,7 @@ export async function replaceNoticeImages(
     `/v1/notices/${noticeId}/images`,
     payload,
   )
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<null>(data)
   }
 }
@@ -83,14 +84,14 @@ export async function addNoticeImages(
     `/v1/notices/${noticeId}/images`,
     payload,
   )
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<unknown>(data)
   }
 }
 
 export async function deleteNotice(noticeId: number): Promise<void> {
   const { data } = await api.delete<unknown>(`/v1/notices/${noticeId}`)
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<null>(data)
   }
 }
@@ -110,7 +111,7 @@ export async function addNoticeVote(
 /** NOTICE-106 — 공지에 연결된 투표 삭제(운영 UI: 투표 종료) */
 export async function deleteNoticeVote(noticeId: number): Promise<void> {
   const { data } = await api.delete<unknown>(`/v1/notices/${noticeId}/vote`)
-  if (data !== null && data !== undefined && data !== "") {
+  if (hasResponseBody(data)) {
     unwrapApiResult<null>(data)
   }
 }

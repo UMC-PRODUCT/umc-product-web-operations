@@ -8,6 +8,12 @@ import { ChevronRightIcon, PersonIcon } from "@umc-product/icons"
 import { StatusTag, TextButton } from "@umc-product/react"
 import { useMemo } from "react"
 
+import { DataTableBody, DataTableShell } from "@/shared/ui/data-table-shell"
+
+import {
+  memberStatusLabel,
+  memberStatusTagColor,
+} from "../model/map-search-member"
 import { MemberNetworkError } from "./MemberNetworkError"
 import { MemberPartTag } from "./MemberPartTag"
 import { MemberPermissionDenied } from "./MemberPermissionDenied"
@@ -132,7 +138,11 @@ export function MemberTable({
       }),
       columnHelper.accessor("status", {
         header: "상태",
-        cell: () => <StatusTag color="brand">활동</StatusTag>,
+        cell: ({ row }) => (
+          <StatusTag color={memberStatusTagColor(row.original.status)}>
+            {memberStatusLabel(row.original.status)}
+          </StatusTag>
+        ),
         meta: {
           headerClass:
             "w-[112px] min-w-[112px] max-w-[112px] shrink-0 overflow-hidden pl-(--umc-spacing-padding-20) pr-(--umc-spacing-padding-16)",
@@ -189,63 +199,66 @@ export function MemberTable({
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-(--umc-radius-12)">
-      <div
-        className="bg-fill-primary-medium-100 text-body-3-medium text-neutral-default-900 flex w-full items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
-        role="row"
-      >
-        <div className="flex h-7 w-full items-center">
-          {table.getHeaderGroups().map((headerGroup) =>
-            headerGroup.headers.map((header) => {
-              const meta = header.column.columnDef.meta as
-                ColumnMeta | undefined
-              return (
-                <div
-                  className={meta?.headerClass ?? ""}
-                  key={header.id}
-                  role="columnheader"
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </div>
-              )
-            }),
-          )}
-        </div>
-      </div>
-      <div
-        className="border-neutral-disabled divide-y divide-(--umc-color-border-neutral-disabled) rounded-b-(--umc-radius-12) border-r border-b border-l"
-        role="rowgroup"
-      >
-        {table.getRowModel().rows.map((row, index, rows) => {
-          const isLast = index === rows.length - 1
-          return (
-            <div
-              className={`flex w-full items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12) ${isLast ? "rounded-b-(--umc-radius-12)" : ""}`}
-              key={row.id}
-              role="row"
-            >
-              {row.getVisibleCells().map((cell) => {
-                const meta = cell.column.columnDef.meta as
-                  ColumnMeta | undefined
+    <div className="w-full min-w-0 overflow-x-auto rounded-(--umc-radius-12)">
+      {/* Figma Operation/Table 합계 1158 — 가로 스크롤은 테이블에만 */}
+      <DataTableShell className="min-w-[1158px]">
+        <div
+          className="bg-fill-primary-medium-100 text-body-3-medium text-neutral-default-900 flex w-full items-center rounded-t-(--umc-radius-12) px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-6)"
+          role="row"
+        >
+          <div className="flex h-7 w-full items-center">
+            {table.getHeaderGroups().map((headerGroup) =>
+              headerGroup.headers.map((header) => {
+                const meta: ColumnMeta | undefined =
+                  header.column.columnDef.meta
                 return (
                   <div
-                    className={`flex items-center ${meta?.cellClass ?? ""}`}
-                    key={cell.id}
-                    role="cell"
+                    className={meta?.headerClass ?? ""}
+                    key={header.id}
+                    role="columnheader"
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                   </div>
                 )
-              })}
-            </div>
-          )
-        })}
-      </div>
+              }),
+            )}
+          </div>
+        </div>
+        <DataTableBody>
+          {table.getRowModel().rows.map((row, index, rows) => {
+            const isLast = index === rows.length - 1
+            return (
+              <div
+                className={`flex w-full items-center px-(--umc-spacing-padding-10) py-(--umc-spacing-padding-12) ${isLast ? "rounded-b-(--umc-radius-12)" : ""}`}
+                key={row.id}
+                role="row"
+              >
+                {row.getVisibleCells().map((cell) => {
+                  const meta: ColumnMeta | undefined =
+                    cell.column.columnDef.meta
+                  return (
+                    <div
+                      className={`flex items-center ${meta?.cellClass ?? ""}`}
+                      key={cell.id}
+                      role="cell"
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
+        </DataTableBody>
+      </DataTableShell>
     </div>
   )
 }

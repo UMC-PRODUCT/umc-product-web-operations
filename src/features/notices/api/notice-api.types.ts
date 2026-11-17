@@ -1,17 +1,9 @@
+import type { MemberPart } from "@/entities/member"
+
 export type NoticeTab =
   "CHALLENGER" | "CENTRAL_MEMBER" | "SCHOOL_CORE" | "SCHOOL_PART_LEADER"
 
-export type NoticePart =
-  | "PLAN"
-  | "DESIGN"
-  | "WEB"
-  | "ANDROID"
-  | "IOS"
-  | "NODEJS"
-  | "SPRINGBOOT"
-  | "ADMIN"
-  | "WEB_PRODUCT_ENGINEER"
-  | "MOBILE_PRODUCT_ENGINEER"
+export type NoticePart = MemberPart
 
 export type NoticeAuthorInfo = {
   gisuId?: number

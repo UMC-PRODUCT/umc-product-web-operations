@@ -3,12 +3,14 @@ import { useNavigate } from "@tanstack/react-router"
 import { Pagination } from "@umc-product/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { useSelectedGisu } from "@/shared/model/selected-gisu"
+import { useSelectedGisu } from "@/entities/gisu"
+import { gisuOrganizationQueryOptions } from "@/entities/organization"
 
-import { fetchGisuOrganization } from "../api/gisu-organization"
 import { MEMBER_SEARCH_PAGE_SIZE, searchMembers } from "../api/member-search"
+import { challengerKeys } from "../model/challenger-keys"
 import { isForbiddenError } from "../model/http-status"
 import {
+  getPartFilterOptions,
   toChapterOptions,
   toMemberSearchPart,
   toOrganizationId,
@@ -16,11 +18,15 @@ import {
   toSchoolOptions,
 } from "../model/map-search-member"
 import { MOCK_MEMBERS } from "../model/mock-members"
+import {
+  toPointsListPageIndex,
+  toPointsListPageParam,
+} from "../model/points-list-search"
 import { MemberTable } from "./MemberTable"
 import { PointsToolbar } from "./PointsToolbar"
 import { useDebouncedValue } from "./use-debounced-value"
 
-import type { MemberPartFilter } from "../model/types"
+import type { PointsListSearch } from "../model/points-list-search"
 
 type LockedSchool = {
   schoolId: string
@@ -31,6 +37,9 @@ type PointsPageProps = {
   lockedSchool?: LockedSchool | null
   /** URL `?mock=roles` — 운영 역할 다중 표시 목 데이터 */
   mock?: "roles"
+  /** URL 검색 파라미터 (단일 소스) */
+  search: PointsListSearch
+  onSearchChange: (patch: PointsListSearch) => void
 }
 
 const SEARCH_DEBOUNCE_MS = 300
@@ -43,68 +52,115 @@ function toTotalPages(value: unknown) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
 }
 
-export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
+export function PointsPage({
+  lockedSchool = null,
+  mock,
+  search,
+  onSearchChange,
+}: PointsPageProps) {
   const navigate = useNavigate()
   const selectedGisu = useSelectedGisu()
   const sectionRef = useRef<HTMLElement>(null)
-  const [chapterId, setChapterId] = useState<string | null>(null)
-  const [schoolId, setSchoolId] = useState<string | null>(null)
-  const [part, setPart] = useState<MemberPartFilter | null>(null)
-  const [query, setQuery] = useState("")
-  const keyword = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
-  const [page, setPage] = useState(0)
+  const keyword = search.q ?? ""
+  const [queryInput, setQueryInput] = useState(keyword)
+  const debouncedQuery = useDebouncedValue(
+    queryInput.trim(),
+    SEARCH_DEBOUNCE_MS,
+  )
+  const page = toPointsListPageIndex(search.page)
   const useMockRoles = mock === "roles"
-
-  const resetPage = () => {
-    setPage(0)
-  }
+  const partOptions = useMemo(
+    () => getPartFilterOptions(selectedGisu.generation),
+    [selectedGisu.generation],
+  )
 
   const lockedSchoolId = lockedSchool?.schoolId ?? null
   const filtersLocked = lockedSchool != null
-  const selectedChapterId = toOrganizationId(filtersLocked ? null : chapterId)
-  const selectedSchoolId = toOrganizationId(lockedSchool?.schoolId ?? schoolId)
+  const chapterId = filtersLocked ? null : (search.chapter ?? null)
+  const selectedChapterId = toOrganizationId(chapterId)
 
   const organizationQuery = useQuery({
-    queryKey: ["gisu", "organization", selectedGisu.gisuId],
-    queryFn: () => fetchGisuOrganization(selectedGisu.gisuId ?? undefined),
-    enabled: !selectedGisu.isPending,
+    ...gisuOrganizationQueryOptions(selectedGisu.gisuId),
+    enabled: !selectedGisu.isPending && selectedGisu.gisuId != null,
     retry: false,
   })
 
-  useEffect(() => {
-    setChapterId(null)
-    setPage(0)
-    if (lockedSchoolId == null) {
-      setSchoolId(null)
+  const schoolId = useMemo(() => {
+    if (lockedSchoolId != null) {
+      return lockedSchoolId
     }
-  }, [lockedSchoolId, selectedGisu.gisuId])
+    const requested = search.school ?? null
+    if (requested == null || selectedChapterId == null) {
+      return requested
+    }
+    const allowed = toSchoolOptions(
+      organizationQuery.data,
+      selectedChapterId,
+    ).some((option) => option.value === requested)
+    return allowed ? requested : null
+  }, [lockedSchoolId, organizationQuery.data, search.school, selectedChapterId])
+  const selectedSchoolId = toOrganizationId(schoolId)
+
+  const requestedPart = search.part ?? null
+  const part =
+    requestedPart != null &&
+    !selectedGisu.isPending &&
+    !partOptions.some((option) => option.value === requestedPart)
+      ? null
+      : requestedPart
+
+  const onSearchChangeRef = useRef(onSearchChange)
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange
+  }, [onSearchChange])
+
+  /** 마지막으로 URL과 맞춘 검색어. 우리가 보낸 값이 되돌아온 경우 입력창을 덮어쓰지 않는다 */
+  const syncedQueryRef = useRef(keyword)
 
   useEffect(() => {
+    if (keyword === syncedQueryRef.current) {
+      return
+    }
+    syncedQueryRef.current = keyword
+    setQueryInput(keyword)
+  }, [keyword])
+
+  useEffect(() => {
+    if (debouncedQuery === syncedQueryRef.current) {
+      return
+    }
+    syncedQueryRef.current = debouncedQuery
+    onSearchChangeRef.current({
+      page: undefined,
+      q: debouncedQuery === "" ? undefined : debouncedQuery,
+    })
+  }, [debouncedQuery])
+
+  const previousGisuIdRef = useRef(selectedGisu.gisuId)
+  useEffect(() => {
+    const previousGisuId = previousGisuIdRef.current
+    previousGisuIdRef.current = selectedGisu.gisuId
     if (
-      lockedSchoolId != null ||
-      schoolId == null ||
-      selectedChapterId == null
+      previousGisuId == null ||
+      selectedGisu.gisuId == null ||
+      previousGisuId === selectedGisu.gisuId
     ) {
       return
     }
-    const allowed = toSchoolOptions(
-      organizationQuery.data ?? [],
-      selectedChapterId,
-    ).some((option) => option.value === schoolId)
-    if (!allowed) {
-      setSchoolId(null)
-    }
-  }, [lockedSchoolId, organizationQuery.data, schoolId, selectedChapterId])
+    onSearchChangeRef.current({
+      chapter: undefined,
+      page: undefined,
+      part: undefined,
+      ...(lockedSchoolId == null ? { school: undefined } : {}),
+    })
+  }, [lockedSchoolId, selectedGisu.gisuId])
 
   const chapterOptions = useMemo(
-    () => toChapterOptions(organizationQuery.data ?? []),
+    () => toChapterOptions(organizationQuery.data),
     [organizationQuery.data],
   )
   const schoolOptions = useMemo(() => {
-    const options = toSchoolOptions(
-      organizationQuery.data ?? [],
-      selectedChapterId,
-    )
+    const options = toSchoolOptions(organizationQuery.data, selectedChapterId)
     if (
       lockedSchool == null ||
       options.some((option) => option.value === lockedSchool.schoolId) ||
@@ -117,26 +173,21 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
       ...options,
     ]
   }, [lockedSchool, organizationQuery.data, selectedChapterId])
-
   const membersQuery = useQuery({
-    queryKey: [
-      "challengers",
-      "search",
-      {
-        keyword,
-        gisuId: selectedGisu.gisuId,
-        part,
-        chapterId: selectedChapterId,
-        schoolId: selectedSchoolId,
-        page,
-        size: MEMBER_SEARCH_PAGE_SIZE,
-      },
-    ],
+    queryKey: challengerKeys.search({
+      keyword,
+      gisuId: selectedGisu.gisuId,
+      part,
+      chapterId: selectedChapterId,
+      schoolId: selectedSchoolId,
+      page,
+      size: MEMBER_SEARCH_PAGE_SIZE,
+    }),
     queryFn: () =>
       searchMembers({
         keyword: keyword || undefined,
         gisuId: selectedGisu.gisuId ?? undefined,
-        part: toMemberSearchPart(part),
+        part: toMemberSearchPart(part, selectedGisu.generation),
         chapterId: selectedChapterId,
         schoolId: selectedSchoolId,
         page,
@@ -187,65 +238,71 @@ export function PointsPage({ lockedSchool = null, mock }: PointsPageProps) {
       <div className="flex flex-col gap-(--umc-spacing-gap-20)">
         <PointsToolbar
           chapterDisabled={filtersLocked}
-          chapterId={filtersLocked ? null : chapterId}
+          chapterId={chapterId}
           chapterOptions={chapterOptions}
           onChapterChange={(value) => {
-            setChapterId(value)
-            resetPage()
+            const schoolStillAllowed =
+              value == null ||
+              schoolId == null ||
+              lockedSchoolId != null ||
+              toSchoolOptions(
+                organizationQuery.data,
+                toOrganizationId(value),
+              ).some((option) => option.value === schoolId)
+            onSearchChange({
+              chapter: value ?? undefined,
+              page: undefined,
+              ...(schoolStillAllowed ? {} : { school: undefined }),
+            })
           }}
           onPartChange={(value) => {
-            setPart(value)
-            resetPage()
+            onSearchChange({ page: undefined, part: value ?? undefined })
           }}
-          onQueryChange={(value) => {
-            setQuery(value)
-            resetPage()
-          }}
+          onQueryChange={setQueryInput}
           onSchoolChange={(value) => {
-            setSchoolId(value)
-            resetPage()
+            onSearchChange({ page: undefined, school: value ?? undefined })
           }}
           part={part}
-          query={query}
+          partOptions={partOptions}
+          query={queryInput}
           schoolDisabled={filtersLocked}
-          schoolId={lockedSchool?.schoolId ?? schoolId}
+          schoolId={schoolId}
           schoolOptions={schoolOptions}
         />
-        <div className="w-full min-w-0 [scrollbar-width:none] overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex w-[1158px] max-w-[1158px] shrink-0 flex-col items-center gap-(--umc-spacing-gap-20)">
-            <MemberTable
-              isError={isError}
-              isForbidden={isForbidden}
-              isLoading={isLoading}
-              members={isLoading || isError || isForbidden ? [] : members}
-              onAssignPoints={(memberId) => {
-                const member = members.find((item) => item.id === memberId)
-                void navigate({
-                  to: "/activity/points/$memberId",
-                  params: { memberId },
-                  search:
-                    member?.challengerId != null
-                      ? { challengerId: member.challengerId }
-                      : {},
-                })
+        <div className="flex w-full min-w-0 flex-col items-center gap-(--umc-spacing-gap-20)">
+          <MemberTable
+            isError={isError}
+            isForbidden={isForbidden}
+            isLoading={isLoading}
+            members={isLoading || isError || isForbidden ? [] : members}
+            onAssignPoints={(memberId) => {
+              const challengerId = members.find(
+                (item) => item.id === memberId,
+              )?.challengerId
+              if (challengerId == null) {
+                return
+              }
+              void navigate({
+                to: "/activity/points/$challengerId",
+                params: { challengerId: String(challengerId) },
+              })
+            }}
+            onRetry={() => {
+              void membersQuery.refetch()
+            }}
+            query={keyword}
+          />
+          {showPagination ? (
+            <Pagination
+              className="w-full justify-center"
+              onPageChange={(nextPage) => {
+                onSearchChange({ page: toPointsListPageParam(nextPage - 1) })
+                sectionRef.current?.scrollIntoView({ block: "start" })
               }}
-              onRetry={() => {
-                void membersQuery.refetch()
-              }}
-              query={keyword}
+              page={page + 1}
+              totalPages={totalPages}
             />
-            {showPagination ? (
-              <Pagination
-                className="w-full justify-center"
-                onPageChange={(nextPage) => {
-                  setPage(nextPage - 1)
-                  sectionRef.current?.scrollIntoView({ block: "start" })
-                }}
-                page={page + 1}
-                totalPages={totalPages}
-              />
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
     </section>

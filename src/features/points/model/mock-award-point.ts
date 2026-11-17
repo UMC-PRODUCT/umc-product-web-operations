@@ -1,4 +1,5 @@
-export type AwardPointOutcome = "success" | "network_error" | "forbidden"
+export type AwardPointOutcome =
+  "success" | "network_error" | "server_error" | "forbidden"
 
 const AWARD_DELAY_MS = 900
 

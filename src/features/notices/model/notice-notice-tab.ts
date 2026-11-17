@@ -7,6 +7,8 @@ const CENTRAL_ROLES = new Set<string>([
   "CENTRAL_VICE_PRESIDENT",
   "CENTRAL_OPERATING_TEAM_MEMBER",
   "CENTRAL_EDUCATION_TEAM_MEMBER",
+  // 지부장은 운영진 탭에서 CENTRAL_MEMBER로 요청한다.
+  // 겸임(학교 회장 등)이어도 CENTRAL이 SCHOOL_CORE보다 먼저 매칭된다.
   "CHAPTER_PRESIDENT",
 ])
 
@@ -15,6 +17,28 @@ const SCHOOL_CORE_ROLES = new Set<string>([
   "SCHOOL_VICE_PRESIDENT",
   "SCHOOL_ETC_ADMIN",
 ])
+
+/** 운영진 공지 목록을 요청할 수 있는 역할인지 */
+export function canAccessStaffNoticeTab(
+  session: Pick<NoticeOperatorSession, "isSuperAdmin" | "roleTypes">,
+): boolean {
+  if (session.isSuperAdmin) {
+    return true
+  }
+
+  const roles = session.roleTypes
+  if (roles.some((role) => CENTRAL_ROLES.has(role))) {
+    return true
+  }
+  if (roles.includes("SCHOOL_PART_LEADER")) {
+    return true
+  }
+  if (roles.some((role) => SCHOOL_CORE_ROLES.has(role))) {
+    return true
+  }
+
+  return false
+}
 
 export function resolveNoticeTab(
   audience: NoticeAudience,
