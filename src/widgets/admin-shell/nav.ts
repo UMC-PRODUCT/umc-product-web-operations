@@ -49,10 +49,17 @@ export function getSideNavItems(
     case "activity":
       return [
         {
-          label: "상벌점 관리",
-          href: "/activity/points",
+          label: "챌린저",
           icon: peopleIcon,
+          children: [
+            { label: "멤버 관리", href: "/activity/members" },
+            { label: "상벌점 관리", href: "/activity/points" },
+            { label: "일관 부여", href: "/activity/bulk-award" },
+            { label: "탈부 관리", href: "/activity/withdrawal" },
+          ],
         },
+        { label: "스터디", href: "/activity/study", icon: peopleIcon },
+        { label: "수료·수상", href: "/activity/completion", icon: peopleIcon },
       ]
     case "recruiting":
       return [{ label: "리크루팅", href: "/recruiting" }]
@@ -101,14 +108,72 @@ export function getPageBreadcrumbs(
           { label: "공지 목록" },
         ],
       }
-    case "activity":
-      return {
-        title: "상벌점 관리",
-        breadcrumbs: [
-          { label: "활동 관리", href: "/activity" },
-          { label: "상벌점 관리" },
-        ],
+    case "activity": {
+      if (
+        pathname === "/activity/points" ||
+        pathname.startsWith("/activity/points/")
+      ) {
+        return {
+          title: "상벌점 관리",
+          breadcrumbs: [
+            { label: "활동 관리", href: "/activity" },
+            { label: "상벌점 관리" },
+          ],
+        }
       }
+      if (
+        pathname === "/activity/withdrawal" ||
+        pathname.startsWith("/activity/withdrawal/")
+      ) {
+        return {
+          title: "탈부 관리",
+          breadcrumbs: [
+            { label: "활동 관리", href: "/activity" },
+            { label: "탈부 관리" },
+          ],
+        }
+      }
+      if (pathname.startsWith("/activity/members")) {
+        return {
+          title: "멤버 관리",
+          breadcrumbs: [
+            { label: "활동 관리", href: "/activity" },
+            { label: "멤버 관리" },
+          ],
+        }
+      }
+      if (pathname.startsWith("/activity/bulk-award")) {
+        return {
+          title: "일관 부여",
+          breadcrumbs: [
+            { label: "활동 관리", href: "/activity" },
+            { label: "일관 부여" },
+          ],
+        }
+      }
+      if (pathname.startsWith("/activity/study")) {
+        return {
+          title: "스터디",
+          breadcrumbs: [
+            { label: "활동 관리", href: "/activity" },
+            { label: "스터디" },
+          ],
+        }
+      }
+      if (pathname.startsWith("/activity/completion")) {
+        return {
+          title: "수료·수상",
+          breadcrumbs: [
+            { label: "활동 관리", href: "/activity" },
+            { label: "수료·수상" },
+          ],
+        }
+      }
+      return {
+        title: "활동 관리",
+        breadcrumbs: [{ label: "활동 관리" }],
+      }
+    }
     case "recruiting":
       return {
         title: "리크루팅",

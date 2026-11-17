@@ -17,13 +17,19 @@ import { Route as AdminNoticesRouteRouteImport } from './routes/_admin/notices/r
 import { Route as AdminRecruitingRouteRouteImport } from './routes/_admin/recruiting/route'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminActivityIndexRouteImport } from './routes/_admin/activity/index'
+import { Route as AdminActivityBulkAwardRouteImport } from './routes/_admin/activity/bulk-award'
+import { Route as AdminActivityCompletionRouteImport } from './routes/_admin/activity/completion'
+import { Route as AdminActivityMembersRouteImport } from './routes/_admin/activity/members'
 import { Route as AdminActivityPointsRouteImport } from './routes/_admin/activity/points'
+import { Route as AdminActivityStudyRouteImport } from './routes/_admin/activity/study'
+import { Route as AdminActivityWithdrawalRouteImport } from './routes/_admin/activity/withdrawal'
 import { Route as AdminNoticesIndexRouteImport } from './routes/_admin/notices/index'
 import { Route as AdminNoticesNoticeIdRouteImport } from './routes/_admin/notices/$noticeId'
 import { Route as AdminNoticesNewRouteImport } from './routes/_admin/notices/new'
 import { Route as AdminRecruitingIndexRouteImport } from './routes/_admin/recruiting/index'
 import { Route as AdminActivityPointsIndexRouteImport } from './routes/_admin/activity/points.index'
 import { Route as AdminActivityPointsChallengerIdRouteImport } from './routes/_admin/activity/points.$challengerId'
+import { Route as AdminActivityWithdrawalIndexRouteImport } from './routes/_admin/activity/withdrawal.index'
 import { Route as AdminNoticesNoticeIdEditRouteImport } from './routes/_admin/notices/$noticeId.edit'
 
 const AdminRouteRoute = AdminRouteRouteImport.update({
@@ -65,9 +71,34 @@ const AdminActivityIndexRoute = AdminActivityIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminActivityRouteRoute,
 } as any)
+const AdminActivityBulkAwardRoute = AdminActivityBulkAwardRouteImport.update({
+  id: '/bulk-award',
+  path: '/bulk-award',
+  getParentRoute: () => AdminActivityRouteRoute,
+} as any)
+const AdminActivityCompletionRoute = AdminActivityCompletionRouteImport.update({
+  id: '/completion',
+  path: '/completion',
+  getParentRoute: () => AdminActivityRouteRoute,
+} as any)
+const AdminActivityMembersRoute = AdminActivityMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AdminActivityRouteRoute,
+} as any)
 const AdminActivityPointsRoute = AdminActivityPointsRouteImport.update({
   id: '/points',
   path: '/points',
+  getParentRoute: () => AdminActivityRouteRoute,
+} as any)
+const AdminActivityStudyRoute = AdminActivityStudyRouteImport.update({
+  id: '/study',
+  path: '/study',
+  getParentRoute: () => AdminActivityRouteRoute,
+} as any)
+const AdminActivityWithdrawalRoute = AdminActivityWithdrawalRouteImport.update({
+  id: '/withdrawal',
+  path: '/withdrawal',
   getParentRoute: () => AdminActivityRouteRoute,
 } as any)
 const AdminNoticesIndexRoute = AdminNoticesIndexRouteImport.update({
@@ -102,6 +133,12 @@ const AdminActivityPointsChallengerIdRoute =
     path: '/$challengerId',
     getParentRoute: () => AdminActivityPointsRoute,
   } as any)
+const AdminActivityWithdrawalIndexRoute =
+  AdminActivityWithdrawalIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AdminActivityWithdrawalRoute,
+  } as any)
 const AdminNoticesNoticeIdEditRoute =
   AdminNoticesNoticeIdEditRouteImport.update({
     id: '/edit',
@@ -116,7 +153,12 @@ export interface FileRoutesByFullPath {
   '/notices': typeof AdminNoticesRouteRouteWithChildren
   '/recruiting': typeof AdminRecruitingRouteRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/activity/bulk-award': typeof AdminActivityBulkAwardRoute
+  '/activity/completion': typeof AdminActivityCompletionRoute
+  '/activity/members': typeof AdminActivityMembersRoute
   '/activity/points': typeof AdminActivityPointsRouteWithChildren
+  '/activity/study': typeof AdminActivityStudyRoute
+  '/activity/withdrawal': typeof AdminActivityWithdrawalRouteWithChildren
   '/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/notices/new': typeof AdminNoticesNewRoute
   '/activity/': typeof AdminActivityIndexRoute
@@ -125,11 +167,16 @@ export interface FileRoutesByFullPath {
   '/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
   '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/activity/points/': typeof AdminActivityPointsIndexRoute
+  '/activity/withdrawal/': typeof AdminActivityWithdrawalIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AdminIndexRoute
+  '/activity/bulk-award': typeof AdminActivityBulkAwardRoute
+  '/activity/completion': typeof AdminActivityCompletionRoute
+  '/activity/members': typeof AdminActivityMembersRoute
+  '/activity/study': typeof AdminActivityStudyRoute
   '/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/notices/new': typeof AdminNoticesNewRoute
   '/activity': typeof AdminActivityIndexRoute
@@ -138,6 +185,7 @@ export interface FileRoutesByTo {
   '/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
   '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/activity/points': typeof AdminActivityPointsIndexRoute
+  '/activity/withdrawal': typeof AdminActivityWithdrawalIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -148,7 +196,12 @@ export interface FileRoutesById {
   '/_admin/recruiting': typeof AdminRecruitingRouteRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/_admin/': typeof AdminIndexRoute
+  '/_admin/activity/bulk-award': typeof AdminActivityBulkAwardRoute
+  '/_admin/activity/completion': typeof AdminActivityCompletionRoute
+  '/_admin/activity/members': typeof AdminActivityMembersRoute
   '/_admin/activity/points': typeof AdminActivityPointsRouteWithChildren
+  '/_admin/activity/study': typeof AdminActivityStudyRoute
+  '/_admin/activity/withdrawal': typeof AdminActivityWithdrawalRouteWithChildren
   '/_admin/notices/$noticeId': typeof AdminNoticesNoticeIdRouteWithChildren
   '/_admin/notices/new': typeof AdminNoticesNewRoute
   '/_admin/activity/': typeof AdminActivityIndexRoute
@@ -157,6 +210,7 @@ export interface FileRoutesById {
   '/_admin/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
   '/_admin/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/_admin/activity/points/': typeof AdminActivityPointsIndexRoute
+  '/_admin/activity/withdrawal/': typeof AdminActivityWithdrawalIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,7 +221,12 @@ export interface FileRouteTypes {
     | '/notices'
     | '/recruiting'
     | '/auth/callback'
+    | '/activity/bulk-award'
+    | '/activity/completion'
+    | '/activity/members'
     | '/activity/points'
+    | '/activity/study'
+    | '/activity/withdrawal'
     | '/notices/$noticeId'
     | '/notices/new'
     | '/activity/'
@@ -176,11 +235,16 @@ export interface FileRouteTypes {
     | '/activity/points/$challengerId'
     | '/notices/$noticeId/edit'
     | '/activity/points/'
+    | '/activity/withdrawal/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/auth/callback'
     | '/'
+    | '/activity/bulk-award'
+    | '/activity/completion'
+    | '/activity/members'
+    | '/activity/study'
     | '/notices/$noticeId'
     | '/notices/new'
     | '/activity'
@@ -189,6 +253,7 @@ export interface FileRouteTypes {
     | '/activity/points/$challengerId'
     | '/notices/$noticeId/edit'
     | '/activity/points'
+    | '/activity/withdrawal'
   id:
     | '__root__'
     | '/_admin'
@@ -198,7 +263,12 @@ export interface FileRouteTypes {
     | '/_admin/recruiting'
     | '/auth/callback'
     | '/_admin/'
+    | '/_admin/activity/bulk-award'
+    | '/_admin/activity/completion'
+    | '/_admin/activity/members'
     | '/_admin/activity/points'
+    | '/_admin/activity/study'
+    | '/_admin/activity/withdrawal'
     | '/_admin/notices/$noticeId'
     | '/_admin/notices/new'
     | '/_admin/activity/'
@@ -207,6 +277,7 @@ export interface FileRouteTypes {
     | '/_admin/activity/points/$challengerId'
     | '/_admin/notices/$noticeId/edit'
     | '/_admin/activity/points/'
+    | '/_admin/activity/withdrawal/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,11 +344,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivityIndexRouteImport
       parentRoute: typeof AdminActivityRouteRoute
     }
+    '/_admin/activity/bulk-award': {
+      id: '/_admin/activity/bulk-award'
+      path: '/bulk-award'
+      fullPath: '/activity/bulk-award'
+      preLoaderRoute: typeof AdminActivityBulkAwardRouteImport
+      parentRoute: typeof AdminActivityRouteRoute
+    }
+    '/_admin/activity/completion': {
+      id: '/_admin/activity/completion'
+      path: '/completion'
+      fullPath: '/activity/completion'
+      preLoaderRoute: typeof AdminActivityCompletionRouteImport
+      parentRoute: typeof AdminActivityRouteRoute
+    }
+    '/_admin/activity/members': {
+      id: '/_admin/activity/members'
+      path: '/members'
+      fullPath: '/activity/members'
+      preLoaderRoute: typeof AdminActivityMembersRouteImport
+      parentRoute: typeof AdminActivityRouteRoute
+    }
     '/_admin/activity/points': {
       id: '/_admin/activity/points'
       path: '/points'
       fullPath: '/activity/points'
       preLoaderRoute: typeof AdminActivityPointsRouteImport
+      parentRoute: typeof AdminActivityRouteRoute
+    }
+    '/_admin/activity/study': {
+      id: '/_admin/activity/study'
+      path: '/study'
+      fullPath: '/activity/study'
+      preLoaderRoute: typeof AdminActivityStudyRouteImport
+      parentRoute: typeof AdminActivityRouteRoute
+    }
+    '/_admin/activity/withdrawal': {
+      id: '/_admin/activity/withdrawal'
+      path: '/withdrawal'
+      fullPath: '/activity/withdrawal'
+      preLoaderRoute: typeof AdminActivityWithdrawalRouteImport
       parentRoute: typeof AdminActivityRouteRoute
     }
     '/_admin/notices/': {
@@ -322,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivityPointsChallengerIdRouteImport
       parentRoute: typeof AdminActivityPointsRoute
     }
+    '/_admin/activity/withdrawal/': {
+      id: '/_admin/activity/withdrawal/'
+      path: '/'
+      fullPath: '/activity/withdrawal/'
+      preLoaderRoute: typeof AdminActivityWithdrawalIndexRouteImport
+      parentRoute: typeof AdminActivityWithdrawalRoute
+    }
     '/_admin/notices/$noticeId/edit': {
       id: '/_admin/notices/$noticeId/edit'
       path: '/edit'
@@ -345,13 +458,37 @@ const AdminActivityPointsRouteChildren: AdminActivityPointsRouteChildren = {
 const AdminActivityPointsRouteWithChildren =
   AdminActivityPointsRoute._addFileChildren(AdminActivityPointsRouteChildren)
 
+interface AdminActivityWithdrawalRouteChildren {
+  AdminActivityWithdrawalIndexRoute: typeof AdminActivityWithdrawalIndexRoute
+}
+
+const AdminActivityWithdrawalRouteChildren: AdminActivityWithdrawalRouteChildren =
+  {
+    AdminActivityWithdrawalIndexRoute: AdminActivityWithdrawalIndexRoute,
+  }
+
+const AdminActivityWithdrawalRouteWithChildren =
+  AdminActivityWithdrawalRoute._addFileChildren(
+    AdminActivityWithdrawalRouteChildren,
+  )
+
 interface AdminActivityRouteRouteChildren {
+  AdminActivityBulkAwardRoute: typeof AdminActivityBulkAwardRoute
+  AdminActivityCompletionRoute: typeof AdminActivityCompletionRoute
+  AdminActivityMembersRoute: typeof AdminActivityMembersRoute
   AdminActivityPointsRoute: typeof AdminActivityPointsRouteWithChildren
+  AdminActivityStudyRoute: typeof AdminActivityStudyRoute
+  AdminActivityWithdrawalRoute: typeof AdminActivityWithdrawalRouteWithChildren
   AdminActivityIndexRoute: typeof AdminActivityIndexRoute
 }
 
 const AdminActivityRouteRouteChildren: AdminActivityRouteRouteChildren = {
+  AdminActivityBulkAwardRoute: AdminActivityBulkAwardRoute,
+  AdminActivityCompletionRoute: AdminActivityCompletionRoute,
+  AdminActivityMembersRoute: AdminActivityMembersRoute,
   AdminActivityPointsRoute: AdminActivityPointsRouteWithChildren,
+  AdminActivityStudyRoute: AdminActivityStudyRoute,
+  AdminActivityWithdrawalRoute: AdminActivityWithdrawalRouteWithChildren,
   AdminActivityIndexRoute: AdminActivityIndexRoute,
 }
 
