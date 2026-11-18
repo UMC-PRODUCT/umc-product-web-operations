@@ -10,6 +10,10 @@ import {
 } from "@/entities/organization"
 
 import { MOCK_WITHDRAWALS } from "../model/mock-withdrawals"
+import {
+  WithdrawalCsvExportDialog,
+  type WithdrawalCsvExportMode,
+} from "./withdrawal-csv-export-dialog"
 import { WithdrawalTable } from "./withdrawal-table"
 import { WithdrawalToolbar } from "./withdrawal-toolbar"
 
@@ -37,6 +41,7 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
   const [query, setQuery] = useState("")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [retryKey, setRetryKey] = useState(0)
+  const [csvExportOpen, setCsvExportOpen] = useState(false)
 
   const organizationQuery = useQuery({
     ...gisuOrganizationQueryOptions(selectedGisu.gisuId),
@@ -117,6 +122,11 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
     setSelectedIds(new Set())
   }
 
+  const csvExportMode: WithdrawalCsvExportMode =
+    selectedIds.size > 0 ? "selected" : "all"
+  const csvExportCount =
+    csvExportMode === "selected" ? selectedIds.size : members.length
+
   return (
     <section className="relative flex flex-col gap-(--umc-spacing-gap-32) pl-(--umc-spacing-padding-12)">
       <div className="flex items-start justify-between gap-(--umc-spacing-gap-12)">
@@ -144,7 +154,7 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
           <Button
             color="white"
             onClick={() => {
-              // TODO: CSV 내보내기
+              setCsvExportOpen(true)
             }}
             size="sm"
             type="button"
@@ -196,6 +206,17 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
           selectedIds={selectedIds}
         />
       </div>
+
+      <WithdrawalCsvExportDialog
+        count={csvExportCount}
+        mode={csvExportMode}
+        onConfirm={() => {
+          // TODO: CSV 다운로드 API 연동
+          setCsvExportOpen(false)
+        }}
+        onOpenChange={setCsvExportOpen}
+        open={csvExportOpen}
+      />
     </section>
   )
 }
