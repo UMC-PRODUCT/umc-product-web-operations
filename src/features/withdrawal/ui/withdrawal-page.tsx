@@ -20,7 +20,14 @@ const PART_FILTER_OPTIONS = [
   { value: "mobile-pe", label: "Mobile/PE" },
 ] as const
 
-export function WithdrawalPage() {
+export type WithdrawalListMock = "loading" | "error" | "empty"
+
+type WithdrawalPageProps = {
+  /** URL `?mock=` — 조회 상태 UI 확인용 (개발 모드 전용) */
+  mock?: WithdrawalListMock
+}
+
+export function WithdrawalPage({ mock }: WithdrawalPageProps) {
   const selectedGisu = useSelectedGisu()
   const [chapterId, setChapterId] = useState<string | null>(null)
   const [schoolId, setSchoolId] = useState<string | null>(null)
@@ -29,6 +36,7 @@ export function WithdrawalPage() {
   const [status, setStatus] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [retryKey, setRetryKey] = useState(0)
 
   const organizationQuery = useQuery({
     ...gisuOrganizationQueryOptions(selectedGisu.gisuId),
@@ -67,9 +75,19 @@ export function WithdrawalPage() {
     organizationLists.schoolsByChapterId,
   ])
 
+  const hasActiveFilters =
+    chapterId != null ||
+    schoolId != null ||
+    part != null ||
+    reason != null ||
+    status != null ||
+    query.trim().length > 0
+
+  const sourceMembers = mock === "empty" ? [] : MOCK_WITHDRAWALS
+
   const members = useMemo(() => {
     const keyword = query.trim().toLowerCase()
-    return MOCK_WITHDRAWALS.filter((member) => {
+    return sourceMembers.filter((member) => {
       if (part != null && member.part !== part) {
         return false
       }
@@ -87,7 +105,17 @@ export function WithdrawalPage() {
         member.nickname.toLowerCase().includes(keyword)
       )
     })
-  }, [part, query, reason, status])
+  }, [part, query, reason, sourceMembers, status])
+
+  const resetFilters = () => {
+    setChapterId(null)
+    setSchoolId(null)
+    setPart(null)
+    setReason(null)
+    setStatus(null)
+    setQuery("")
+    setSelectedIds(new Set())
+  }
 
   return (
     <section className="relative flex flex-col gap-(--umc-spacing-gap-32) pl-(--umc-spacing-padding-12)">
@@ -107,20 +135,20 @@ export function WithdrawalPage() {
             onClick={() => {
               // TODO: 탈부 등록 모달
             }}
-            size="md"
+            size="sm"
             type="button"
             variant="fill"
           >
             탈부 등록하기
           </Button>
           <Button
-            color="neutral"
+            color="white"
             onClick={() => {
               // TODO: CSV 내보내기
             }}
-            size="md"
+            size="sm"
             type="button"
-            variant="weak"
+            variant="fill"
           >
             CSV 내보내기
           </Button>
@@ -149,9 +177,17 @@ export function WithdrawalPage() {
           status={status}
         />
         <WithdrawalTable
+          hasActiveFilters={hasActiveFilters}
+          isError={mock === "error"}
+          isLoading={mock === "loading"}
+          key={retryKey}
           members={members}
           onRegister={() => {
             // TODO: 행 단위 탈부 등록
+          }}
+          onResetFilters={resetFilters}
+          onRetry={() => {
+            setRetryKey((value) => value + 1)
           }}
           onSelectedIdsChange={setSelectedIds}
           onViewDetail={() => {

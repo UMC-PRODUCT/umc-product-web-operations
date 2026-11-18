@@ -14,6 +14,10 @@ import {
   withdrawalReasonTypeLabel,
   withdrawalStatusLabel,
 } from "../model/mock-withdrawals"
+import { WithdrawalEmpty } from "./withdrawal-empty"
+import { WithdrawalFilteredEmpty } from "./withdrawal-filtered-empty"
+import { WithdrawalNetworkError } from "./withdrawal-network-error"
+import { WithdrawalTableSkeleton } from "./withdrawal-table-skeleton"
 
 import type { WithdrawalMember } from "../model/types"
 
@@ -23,6 +27,11 @@ type WithdrawalTableProps = {
   onSelectedIdsChange: (ids: Set<string>) => void
   onRegister: (memberId: string) => void
   onViewDetail: (memberId: string) => void
+  isLoading?: boolean
+  isError?: boolean
+  hasActiveFilters?: boolean
+  onRetry?: () => void
+  onResetFilters?: () => void
 }
 
 type ColumnMeta = {
@@ -44,6 +53,11 @@ export function WithdrawalTable({
   onSelectedIdsChange,
   onRegister,
   onViewDetail,
+  isLoading = false,
+  isError = false,
+  hasActiveFilters = false,
+  onRetry,
+  onResetFilters,
 }: WithdrawalTableProps) {
   const allSelected =
     members.length > 0 && members.every((member) => selectedIds.has(member.id))
@@ -56,6 +70,7 @@ export function WithdrawalTable({
           <Checkbox
             aria-label="전체 선택"
             checked={allSelected}
+            color="brand"
             onCheckedChange={(checked) => {
               if (checked) {
                 onSelectedIdsChange(new Set(members.map((member) => member.id)))
@@ -69,6 +84,7 @@ export function WithdrawalTable({
           <Checkbox
             aria-label={`${row.original.name} 선택`}
             checked={selectedIds.has(row.original.id)}
+            color="brand"
             onCheckedChange={(checked) => {
               const next = new Set(selectedIds)
               if (checked) {
@@ -228,6 +244,22 @@ export function WithdrawalTable({
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
+
+  if (isLoading) {
+    return <WithdrawalTableSkeleton />
+  }
+
+  if (isError) {
+    return <WithdrawalNetworkError onRetry={onRetry} />
+  }
+
+  if (members.length === 0) {
+    return hasActiveFilters ? (
+      <WithdrawalFilteredEmpty onResetFilters={onResetFilters} />
+    ) : (
+      <WithdrawalEmpty />
+    )
+  }
 
   return (
     <div className="w-full min-w-0 overflow-x-auto rounded-(--umc-radius-12)">
