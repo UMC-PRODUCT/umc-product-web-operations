@@ -122,10 +122,9 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
     setSelectedIds(new Set())
   }
 
-  const csvExportMode: WithdrawalCsvExportMode =
-    selectedIds.size > 0 ? "selected" : "all"
-  const csvExportCount =
-    csvExportMode === "selected" ? selectedIds.size : members.length
+  const hasSelection = selectedIds.size > 0
+  const csvExportMode: WithdrawalCsvExportMode = "selected"
+  const csvExportCount = selectedIds.size
 
   return (
     <section className="relative flex flex-col gap-(--umc-spacing-gap-32) pl-(--umc-spacing-padding-12)">
@@ -139,20 +138,37 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-(--umc-spacing-gap-12)">
+          {hasSelection ? (
+            <Button
+              color="white"
+              onClick={() => {
+                setSelectedIds(new Set())
+              }}
+              size="sm"
+              type="button"
+              variant="fill"
+            >
+              선택 해제
+            </Button>
+          ) : (
+            <Button
+              color="brand"
+              leadingIcon={
+                <AddIcon aria-hidden color="currentColor" size={14} />
+              }
+              onClick={() => {
+                // TODO: 탈부 등록 모달
+              }}
+              size="sm"
+              type="button"
+              variant="fill"
+            >
+              탈부 등록하기
+            </Button>
+          )}
           <Button
-            color="brand"
-            leadingIcon={<AddIcon aria-hidden color="currentColor" size={14} />}
-            onClick={() => {
-              // TODO: 탈부 등록 모달
-            }}
-            size="sm"
-            type="button"
-            variant="fill"
-          >
-            탈부 등록하기
-          </Button>
-          <Button
-            color="white"
+            color={hasSelection ? "neutral" : "white"}
+            disabled={!hasSelection}
             onClick={() => {
               setCsvExportOpen(true)
             }}
@@ -160,7 +176,9 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
             type="button"
             variant="fill"
           >
-            CSV 내보내기
+            {hasSelection
+              ? `${selectedIds.size}명ㆍCSV 내보내기`
+              : "CSV 내보내기"}
           </Button>
         </div>
       </div>
