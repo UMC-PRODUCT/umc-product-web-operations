@@ -27,6 +27,7 @@ function NoticeEditRoute() {
 
   return (
     <NoticeEditPage
+      key={`${loaderData.noticeId}-${loaderData.formRevision}`}
       initialAttachedVotePoll={loaderData.attachedVotePoll}
       initialForm={loaderData.initialForm}
       noticeId={loaderData.noticeId}
