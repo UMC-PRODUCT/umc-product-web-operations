@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useRouter } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
 import { useMemo, useRef, useState } from "react"
 
@@ -59,6 +59,7 @@ export function NoticeEditPage({
   noticeId,
 }: NoticeEditPageProps) {
   const navigate = useNavigate()
+  const router = useRouter()
   const queryClient = useQueryClient()
   const toast = useToast()
   const locationState = useNoticeLocationStateFromLocation()
@@ -212,6 +213,12 @@ export function NoticeEditPage({
             queryKey: noticeKeys.detail(noticeId),
           }),
         ])
+        await queryClient.refetchQueries({
+          queryKey: noticeKeys.detail(noticeId),
+        })
+        await router.invalidate({
+          filter: (match) => match.routeId === "/_admin/notices/$noticeId",
+        })
         await navigate({
           params: { noticeId: String(noticeId) },
           state: detailState,
