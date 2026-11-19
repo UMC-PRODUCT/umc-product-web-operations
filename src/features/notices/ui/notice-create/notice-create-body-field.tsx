@@ -1,11 +1,17 @@
 import { Field, TextArea, TextFieldBoxField } from "@umc-product/react"
-import { useCallback, useRef } from "react"
+import { useCallback, useRef, useState } from "react"
 
 import { cn } from "@/shared/lib/cn"
 
 import {
+  applyNoticeContentHighlightColor,
   applyNoticeContentMarkdownFormat,
+  applyNoticeContentTextStyle,
+  getNoticeContentHighlightAtIndex,
+  getNoticeContentTextStyleAtIndex,
+  type NoticeContentHighlightColor,
   type NoticeContentMarkdownFormat,
+  type NoticeContentTextStyle,
 } from "../../model/notice-content-markdown"
 import { NOTICE_CREATE_CONTENT_MAX_LENGTH } from "../../model/notice-create-form"
 import { NoticeCreateContentToolbar } from "./notice-create-content-toolbar"
@@ -70,20 +76,40 @@ export function NoticeCreateBodyField({
   value,
 }: NoticeCreateBodyFieldProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [textStyleAtCaret, setTextStyleAtCaret] =
+    useState<NoticeContentTextStyle>("body")
+  const [highlightAtCaret, setHighlightAtCaret] =
+    useState<NoticeContentHighlightColor>("none")
 
-  const applyFormat = useCallback(
-    (format: NoticeContentMarkdownFormat) => {
+  const syncToolbarFromCaret = useCallback(
+    (content?: string) => {
       const textarea = textareaRef.current
       if (!textarea) {
         return
       }
 
-      const result = applyNoticeContentMarkdownFormat(
-        value,
-        textarea.selectionStart,
-        textarea.selectionEnd,
-        format,
+      const resolvedContent = content ?? value
+      const caretIndex = textarea.selectionStart
+      setTextStyleAtCaret(
+        getNoticeContentTextStyleAtIndex(resolvedContent, caretIndex),
       )
+      setHighlightAtCaret(
+        getNoticeContentHighlightAtIndex(resolvedContent, caretIndex),
+      )
+    },
+    [value],
+  )
+
+  const applyMarkdownEdit = useCallback(
+    (result: {
+      selectionEnd: number
+      selectionStart: number
+      value: string
+    }) => {
+      const textarea = textareaRef.current
+      if (!textarea) {
+        return
+      }
 
       if (result.value.length > NOTICE_CREATE_CONTENT_MAX_LENGTH) {
         return
@@ -94,9 +120,67 @@ export function NoticeCreateBodyField({
       requestAnimationFrame(() => {
         textarea.focus()
         textarea.setSelectionRange(result.selectionStart, result.selectionEnd)
+        syncToolbarFromCaret(result.value)
       })
     },
-    [onChange, value],
+    [onChange, syncToolbarFromCaret],
+  )
+
+  const applyFormat = useCallback(
+    (format: NoticeContentMarkdownFormat) => {
+      const textarea = textareaRef.current
+      if (!textarea) {
+        return
+      }
+
+      applyMarkdownEdit(
+        applyNoticeContentMarkdownFormat(
+          value,
+          textarea.selectionStart,
+          textarea.selectionEnd,
+          format,
+        ),
+      )
+    },
+    [applyMarkdownEdit, value],
+  )
+
+  const applyTextStyle = useCallback(
+    (style: NoticeContentTextStyle) => {
+      const textarea = textareaRef.current
+      if (!textarea) {
+        return
+      }
+
+      applyMarkdownEdit(
+        applyNoticeContentTextStyle(
+          value,
+          textarea.selectionStart,
+          textarea.selectionEnd,
+          style,
+        ),
+      )
+    },
+    [applyMarkdownEdit, value],
+  )
+
+  const applyHighlight = useCallback(
+    (color: NoticeContentHighlightColor) => {
+      const textarea = textareaRef.current
+      if (!textarea) {
+        return
+      }
+
+      applyMarkdownEdit(
+        applyNoticeContentHighlightColor(
+          value,
+          textarea.selectionStart,
+          textarea.selectionEnd,
+          color,
+        ),
+      )
+    },
+    [applyMarkdownEdit, value],
   )
 
   return (
@@ -120,11 +204,13 @@ export function NoticeCreateBodyField({
           minHeight: BODY_FIELD_MIN_HEIGHT_PX,
         }}
       >
-        <div className="flex w-full shrink-0 flex-col gap-(--umc-spacing-gap-8)">
-          <NoticeCreateContentToolbar onFormat={applyFormat} />
-          <div
-            aria-hidden
-            className="border-neutral-weak-200 w-full border-t"
+        <div className="flex w-full shrink-0 flex-col">
+          <NoticeCreateContentToolbar
+            highlightAtCaret={highlightAtCaret}
+            onFormat={applyFormat}
+            onHighlight={applyHighlight}
+            onTextStyle={applyTextStyle}
+            textStyleAtCaret={textStyleAtCaret}
           />
         </div>
 
@@ -138,6 +224,16 @@ export function NoticeCreateBodyField({
             maxLength={NOTICE_CREATE_CONTENT_MAX_LENGTH}
             onChange={(event) => {
               onChange(event.target.value)
+              syncToolbarFromCaret(event.target.value)
+            }}
+            onClick={() => {
+              syncToolbarFromCaret()
+            }}
+            onKeyUp={() => {
+              syncToolbarFromCaret()
+            }}
+            onSelect={() => {
+              syncToolbarFromCaret()
             }}
             placeholder="본문을 입력하세요"
             ref={textareaRef}
