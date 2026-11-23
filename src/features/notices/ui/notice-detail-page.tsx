@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useRouter } from "@tanstack/react-router"
 import { Button, Dialog, Divider, Tag, useToast } from "@umc-product/react"
 import { useEffect, useRef, useState } from "react"
 
@@ -55,6 +55,7 @@ export function NoticeDetailPage({
   imageLoadState,
 }: NoticeDetailPageProps) {
   const navigate = useNavigate()
+  const router = useRouter()
   const queryClient = useQueryClient()
   const toast = useToast()
   const locationState = useNoticeLocationStateFromLocation()
@@ -144,11 +145,17 @@ export function NoticeDetailPage({
                     disabled={false}
                     isLoading={false}
                     onClick={() => {
-                      void navigate({
-                        params: { noticeId: notice.id },
-                        state: detailState,
-                        to: "/notices/$noticeId/edit",
-                      })
+                      void (async () => {
+                        await router.invalidate({
+                          filter: (match) =>
+                            match.routeId === "/_admin/notices/$noticeId/edit",
+                        })
+                        await navigate({
+                          params: { noticeId: notice.id },
+                          state: detailState,
+                          to: "/notices/$noticeId/edit",
+                        })
+                      })()
                     }}
                   >
                     수정

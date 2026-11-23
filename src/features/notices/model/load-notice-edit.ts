@@ -15,6 +15,7 @@ export type NoticeEditLoaderData =
   | {
       kind: "success"
       attachedVotePoll: NoticePoll | null
+      formRevision: string
       initialForm: NoticeCreateFormState
       noticeId: number
       title: string
@@ -40,6 +41,7 @@ export async function loadNoticeEdit(
       attachedVotePoll: detail.vote
         ? mapNoticeVoteInfoToPoll(detail.vote)
         : null,
+      formRevision: detail.updatedAt,
       initialForm: mapNoticeDetailToEditForm(detail),
       noticeId: parsedId,
       title: detail.title,
