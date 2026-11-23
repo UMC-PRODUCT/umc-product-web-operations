@@ -2,6 +2,9 @@ import { cn } from "@/shared/lib/cn"
 
 import type { ReactNode } from "react"
 
+/** 카드 842px − 좌우 padding 32px (근거 자료 등 본문 열 너비) */
+export const NOTICE_CREATE_SECTION_BODY_WIDTH_PX = 842 - 32 * 2
+
 type NoticeCreateSectionProps = {
   children: ReactNode
   locked?: boolean
