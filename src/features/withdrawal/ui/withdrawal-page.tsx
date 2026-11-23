@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { AddIcon } from "@umc-product/icons"
 import { Button } from "@umc-product/react"
 import { useMemo, useState } from "react"
@@ -10,6 +11,7 @@ import {
 } from "@/entities/organization"
 
 import { MOCK_WITHDRAWALS } from "../model/mock-withdrawals"
+import { useWithdrawalRegisterSuccessToast } from "./use-withdrawal-register-success-toast"
 import {
   WithdrawalCsvExportDialog,
   type WithdrawalCsvExportMode,
@@ -32,6 +34,8 @@ type WithdrawalPageProps = {
 }
 
 export function WithdrawalPage({ mock }: WithdrawalPageProps) {
+  useWithdrawalRegisterSuccessToast()
+  const navigate = useNavigate()
   const selectedGisu = useSelectedGisu()
   const [chapterId, setChapterId] = useState<string | null>(null)
   const [schoolId, setSchoolId] = useState<string | null>(null)
@@ -88,9 +92,8 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
     status != null ||
     query.trim().length > 0
 
-  const sourceMembers = mock === "empty" ? [] : MOCK_WITHDRAWALS
-
   const members = useMemo(() => {
+    const sourceMembers = mock === "empty" ? [] : MOCK_WITHDRAWALS
     const keyword = query.trim().toLowerCase()
     return sourceMembers.filter((member) => {
       if (part != null && member.part !== part) {
@@ -110,7 +113,7 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
         member.nickname.toLowerCase().includes(keyword)
       )
     })
-  }, [part, query, reason, sourceMembers, status])
+  }, [mock, part, query, reason, status])
 
   const resetFilters = () => {
     setChapterId(null)
@@ -157,7 +160,9 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
                 <AddIcon aria-hidden color="currentColor" size={14} />
               }
               onClick={() => {
-                // TODO: 탈부 등록 모달
+                void navigate({
+                  to: "/activity/withdrawal/register",
+                })
               }}
               size="sm"
               type="button"
@@ -210,8 +215,11 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
           isLoading={mock === "loading"}
           key={retryKey}
           members={members}
-          onRegister={() => {
-            // TODO: 행 단위 탈부 등록
+          onRegister={(memberId) => {
+            void navigate({
+              to: "/activity/withdrawal/$memberId/register",
+              params: { memberId },
+            })
           }}
           onResetFilters={resetFilters}
           onRetry={() => {
