@@ -1,4 +1,4 @@
-import { CheckCircleIcon } from "@umc-product/icons"
+import { showPrimarySuccessToast } from "@/shared/ui/show-primary-success-toast"
 
 import type { ToastApi } from "@umc-product/react"
 
@@ -7,9 +7,5 @@ export function showNoticePrimarySuccessToast(
   toast: ToastApi,
   message: string,
 ): void {
-  toast.show({
-    message,
-    color: "brand",
-    icon: <CheckCircleIcon aria-hidden size={24} weight="fill" />,
-  })
+  showPrimarySuccessToast(toast, message)
 }
