@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { AddIcon } from "@umc-product/icons"
-import { Button } from "@umc-product/react"
+import { Button, useToast } from "@umc-product/react"
 import { useMemo, useState } from "react"
 
 import { useSelectedGisu } from "@/entities/gisu"
@@ -10,12 +10,23 @@ import {
 } from "@/entities/organization"
 
 import { MOCK_WITHDRAWALS } from "../model/mock-withdrawals"
+import { toMockWithdrawalDetail } from "../model/withdrawal-detail"
+import {
+  showWithdrawalExportFailureToast,
+  showWithdrawalExportSuccessToast,
+} from "./show-withdrawal-export-toast"
 import {
   WithdrawalCsvExportDialog,
   type WithdrawalCsvExportMode,
 } from "./withdrawal-csv-export-dialog"
+import { WithdrawalDetailErrorDialog } from "./withdrawal-detail-error-dialog"
+import { WithdrawalDetailPanel } from "./withdrawal-detail-panel"
+import { WithdrawalExportPanel } from "./withdrawal-export-panel"
 import { WithdrawalTable } from "./withdrawal-table"
 import { WithdrawalToolbar } from "./withdrawal-toolbar"
+
+import type { WithdrawalDetail } from "../model/withdrawal-detail"
+import type { WithdrawalExportFieldAccess } from "../model/withdrawal-export"
 
 const PART_FILTER_OPTIONS = [
   { value: "web-pe", label: "Web/PE" },
@@ -24,15 +35,27 @@ const PART_FILTER_OPTIONS = [
   { value: "mobile-pe", label: "Mobile/PE" },
 ] as const
 
-export type WithdrawalListMock = "loading" | "error" | "empty"
+export type WithdrawalListMock =
+  | "loading"
+  | "error"
+  | "empty"
+  | "detail-loading"
+  | "detail-error"
+  | "export-error"
 
 type WithdrawalPageProps = {
   /** URL `?mock=` — 조회 상태 UI 확인용 (개발 모드 전용) */
   mock?: WithdrawalListMock
+  /** 역할별 내보내기 Panel 기간·학교 필드 권한 */
+  exportFieldAccess: WithdrawalExportFieldAccess
 }
 
-export function WithdrawalPage({ mock }: WithdrawalPageProps) {
+export function WithdrawalPage({
+  mock,
+  exportFieldAccess,
+}: WithdrawalPageProps) {
   const selectedGisu = useSelectedGisu()
+  const toast = useToast()
   const [chapterId, setChapterId] = useState<string | null>(null)
   const [schoolId, setSchoolId] = useState<string | null>(null)
   const [part, setPart] = useState<string | null>(null)
@@ -42,6 +65,12 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [retryKey, setRetryKey] = useState(0)
   const [csvExportOpen, setCsvExportOpen] = useState(false)
+  const [exportPanelOpen, setExportPanelOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailErrorOpen, setDetailErrorOpen] = useState(false)
+  const [detailMemberId, setDetailMemberId] = useState<string | null>(null)
+  const [detail, setDetail] = useState<WithdrawalDetail | null>(null)
 
   const organizationQuery = useQuery({
     ...gisuOrganizationQueryOptions(selectedGisu.gisuId),
@@ -122,6 +151,34 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
     setSelectedIds(new Set())
   }
 
+  const openWithdrawalDetail = (memberId: string) => {
+    const member = members.find((item) => item.id === memberId)
+    if (member == null) {
+      return
+    }
+
+    setDetailMemberId(memberId)
+    setDetailErrorOpen(false)
+
+    if (mock === "detail-error") {
+      setDetailOpen(false)
+      setDetailLoading(false)
+      setDetail(null)
+      setDetailErrorOpen(true)
+      return
+    }
+
+    setDetailOpen(true)
+    if (mock === "detail-loading") {
+      setDetail(null)
+      setDetailLoading(true)
+      return
+    }
+
+    setDetailLoading(false)
+    setDetail(toMockWithdrawalDetail(member))
+  }
+
   const hasSelection = selectedIds.size > 0
   const csvExportMode: WithdrawalCsvExportMode = "selected"
   const csvExportCount = selectedIds.size
@@ -168,9 +225,12 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
           )}
           <Button
             color={hasSelection ? "neutral" : "white"}
-            disabled={!hasSelection}
             onClick={() => {
-              setCsvExportOpen(true)
+              if (hasSelection) {
+                setCsvExportOpen(true)
+                return
+              }
+              setExportPanelOpen(true)
             }}
             size="sm"
             type="button"
@@ -218,9 +278,7 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
             setRetryKey((value) => value + 1)
           }}
           onSelectedIdsChange={setSelectedIds}
-          onViewDetail={() => {
-            // TODO: 탈부 상세
-          }}
+          onViewDetail={openWithdrawalDetail}
           selectedIds={selectedIds}
         />
       </div>
@@ -229,11 +287,56 @@ export function WithdrawalPage({ mock }: WithdrawalPageProps) {
         count={csvExportCount}
         mode={csvExportMode}
         onConfirm={() => {
-          // TODO: CSV 다운로드 API 연동
+          if (mock === "export-error") {
+            showWithdrawalExportFailureToast(toast)
+            setCsvExportOpen(false)
+            return
+          }
+          showWithdrawalExportSuccessToast(toast, csvExportCount)
           setCsvExportOpen(false)
         }}
         onOpenChange={setCsvExportOpen}
         open={csvExportOpen}
+      />
+
+      <WithdrawalExportPanel
+        exportCount={members.length}
+        fieldAccess={exportFieldAccess}
+        onExport={() => {
+          if (mock === "export-error") {
+            showWithdrawalExportFailureToast(toast)
+            return false
+          }
+          showWithdrawalExportSuccessToast(toast, members.length)
+          return true
+        }}
+        onOpenChange={setExportPanelOpen}
+        open={exportPanelOpen}
+        schoolOptions={schoolOptions}
+      />
+
+      <WithdrawalDetailPanel
+        detail={detail}
+        isLoading={detailLoading}
+        onOpenChange={(open) => {
+          setDetailOpen(open)
+          if (!open) {
+            setDetailLoading(false)
+          }
+        }}
+        open={detailOpen}
+      />
+
+      <WithdrawalDetailErrorDialog
+        onOpenChange={setDetailErrorOpen}
+        onRetry={() => {
+          if (detailMemberId == null) {
+            setDetailErrorOpen(false)
+            return
+          }
+          openWithdrawalDetail(detailMemberId)
+        }}
+        open={detailErrorOpen}
       />
     </section>
   )

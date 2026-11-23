@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { useMemo } from "react"
 
-import { type WithdrawalListMock, WithdrawalPage } from "@/features/withdrawal"
+import {
+  resolveWithdrawalExportFieldAccess,
+  type WithdrawalListMock,
+  WithdrawalPage,
+} from "@/features/withdrawal"
 import { onlyInDev } from "@/shared/lib/dev-only"
 
 function parseWithdrawalMock(value: unknown): WithdrawalListMock | undefined {
-  if (value === "loading" || value === "error" || value === "empty") {
+  if (
+    value === "loading" ||
+    value === "error" ||
+    value === "empty" ||
+    value === "detail-loading" ||
+    value === "detail-error" ||
+    value === "export-error"
+  ) {
     return value
   }
   return undefined
@@ -18,6 +30,18 @@ export const Route = createFileRoute("/_admin/activity/withdrawal/")({
 })
 
 function WithdrawalIndexPage() {
+  const { session } = Route.useRouteContext()
   const { mock } = Route.useSearch()
-  return <WithdrawalPage mock={mock} />
+  const exportFieldAccess = useMemo(
+    () =>
+      resolveWithdrawalExportFieldAccess({
+        scope: session.scope,
+        roleTypes: session.roleTypes,
+        schoolId: session.schoolId,
+        schoolName: session.schoolName,
+      }),
+    [session.roleTypes, session.schoolId, session.schoolName, session.scope],
+  )
+
+  return <WithdrawalPage exportFieldAccess={exportFieldAccess} mock={mock} />
 }
