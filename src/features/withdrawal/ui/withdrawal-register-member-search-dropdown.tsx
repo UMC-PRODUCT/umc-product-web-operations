@@ -1,6 +1,9 @@
 import "./withdrawal-register-member-search-dropdown.css"
 
+import { SearchIcon } from "@umc-product/icons"
+
 import { cn } from "@/shared/lib/cn"
+import { EmptyState } from "@/shared/ui/empty-state"
 
 import { formatWithdrawalMemberOrgMeta } from "../model/format-withdrawal-member-meta"
 
@@ -59,11 +62,26 @@ function MemberSearchDropdownRow({
   )
 }
 
+function MemberSearchEmptyState({ query }: { query: string }) {
+  const trimmedQuery = query.trim()
+
+  return (
+    <EmptyState
+      className="min-h-0"
+      description="이름이나 닉네임을 올바르게 입력했는지 확인해 보세요"
+      icon={<SearchIcon aria-hidden className="text-icon-disabled" size={44} />}
+      textGap={6}
+      title={`'${trimmedQuery}' 님을 찾을 수 없어요`}
+    />
+  )
+}
+
 type WithdrawalRegisterMemberSearchDropdownProps = {
   highlightedIndex: number
   members: WithdrawalMember[]
   onHighlightIndex: (index: number) => void
   onSelectMember: (member: WithdrawalMember) => void
+  searchQuery: string
   visible: boolean
 }
 
@@ -72,6 +90,7 @@ export function WithdrawalRegisterMemberSearchDropdown({
   members,
   onHighlightIndex,
   onSelectMember,
+  searchQuery,
   visible,
 }: WithdrawalRegisterMemberSearchDropdownProps) {
   if (!visible) {
@@ -89,9 +108,7 @@ export function WithdrawalRegisterMemberSearchDropdown({
       role="listbox"
     >
       {members.length === 0 ? (
-        <p className="text-body-3-regular text-placeholder px-(--umc-spacing-padding-12) py-(--umc-spacing-padding-12) text-center">
-          검색 결과가 없어요
-        </p>
+        <MemberSearchEmptyState query={searchQuery} />
       ) : (
         members.map((member, index) => (
           <MemberSearchDropdownRow

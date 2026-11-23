@@ -203,6 +203,7 @@ export function WithdrawalRegisterTargetSection({
               members={searchResults}
               onHighlightIndex={setHighlightedIndex}
               onSelectMember={pickMember}
+              searchQuery={debouncedQuery}
               visible={showDropdown}
             />
           </div>
