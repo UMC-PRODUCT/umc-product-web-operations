@@ -1,0 +1,11 @@
+/* utilities 레이어 — DS Menu `data-highlighted`와 동일 */
+@layer utilities {
+  .withdrawal-register-member-search-dropdown .umc-dropdown-item:hover,
+  .withdrawal-register-member-search-dropdown .umc-dropdown-item:focus-visible,
+  .withdrawal-register-member-search-dropdown
+    .umc-dropdown-item[data-highlighted] {
+    background-color: var(--umc-color-fill-neutral-weaker-50);
+    box-shadow: var(--umc-shadow-inner-neutral-2);
+    outline: none;
+  }
+}

@@ -125,6 +125,19 @@ export function getPageBreadcrumbs(
         pathname === "/activity/withdrawal" ||
         pathname.startsWith("/activity/withdrawal/")
       ) {
+        if (
+          pathname === "/activity/withdrawal/register" ||
+          /\/activity\/withdrawal\/[^/]+\/register$/.test(pathname)
+        ) {
+          return {
+            title: "탈부 등록",
+            breadcrumbs: [
+              { label: "활동 관리", href: "/activity" },
+              { label: "탈부 관리", href: "/activity/withdrawal" },
+              { label: "탈부 등록하기" },
+            ],
+          }
+        }
         return {
           title: "탈부 관리",
           breadcrumbs: [

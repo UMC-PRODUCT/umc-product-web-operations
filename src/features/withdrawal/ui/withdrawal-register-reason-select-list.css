@@ -1,0 +1,32 @@
+@layer components {
+  .withdrawal-register-reason-select-list .umc-dropdown-item {
+    border-radius: 0;
+  }
+
+  .withdrawal-register-reason-select-list .umc-dropdown-item--edge-first {
+    border-start-start-radius: var(--umc-radius-10);
+    border-start-end-radius: var(--umc-radius-10);
+  }
+
+  .withdrawal-register-reason-select-list .umc-dropdown-item--edge-last {
+    border-end-start-radius: var(--umc-radius-10);
+    border-end-end-radius: var(--umc-radius-10);
+  }
+
+  /* py-8 pl-16, 선택 시 pr-10 */
+  .withdrawal-register-reason-select-list
+    .umc-dropdown-item[data-size="md"][data-selected] {
+    padding-inline-end: var(--umc-spacing-padding-10);
+  }
+
+  /* 기타 선택 행 (헤더 + TextFieldBox) */
+  .withdrawal-register-reason-select-list .umc-dropdown-item--other-selected {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--umc-spacing-gap-10);
+    padding-block-end: var(--umc-spacing-padding-16);
+    cursor: default;
+    color: var(--umc-color-text-neutral-default-900);
+    font-weight: var(--umc-font-weight-regular);
+  }
+}

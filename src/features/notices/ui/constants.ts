@@ -1,6 +1,8 @@
+import { TEXT_FIELD_LENGTH_COUNTER_CLASS } from "@/shared/ui/text-field-length-counter"
+
 /** DS TextArea `.umc-text-area__counter`와 동일 (Body/2-Regular + placeholder) */
 export const NOTICE_CREATE_LENGTH_COUNTER_CLASS =
-  "text-body-2-regular text-placeholder tabular-nums whitespace-nowrap"
+  TEXT_FIELD_LENGTH_COUNTER_CLASS
 
 export const NOTICE_FILTER_SELECT_WIDTH_CLASS = "w-auto shrink-0"
 

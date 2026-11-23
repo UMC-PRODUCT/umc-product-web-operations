@@ -30,7 +30,9 @@ import { Route as AdminRecruitingIndexRouteImport } from './routes/_admin/recrui
 import { Route as AdminActivityPointsIndexRouteImport } from './routes/_admin/activity/points.index'
 import { Route as AdminActivityPointsChallengerIdRouteImport } from './routes/_admin/activity/points.$challengerId'
 import { Route as AdminActivityWithdrawalIndexRouteImport } from './routes/_admin/activity/withdrawal.index'
+import { Route as AdminActivityWithdrawalRegisterRouteImport } from './routes/_admin/activity/withdrawal.register'
 import { Route as AdminNoticesNoticeIdEditRouteImport } from './routes/_admin/notices/$noticeId.edit'
+import { Route as AdminActivityWithdrawalMemberIdRegisterRouteImport } from './routes/_admin/activity/withdrawal.$memberId.register'
 
 const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/_admin',
@@ -139,11 +141,23 @@ const AdminActivityWithdrawalIndexRoute =
     path: '/',
     getParentRoute: () => AdminActivityWithdrawalRoute,
   } as any)
+const AdminActivityWithdrawalRegisterRoute =
+  AdminActivityWithdrawalRegisterRouteImport.update({
+    id: '/register',
+    path: '/register',
+    getParentRoute: () => AdminActivityWithdrawalRoute,
+  } as any)
 const AdminNoticesNoticeIdEditRoute =
   AdminNoticesNoticeIdEditRouteImport.update({
     id: '/edit',
     path: '/edit',
     getParentRoute: () => AdminNoticesNoticeIdRoute,
+  } as any)
+const AdminActivityWithdrawalMemberIdRegisterRoute =
+  AdminActivityWithdrawalMemberIdRegisterRouteImport.update({
+    id: '/$memberId/register',
+    path: '/$memberId/register',
+    getParentRoute: () => AdminActivityWithdrawalRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -165,9 +179,11 @@ export interface FileRoutesByFullPath {
   '/notices/': typeof AdminNoticesIndexRoute
   '/recruiting/': typeof AdminRecruitingIndexRoute
   '/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
+  '/activity/withdrawal/register': typeof AdminActivityWithdrawalRegisterRoute
   '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/activity/points/': typeof AdminActivityPointsIndexRoute
   '/activity/withdrawal/': typeof AdminActivityWithdrawalIndexRoute
+  '/activity/withdrawal/$memberId/register': typeof AdminActivityWithdrawalMemberIdRegisterRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -183,9 +199,11 @@ export interface FileRoutesByTo {
   '/notices': typeof AdminNoticesIndexRoute
   '/recruiting': typeof AdminRecruitingIndexRoute
   '/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
+  '/activity/withdrawal/register': typeof AdminActivityWithdrawalRegisterRoute
   '/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/activity/points': typeof AdminActivityPointsIndexRoute
   '/activity/withdrawal': typeof AdminActivityWithdrawalIndexRoute
+  '/activity/withdrawal/$memberId/register': typeof AdminActivityWithdrawalMemberIdRegisterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -208,9 +226,11 @@ export interface FileRoutesById {
   '/_admin/notices/': typeof AdminNoticesIndexRoute
   '/_admin/recruiting/': typeof AdminRecruitingIndexRoute
   '/_admin/activity/points/$challengerId': typeof AdminActivityPointsChallengerIdRoute
+  '/_admin/activity/withdrawal/register': typeof AdminActivityWithdrawalRegisterRoute
   '/_admin/notices/$noticeId/edit': typeof AdminNoticesNoticeIdEditRoute
   '/_admin/activity/points/': typeof AdminActivityPointsIndexRoute
   '/_admin/activity/withdrawal/': typeof AdminActivityWithdrawalIndexRoute
+  '/_admin/activity/withdrawal/$memberId/register': typeof AdminActivityWithdrawalMemberIdRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -233,9 +253,11 @@ export interface FileRouteTypes {
     | '/notices/'
     | '/recruiting/'
     | '/activity/points/$challengerId'
+    | '/activity/withdrawal/register'
     | '/notices/$noticeId/edit'
     | '/activity/points/'
     | '/activity/withdrawal/'
+    | '/activity/withdrawal/$memberId/register'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -251,9 +273,11 @@ export interface FileRouteTypes {
     | '/notices'
     | '/recruiting'
     | '/activity/points/$challengerId'
+    | '/activity/withdrawal/register'
     | '/notices/$noticeId/edit'
     | '/activity/points'
     | '/activity/withdrawal'
+    | '/activity/withdrawal/$memberId/register'
   id:
     | '__root__'
     | '/_admin'
@@ -275,9 +299,11 @@ export interface FileRouteTypes {
     | '/_admin/notices/'
     | '/_admin/recruiting/'
     | '/_admin/activity/points/$challengerId'
+    | '/_admin/activity/withdrawal/register'
     | '/_admin/notices/$noticeId/edit'
     | '/_admin/activity/points/'
     | '/_admin/activity/withdrawal/'
+    | '/_admin/activity/withdrawal/$memberId/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -435,12 +461,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivityWithdrawalIndexRouteImport
       parentRoute: typeof AdminActivityWithdrawalRoute
     }
+    '/_admin/activity/withdrawal/register': {
+      id: '/_admin/activity/withdrawal/register'
+      path: '/register'
+      fullPath: '/activity/withdrawal/register'
+      preLoaderRoute: typeof AdminActivityWithdrawalRegisterRouteImport
+      parentRoute: typeof AdminActivityWithdrawalRoute
+    }
     '/_admin/notices/$noticeId/edit': {
       id: '/_admin/notices/$noticeId/edit'
       path: '/edit'
       fullPath: '/notices/$noticeId/edit'
       preLoaderRoute: typeof AdminNoticesNoticeIdEditRouteImport
       parentRoute: typeof AdminNoticesNoticeIdRoute
+    }
+    '/_admin/activity/withdrawal/$memberId/register': {
+      id: '/_admin/activity/withdrawal/$memberId/register'
+      path: '/$memberId/register'
+      fullPath: '/activity/withdrawal/$memberId/register'
+      preLoaderRoute: typeof AdminActivityWithdrawalMemberIdRegisterRouteImport
+      parentRoute: typeof AdminActivityWithdrawalRoute
     }
   }
 }
@@ -459,12 +499,17 @@ const AdminActivityPointsRouteWithChildren =
   AdminActivityPointsRoute._addFileChildren(AdminActivityPointsRouteChildren)
 
 interface AdminActivityWithdrawalRouteChildren {
+  AdminActivityWithdrawalRegisterRoute: typeof AdminActivityWithdrawalRegisterRoute
   AdminActivityWithdrawalIndexRoute: typeof AdminActivityWithdrawalIndexRoute
+  AdminActivityWithdrawalMemberIdRegisterRoute: typeof AdminActivityWithdrawalMemberIdRegisterRoute
 }
 
 const AdminActivityWithdrawalRouteChildren: AdminActivityWithdrawalRouteChildren =
   {
+    AdminActivityWithdrawalRegisterRoute: AdminActivityWithdrawalRegisterRoute,
     AdminActivityWithdrawalIndexRoute: AdminActivityWithdrawalIndexRoute,
+    AdminActivityWithdrawalMemberIdRegisterRoute:
+      AdminActivityWithdrawalMemberIdRegisterRoute,
   }
 
 const AdminActivityWithdrawalRouteWithChildren =
