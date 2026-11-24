@@ -15,6 +15,8 @@ type InlineAlertProps = {
   elevated?: boolean
   /** error 톤 등장 시 DS Toast 와 같은 흔들림 */
   shake?: boolean
+  /** Figma Toast Bottom — 한 문장 Web 토스트는 줄바꿈 없음 */
+  singleLine?: boolean
   className?: string
 }
 
@@ -47,6 +49,7 @@ export function InlineAlert({
   action,
   elevated = true,
   shake = false,
+  singleLine = false,
   className,
 }: InlineAlertProps) {
   const styles = TONE_STYLES[tone]
@@ -70,7 +73,13 @@ export function InlineAlert({
         size={24}
         weight="fill"
       />
-      <p className="min-w-0 flex-1">{children}</p>
+      <p
+        className={cn(
+          singleLine ? "shrink-0 whitespace-nowrap" : "min-w-0 flex-1",
+        )}
+      >
+        {children}
+      </p>
       {action ? (
         <button
           className={cn(

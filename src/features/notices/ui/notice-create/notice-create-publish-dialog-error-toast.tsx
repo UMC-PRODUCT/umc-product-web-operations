@@ -9,7 +9,7 @@ export function NoticeCreatePublishDialogErrorToast({
   message,
 }: NoticeCreatePublishDialogErrorToastProps) {
   return (
-    <InlineAlert className="max-w-full min-w-[400px]" shake tone="error">
+    <InlineAlert className="w-full min-w-[400px]" shake singleLine tone="error">
       {message}
     </InlineAlert>
   )

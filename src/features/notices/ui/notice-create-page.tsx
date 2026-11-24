@@ -1,3 +1,5 @@
+import "./notice-create-publish-dialog.css"
+
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
@@ -454,6 +456,11 @@ export function NoticeCreatePage({
 
       <Dialog
         cancelLabel="돌아가기"
+        className={
+          publishError != null
+            ? "notice-create-publish-dialog notice-create-publish-dialog--slot-error"
+            : "notice-create-publish-dialog"
+        }
         color="brand"
         confirmLabel="게시하기"
         confirmLoading={isSubmitting}
