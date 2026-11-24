@@ -19,7 +19,6 @@ export function NoticeVoteDeleteDialog({
       cancelLabel="취소"
       color="brand"
       confirmLabel="삭제하기"
-      confirmLoading={confirmLoading}
       description="지금까지 참여한 결과도 함께 사라져요"
       onConfirm={onConfirm}
       onOpenChange={(nextOpen) => {

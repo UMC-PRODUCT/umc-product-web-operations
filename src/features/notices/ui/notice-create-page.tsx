@@ -463,7 +463,6 @@ export function NoticeCreatePage({
         }
         color="brand"
         confirmLabel="게시하기"
-        confirmLoading={isSubmitting}
         description={
           <>
             등록하면 챌린저 앱에 바로 보이고, 이미 전송된 푸시 알림은 <br />

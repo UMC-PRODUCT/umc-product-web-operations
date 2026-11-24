@@ -507,7 +507,6 @@ export function NoticeDetailVoteCard({
         color="brand"
         confirmLabel="종료하기"
         description="지금까지 참여한 결과만 집계되어 종료돼요"
-        confirmLoading={isEndingPoll}
         onConfirm={() => {
           void handleEndPoll()
         }}
