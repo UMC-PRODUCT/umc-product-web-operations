@@ -1,4 +1,5 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "@tanstack/react-router"
 import {
   Button,
   Checkbox,
@@ -12,6 +13,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import { getServerErrorMessage } from "@/shared/api/server-error"
 
+import { closeNoticeVoteByNoticeId } from "../model/close-notice-vote"
+import { noticeKeys } from "../model/notice-keys"
 import {
   applyPollVote,
   getInitialViewerSelection,
@@ -180,6 +183,8 @@ export function NoticeDetailVoteCard({
   const isPreview = interaction === "preview"
   const isAttached = layout === "attached"
   const toast = useToast()
+  const queryClient = useQueryClient()
+  const router = useRouter()
   const allowMultiple = isMultipleChoicePoll(poll)
   const initialSelection = useMemo(
     () => getInitialViewerSelection(poll.options),
@@ -202,6 +207,9 @@ export function NoticeDetailVoteCard({
   const [isEndingPoll, setIsEndingPoll] = useState(false)
   const submitVoteMutation = useMutation({
     mutationFn: saveNoticeVoteResponse,
+  })
+  const endPollMutation = useMutation({
+    mutationFn: closeNoticeVoteByNoticeId,
   })
 
   const voteLeaveStateRef = useRef({
@@ -327,19 +335,40 @@ export function NoticeDetailVoteCard({
     setIsRevoting(true)
   }
 
-  const handleEndPoll = () => {
-    if (isEndingPoll) {
+  const handleEndPoll = async () => {
+    if (isEndingPoll || endPollMutation.isPending) {
+      return
+    }
+
+    const parsedNoticeId = Number(noticeId)
+    if (!Number.isFinite(parsedNoticeId)) {
+      showNoticeErrorToast(
+        toast,
+        "공지 정보를 확인할 수 없어요. 잠시 후 다시 시도해주세요.",
+      )
       return
     }
 
     setIsEndingPoll(true)
     try {
-      // NOTICE-106은 공지 수정 시 투표 연결 해제용. 상세 「투표 종료」는 집계 결과를
-      // 유지한 채 종료 UI만 표시한다(별도 close Command API 연동 전).
-      setStatus("closed")
+      await endPollMutation.mutateAsync(parsedNoticeId)
+
+      const detailKey = noticeKeys.detail(parsedNoticeId)
+      await queryClient.invalidateQueries({ queryKey: detailKey })
+      await queryClient.refetchQueries({ queryKey: detailKey })
+      await router.invalidate({
+        filter: (match) => match.routeId === "/_admin/notices/$noticeId",
+      })
+
       setIsRevoting(false)
       endDialogFocusStore.current = null
       setEndDialogOpen(false)
+    } catch (error) {
+      showNoticeErrorToast(
+        toast,
+        getServerErrorMessage(error) ??
+          "투표를 종료하지 못했어요. 잠시 후 다시 시도해주세요.",
+      )
     } finally {
       setIsEndingPoll(false)
     }
@@ -478,6 +507,7 @@ export function NoticeDetailVoteCard({
         color="brand"
         confirmLabel="종료하기"
         description="지금까지 참여한 결과만 집계되어 종료돼요"
+        confirmLoading={isEndingPoll}
         onConfirm={() => {
           void handleEndPoll()
         }}

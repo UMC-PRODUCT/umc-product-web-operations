@@ -7,10 +7,12 @@ const patchNotice = vi.fn()
 const replaceNoticeLinks = vi.fn()
 const replaceNoticeImages = vi.fn()
 const addNoticeVote = vi.fn()
+const deleteNoticeVote = vi.fn()
 const uploadNoticeImageFiles = vi.fn()
 
 vi.mock("../api/notices-command.api", () => ({
   addNoticeVote: (...args: unknown[]) => addNoticeVote(...args),
+  deleteNoticeVote: (...args: unknown[]) => deleteNoticeVote(...args),
   patchNotice: (...args: unknown[]) => patchNotice(...args),
   replaceNoticeImages: (...args: unknown[]) => replaceNoticeImages(...args),
   replaceNoticeLinks: (...args: unknown[]) => replaceNoticeLinks(...args),
@@ -27,11 +29,13 @@ describe("submitNoticeEdit", () => {
     replaceNoticeLinks.mockReset()
     replaceNoticeImages.mockReset()
     addNoticeVote.mockReset()
+    deleteNoticeVote.mockReset()
     uploadNoticeImageFiles.mockReset()
     patchNotice.mockResolvedValue(undefined)
     replaceNoticeLinks.mockResolvedValue(undefined)
     replaceNoticeImages.mockResolvedValue(undefined)
     addNoticeVote.mockResolvedValue({ noticeVoteId: 1, voteId: 2 })
+    deleteNoticeVote.mockResolvedValue(undefined)
     uploadNoticeImageFiles.mockResolvedValue([])
   })
 
@@ -158,6 +162,27 @@ describe("submitNoticeEdit", () => {
 
     expect(replaceNoticeLinks).not.toHaveBeenCalled()
     expect(replaceNoticeImages).toHaveBeenCalledWith(7, ["existing-1", "new-1"])
+  })
+
+  it("calls NOTICE-106 when removeAttachedVote is set", async () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      title: "t",
+      content: "c",
+      links: [],
+      existingImages: [],
+      imageFiles: [],
+    }
+
+    const outcome = await submitNoticeEdit({
+      form,
+      noticeId: 12,
+      removeAttachedVote: true,
+    })
+
+    expect(outcome).toEqual({ kind: "success" })
+    expect(deleteNoticeVote).toHaveBeenCalledWith(12)
+    expect(addNoticeVote).not.toHaveBeenCalled()
   })
 
   it("calls NOTICE-103 after content save when voteDraft is provided", async () => {

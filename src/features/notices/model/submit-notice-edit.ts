@@ -3,6 +3,7 @@ import { isAxiosError } from "axios"
 import { uploadNoticeImageFiles } from "../api/notice-file-upload.api"
 import {
   addNoticeVote,
+  deleteNoticeVote,
   patchNotice,
   replaceNoticeImages,
   replaceNoticeLinks,
@@ -80,6 +81,8 @@ export async function submitNoticeEdit(input: {
   form: NoticeCreateFormState
   noticeId: number
   voteDraft?: NoticeCreateVoteDraft | null
+  /** 진입 시 투표가 있었고 UI에서 제거한 경우 — NOTICE-106, 수정하기 저장 시에만 호출 */
+  removeAttachedVote?: boolean
   /** 수정 진입 시점 링크. 전달하면 변경이 없을 때 NOTICE-105를 생략한다 (빈 배열로 비우는 변경은 호출) */
   baselineLinks?: readonly string[]
   /** 수정 진입 시점 이미지 fileId. 전달하고 새 파일도 없으면 변경이 없을 때 NOTICE-104를 생략한다 */
@@ -134,6 +137,10 @@ export async function submitNoticeEdit(input: {
         : replaceNoticeLinks(input.noticeId, input.form.links),
       imagesUnchanged ? Promise.resolve() : replaceImages(),
     ])
+
+    if (input.removeAttachedVote) {
+      await deleteNoticeVote(input.noticeId)
+    }
 
     if (input.voteDraft != null) {
       await addNoticeVote(

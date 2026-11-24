@@ -13,6 +13,7 @@ function parseRequestBody(data: unknown): unknown {
 import {
   addNoticeImages,
   addNoticeVote,
+  closeNoticeVote,
   deleteNotice,
   deleteNoticeVote,
   patchNotice,
@@ -381,5 +382,36 @@ describe("deleteNoticeVote", () => {
 
     expect(method).toBe("delete")
     expect(url).toBe("/v1/notices/7/vote")
+  })
+})
+
+describe("closeNoticeVote", () => {
+  afterEach(() => {
+    api.defaults.adapter = undefined
+  })
+
+  it("calls POST /v1/notices/:id/vote/closure without body", async () => {
+    let method: string | undefined
+    let url: string | undefined
+    let body: unknown
+
+    api.defaults.adapter = async (config) => {
+      method = config.method
+      url = config.url
+      body = config.data
+      return {
+        data: { success: true, code: "OK", message: "성공", result: null },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config: config satisfies InternalAxiosRequestConfig,
+      }
+    }
+
+    await closeNoticeVote(7)
+
+    expect(method).toBe("post")
+    expect(url).toBe("/v1/notices/7/vote/closure")
+    expect(body).toBeUndefined()
   })
 })

@@ -1,5 +1,3 @@
-import "./notice-create-publish-dialog.css"
-
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Dialog, useToast } from "@umc-product/react"
@@ -456,11 +454,9 @@ export function NoticeCreatePage({
 
       <Dialog
         cancelLabel="돌아가기"
-        className={
-          isSubmitting ? "notice-create-publish-dialog--submitting" : undefined
-        }
         color="brand"
-        confirmLabel={isSubmitting ? "게시 중..." : "게시하기"}
+        confirmLabel="게시하기"
+        confirmLoading={isSubmitting}
         description={
           <>
             등록하면 챌린저 앱에 바로 보이고, 이미 전송된 푸시 알림은 <br />
