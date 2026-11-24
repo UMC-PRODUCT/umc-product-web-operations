@@ -1,4 +1,12 @@
+import { WarningIcon } from "@umc-product/icons"
+
 import { showErrorBottomToast } from "@/shared/ui/show-error-bottom-toast"
+
+import {
+  NOTICE_CREATE_PUBLISH_FAILURE_RETRY_LABEL,
+  NOTICE_CREATE_PUBLISH_FAILURE_TOAST_MESSAGE,
+  NOTICE_CREATE_PUBLISH_FAILURE_TOAST_WIDTH,
+} from "../model/notice-outcomes"
 
 import type { ToastApi } from "@umc-product/react"
 
@@ -29,4 +37,23 @@ export function showNoticeEditFailureToast(
 /** Figma 516:12555 — 하단 error Toast (삭제 실패 등) */
 export function showNoticeErrorToast(toast: ToastApi, message: string): void {
   showErrorBottomToast(toast, message)
+}
+
+/** Figma 2704:48597 — 게시 실패 (목록 화면, 텍스트 버튼 5~8초) */
+export function showNoticeCreatePublishFailureToast(
+  toast: ToastApi,
+  onRetry: () => void,
+  message: string = NOTICE_CREATE_PUBLISH_FAILURE_TOAST_MESSAGE,
+): void {
+  toast.show({
+    action: {
+      label: NOTICE_CREATE_PUBLISH_FAILURE_RETRY_LABEL,
+      onClick: onRetry,
+    },
+    color: "error",
+    duration: 6000,
+    icon: <WarningIcon aria-hidden size={24} weight="fill" />,
+    message,
+    width: NOTICE_CREATE_PUBLISH_FAILURE_TOAST_WIDTH,
+  })
 }

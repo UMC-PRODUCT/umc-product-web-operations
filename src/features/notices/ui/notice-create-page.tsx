@@ -27,11 +27,14 @@ import {
   resolveNoticeCreateContextGisuId,
   resolveNoticeCreatePartOptions,
 } from "../model/notice-create-part-options"
+import {
+  readNoticeCreatePublishProgress,
+  writeNoticeCreatePublishProgress,
+} from "../model/notice-create-publish-progress-storage"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
 import {
   NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
-  NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE,
   NOTICE_PUBLISH_TOAST_MESSAGE,
 } from "../model/notice-outcomes"
 import { resolveNoticeSchoolExecutiveLock } from "../model/notice-school-executive-access"
@@ -44,7 +47,6 @@ import {
   type SubmitNoticeCreateProgress,
 } from "../model/submit-notice-create"
 import { NoticeCreateFormFields } from "./notice-create/notice-create-form-fields"
-import { NoticeCreatePublishDialogErrorToast } from "./notice-create/notice-create-publish-dialog-error-toast"
 import { NoticeCreateSummaryPanel } from "./notice-create/notice-create-summary-panel"
 import { NoticeCreateVotePanel } from "./notice-create/notice-create-vote-panel"
 import { NoticeVoteDeleteDialog } from "./notice-create/notice-vote-delete-dialog"
@@ -54,6 +56,7 @@ import {
 } from "./notice-dialog-focus"
 import {
   showNoticeCreateForbiddenToast,
+  showNoticeCreatePublishFailureToast,
   showNoticeErrorToast,
   showNoticeImageUploadFailureToast,
 } from "./show-notice-error-toast"
@@ -80,8 +83,6 @@ export function NoticeCreatePage({
   )
   const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false)
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
-  /** 게시 Dialog slot에 표시할 오류 문구 (null이면 없음) */
-  const [publishError, setPublishError] = useState<string | null>(null)
   const publishDialogFocusStore = useRef<HTMLElement | null>(null)
   /** 게시 실패 후 재시도 시 완료된 단계(이미지·공지·첨부·투표)를 건너뛰기 위한 진행 상황 */
   const submitProgressRef = useRef<SubmitNoticeCreateProgress | null>(null)
@@ -100,6 +101,13 @@ export function NoticeCreatePage({
       submitProgressRef.current = null
     },
   })
+
+  useEffect(() => {
+    const stored = readNoticeCreatePublishProgress()
+    if (stored != null) {
+      submitProgressRef.current = stored
+    }
+  }, [])
 
   const isDirty = useMemo(
     () => isNoticeCreateFormDirty(form) || voteDraft != null,
@@ -301,11 +309,35 @@ export function NoticeCreatePage({
     }
   }
 
+  const navigateToListWithPublishFailureToast = async (
+    progress?: SubmitNoticeCreateProgress | null,
+  ) => {
+    if (progress != null) {
+      submitProgressRef.current = progress
+    }
+    writeNoticeCreatePublishProgress(submitProgressRef.current)
+
+    setPublishDialogOpen(false)
+    restoreNoticeDialogFocus(publishDialogFocusStore)
+    publishDialogFocusStore.current = null
+
+    allowLeave()
+    await navigate({
+      to: "/notices",
+      search: {},
+    })
+
+    showNoticeCreatePublishFailureToast(toast, () => {
+      void navigate({ to: "/notices/new" })
+    })
+  }
+
   const submitMutation = useMutation({
     mutationFn: submitNoticeCreate,
     onSuccess: async (outcome, variables) => {
       if (outcome.kind === "success") {
         submitProgressRef.current = null
+        writeNoticeCreatePublishProgress(null)
         restoreNoticeDialogFocus(publishDialogFocusStore)
         publishDialogFocusStore.current = null
         setPublishDialogOpen(false)
@@ -332,6 +364,15 @@ export function NoticeCreatePage({
       if (outcome.kind === "forbidden") {
         setPublishDialogOpen(false)
         restoreNoticeDialogFocus(publishDialogFocusStore)
+        if (outcome.progress != null) {
+          submitProgressRef.current = outcome.progress
+          writeNoticeCreatePublishProgress(outcome.progress)
+        }
+        allowLeave()
+        await navigate({
+          to: "/notices",
+          search: {},
+        })
         showNoticeCreateForbiddenToast(
           toast,
           NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE,
@@ -339,26 +380,18 @@ export function NoticeCreatePage({
         return
       }
 
-      if (outcome.kind === "server_error") {
-        setPublishError(outcome.message)
+      if (outcome.kind === "server_error" || outcome.kind === "network_error") {
+        await navigateToListWithPublishFailureToast(outcome.progress)
         return
       }
-
-      setPublishError(NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
     },
-    onError: () => {
-      setPublishDialogOpen(false)
-      restoreNoticeDialogFocus(publishDialogFocusStore)
-      setPublishError(NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE)
+    onError: async () => {
+      await navigateToListWithPublishFailureToast(submitProgressRef.current)
     },
   })
   const isSubmitting = submitMutation.isPending
 
   const dismissPublishDialog = () => {
-    if (isSubmitting) {
-      return
-    }
-    setPublishError(null)
     setPublishDialogOpen(false)
     restoreNoticeDialogFocus(publishDialogFocusStore)
   }
@@ -370,7 +403,6 @@ export function NoticeCreatePage({
     if (isSubmitting) {
       return
     }
-    setPublishError(null)
     captureNoticeDialogFocus(publishDialogFocusStore)
     setPublishDialogOpen(true)
   }
@@ -380,7 +412,8 @@ export function NoticeCreatePage({
       return
     }
 
-    setPublishError(null)
+    setPublishDialogOpen(false)
+    restoreNoticeDialogFocus(publishDialogFocusStore)
     setShowRequiredFieldErrors(true)
 
     const progress = submitProgressRef.current ?? {}
@@ -456,11 +489,7 @@ export function NoticeCreatePage({
 
       <Dialog
         cancelLabel="돌아가기"
-        className={
-          publishError != null
-            ? "notice-create-publish-dialog notice-create-publish-dialog--slot-error"
-            : "notice-create-publish-dialog"
-        }
+        className="notice-create-publish-dialog"
         color="brand"
         confirmLabel="게시하기"
         description={
@@ -474,22 +503,14 @@ export function NoticeCreatePage({
           handlePublishConfirm()
         }}
         onOpenChange={(open) => {
-          if (isSubmitting) {
-            return
-          }
           if (!open) {
-            setPublishError(null)
             restoreNoticeDialogFocus(publishDialogFocusStore)
           }
           setPublishDialogOpen(open)
         }}
-        open={publishDialogOpen || isSubmitting}
+        open={publishDialogOpen}
         title="공지를 올릴까요?"
-      >
-        {publishError != null ? (
-          <NoticeCreatePublishDialogErrorToast message={publishError} />
-        ) : null}
-      </Dialog>
+      />
 
       <NoticeCreateVotePanel
         initialDraft={voteDraft ?? undefined}

@@ -4,13 +4,4 @@
     width: 460px;
     max-width: calc(100vw - 32px);
   }
-
-  /**
-   * Figma 1492:45041 Toast Bottom slot — 긴 한 줄 메시지(최소 ~524px 토스트)
-   */
-  .notice-create-publish-dialog--slot-error {
-    width: max(460px, fit-content);
-    min-width: 524px;
-    max-width: calc(100vw - 32px);
-  }
 }
