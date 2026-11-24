@@ -214,7 +214,12 @@ function ExportDateField({
   return (
     <div className="relative min-w-0 flex-1" ref={anchorRef}>
       <TextFieldBoxField
-        className="w-full gap-(--umc-spacing-gap-6)"
+        className={cn(
+          "w-full gap-(--umc-spacing-gap-6)",
+          // 캘린더는 portal이라 focus-within이 풀림 → 열린 동안 typing 스타일 유지
+          isOpen &&
+            "[--umc-text-field-box-field-bg:var(--umc-text-field-box-field-typing-bg)] [--umc-text-field-box-field-border-color:var(--umc-color-border-primary-strong-500)]",
+        )}
         data-type={hasDate && !disabled ? "text" : undefined}
         disabled={disabled}
         size="lg"
@@ -225,6 +230,8 @@ function ExportDateField({
             "gap-(--umc-spacing-gap-6) border-0 bg-transparent p-0",
             disabled && "cursor-default",
           )}
+          // DS TextFieldBox: focus-within + [data-filled] 일 때 typing 배경
+          data-filled={isOpen || hasDate ? "" : undefined}
           disabled={disabled}
           onClick={() => {
             if (disabled) {

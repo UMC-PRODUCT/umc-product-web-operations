@@ -50,7 +50,12 @@ export function WithdrawalRegisterPage({
 
   const withdrawalMember = useMemo(() => {
     if (isPreselectedMember) {
-      return MOCK_WITHDRAWALS.find((member) => member.id === memberId) ?? null
+      return (
+        MOCK_WITHDRAWALS.find(
+          (member) =>
+            member.id === memberId || String(member.challengerId) === memberId,
+        ) ?? null
+      )
     }
     return pickedMember
   }, [isPreselectedMember, memberId, pickedMember])

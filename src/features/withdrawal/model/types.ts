@@ -5,7 +5,11 @@ export type WithdrawalStatus = "pending" | "withdrawn"
 export type WithdrawalReasonType = "voluntary" | "involuntary"
 
 export type WithdrawalMember = {
+  /** 행 키. `deactivationId` 또는 `challenger:{id}` */
   id: string
+  challengerId: number
+  /** 상세·CSV 선택에 사용. 등록 전/구기록은 null */
+  deactivationId: number | null
   name: string
   nickname: string
   /** 표시용 지부명. API `chapterName` 등 */
