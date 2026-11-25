@@ -72,6 +72,9 @@ export function validateNoticeCreateForm(
   if (!form.challengerEnabled && !form.staffEnabled) {
     return "공지 종류를 하나 이상 선택해 주세요"
   }
+  if (form.challengerEnabled && form.staffEnabled) {
+    return "챌린저 공지와 운영진 공지는 동시에 선택할 수 없어요"
+  }
   if (!form.title.trim()) {
     return "제목을 입력해 주세요"
   }

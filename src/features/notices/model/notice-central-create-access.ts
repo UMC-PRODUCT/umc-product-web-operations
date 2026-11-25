@@ -99,3 +99,35 @@ export function applyCentralStaffDisabledTargetReset(
 
   return centralCreateTargetBaselineNeither()
 }
+
+/** 챌린저·운영진은 동시 선택 불가 — 챌린저 체크 시 */
+export function enableNoticeCreateChallengerAudience(
+  form: NoticeCreateFormState,
+  centralUnrestrictedCreate: boolean,
+): Partial<NoticeCreateFormState> {
+  if (form.staffEnabled && centralUnrestrictedCreate) {
+    return {
+      ...centralCreateTargetBaselineChallengerOnly(),
+      challengerEnabled: true,
+      staffEnabled: false,
+    }
+  }
+
+  return { challengerEnabled: true, staffEnabled: false }
+}
+
+/** 챌린저·운영진은 동시 선택 불가 — 운영진 체크 시 */
+export function enableNoticeCreateStaffAudience(
+  form: NoticeCreateFormState,
+  centralUnrestrictedCreate: boolean,
+): Partial<NoticeCreateFormState> {
+  if (form.challengerEnabled && centralUnrestrictedCreate) {
+    return {
+      ...centralCreateTargetBaselineStaffOnly(form.staffScope),
+      staffEnabled: true,
+      challengerEnabled: false,
+    }
+  }
+
+  return { staffEnabled: true, challengerEnabled: false }
+}

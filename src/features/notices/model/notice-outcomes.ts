@@ -24,9 +24,12 @@ export const NOTICE_IMAGE_REGISTER_TOAST_MESSAGE = "이미지를 등록했어요
 export const NOTICE_CREATE_FORBIDDEN_TOAST_MESSAGE =
   "공지를 쓸 수 없는 대상이에요. 작성했던 내용은 그대로 남아있어요"
 
-/** Figma 888:30671 — 게시 확인 Dialog slot error Toast */
-export const NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE =
-  "공지를 게시하지 못했어요, 다시 시도해 주세요"
+/** Figma 2704:48597 — 게시 실패 Toast Bottom (목록 화면, 다시시도) */
+export const NOTICE_CREATE_PUBLISH_FAILURE_TOAST_MESSAGE =
+  "공지를 게시하지 못했어요. 다시 시도해 주세요"
+export const NOTICE_CREATE_PUBLISH_FAILURE_RETRY_LABEL = "다시시도"
+/** Figma 2704:48597 프레임 너비 — `toast.show({ width })` */
+export const NOTICE_CREATE_PUBLISH_FAILURE_TOAST_WIDTH = 427
 
 /** 서버가 HTTP 오류(4xx·5xx)로 응답했을 때 기본 안내 — 무응답(네트워크)과 구분 */
 export const NOTICE_CREATE_PUBLISH_SERVER_ERROR_MESSAGE =

@@ -75,12 +75,13 @@ export function NoticeEditSummaryPanel({
             className="w-full"
             color="brand"
             disabled={isSubmitting}
+            isLoading={isSubmitting}
             onClick={onSubmitClick}
             size="sm"
             type="button"
             variant="fill"
           >
-            {isSubmitting ? "수정 중..." : "수정하기"}
+            수정하기
           </Button>
           <Button
             className="w-full"

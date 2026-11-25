@@ -6,7 +6,6 @@ import { useMemo, useRef, useState } from "react"
 import { toOrganizationLists } from "@/entities/organization"
 
 import { buildNoticeCreateSummary } from "../model/build-notice-create-summary"
-import { deleteNoticeVoteByNoticeId } from "../model/delete-notice-vote"
 import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
 import {
   resolveNoticeCreateContextGisuId,
@@ -262,28 +261,15 @@ export function NoticeEditPage({
   })
   const isSubmitting = submitMutation.isPending
 
-  const deleteVoteMutation = useMutation({
-    mutationFn: deleteNoticeVoteByNoticeId,
-    onSuccess: async () => {
-      setAttachedVotePoll(null)
-      baselineAttachedVotePollRef.current = null
-      setVoteDeleteDialogOpen(false)
-      await queryClient.invalidateQueries({
-        queryKey: noticeKeys.detail(noticeId),
-      })
-    },
-    onError: () => {
-      showNoticeEditFailureToast(toast, NOTICE_EDIT_FAILURE_TOAST_MESSAGE)
-    },
-  })
-  const isDeletingVote = deleteVoteMutation.isPending
-
   const handleSubmit = () => {
     if (isSubmitting) {
       return
     }
 
     setShowRequiredFieldErrors(true)
+
+    const removeAttachedVote =
+      baselineAttachedVotePollRef.current != null && attachedVotePoll == null
 
     submitMutation.mutate({
       baselineImageIds: baselineFormRef.current.existingImages.map(
@@ -292,6 +278,7 @@ export function NoticeEditPage({
       baselineLinks: baselineFormRef.current.links,
       form,
       noticeId,
+      removeAttachedVote,
       voteDraft: attachedVotePoll == null ? voteDraft : null,
     })
   }
@@ -349,13 +336,13 @@ export function NoticeEditPage({
         open={votePanelOpen}
       />
       <NoticeVoteDeleteDialog
-        confirmLoading={isDeletingVote}
         onConfirm={() => {
           if (voteDeleteTargetRef.current === "draft") {
             clearVoteDraft()
             return
           }
-          deleteVoteMutation.mutate(noticeId)
+          setAttachedVotePoll(null)
+          setVoteDeleteDialogOpen(false)
         }}
         onOpenChange={setVoteDeleteDialogOpen}
         open={voteDeleteDialogOpen}
