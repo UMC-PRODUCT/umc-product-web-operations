@@ -12,7 +12,7 @@ export function formatWithdrawalGenerationLabel(
 export function formatWithdrawalMemberOrgMeta(
   member: WithdrawalMember,
 ): string {
-  const partLabel = getWithdrawalPartLabel(member.part)
+  const partLabel = member.partLabel ?? getWithdrawalPartLabel(member.part)
   return [member.chapterLabel, member.schoolLabel, partLabel]
     .filter(Boolean)
     .join(" · ")
@@ -22,7 +22,7 @@ export function formatWithdrawalMemberOrgMeta(
 export function formatWithdrawalMemberSelectedBarMeta(
   member: WithdrawalMember,
 ): string {
-  const partLabel = getWithdrawalPartLabel(member.part)
+  const partLabel = member.partLabel ?? getWithdrawalPartLabel(member.part)
   const generationLabel = formatWithdrawalGenerationLabel(
     member.generationNumber,
   )

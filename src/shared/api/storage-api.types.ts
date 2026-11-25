@@ -11,6 +11,7 @@ export type StorageFileCategory =
   | "PROJECT_THUMBNAIL"
   | "PROJECT_LOGO"
   | "UMC_PRODUCT_PROFILE_IMAGE"
+  | "CHALLENGER_DEACTIVATION_EVIDENCE"
   | "ETC"
 
 /** STORAGE-001 */

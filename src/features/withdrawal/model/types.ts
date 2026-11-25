@@ -6,6 +6,8 @@ export type WithdrawalReasonType = "voluntary" | "involuntary"
 
 export type WithdrawalMember = {
   id: string
+  /** 등록 API 경로용. 검색·CHALLENGER-101에서 채운다. */
+  challengerId?: number | null
   name: string
   nickname: string
   /** 표시용 지부명. API `chapterName` 등 */
@@ -14,6 +16,8 @@ export type WithdrawalMember = {
   generationNumber: number
   schoolLabel: string
   part: PartTagPart
+  /** API 파트 없음 등 — 표시용. 있으면 `getWithdrawalPartLabel(part)` 대신 사용 */
+  partLabel?: string
   reasonType: WithdrawalReasonType
   reasonLabel: string
   status: WithdrawalStatus
