@@ -5,6 +5,8 @@ import {
   applyCentralStaffDisabledTargetReset,
   centralCreateTargetBaselineChallengerOnly,
   centralCreateTargetBaselineStaffOnly,
+  enableNoticeCreateChallengerAudience,
+  enableNoticeCreateStaffAudience,
 } from "./notice-central-create-access"
 import { INITIAL_NOTICE_CREATE_FORM } from "./notice-create-form"
 
@@ -42,6 +44,41 @@ describe("central create target baselines on uncheck", () => {
       expect.objectContaining(
         centralCreateTargetBaselineStaffOnly("CENTRAL_MEMBER"),
       ),
+    )
+  })
+
+  it("enableNoticeCreateChallengerAudience turns staff off", () => {
+    expect(
+      enableNoticeCreateChallengerAudience(
+        {
+          ...INITIAL_NOTICE_CREATE_FORM,
+          challengerEnabled: false,
+          staffEnabled: true,
+        },
+        false,
+      ),
+    ).toEqual({ challengerEnabled: true, staffEnabled: false })
+  })
+
+  it("enableNoticeCreateStaffAudience turns challenger off and resets when central", () => {
+    expect(
+      enableNoticeCreateStaffAudience(
+        {
+          ...INITIAL_NOTICE_CREATE_FORM,
+          challengerEnabled: true,
+          staffEnabled: false,
+          orgMode: "school",
+          schoolId: 2,
+        },
+        true,
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        challengerEnabled: false,
+        staffEnabled: true,
+        orgMode: "umc",
+        schoolId: null,
+      }),
     )
   })
 

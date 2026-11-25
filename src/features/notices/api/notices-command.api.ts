@@ -115,3 +115,13 @@ export async function deleteNoticeVote(noticeId: number): Promise<void> {
     unwrapApiResult<null>(data)
   }
 }
+
+/** 진행 중인 공지 투표 즉시 종료 — endsAtExclusive 를 현재 시각으로 앞당김 */
+export async function closeNoticeVote(noticeId: number): Promise<void> {
+  const { data } = await api.post<unknown>(
+    `/v1/notices/${noticeId}/vote/closure`,
+  )
+  if (hasResponseBody(data)) {
+    unwrapApiResult<null>(data)
+  }
+}

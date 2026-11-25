@@ -4,6 +4,8 @@ import { useMemo } from "react"
 import {
   applyCentralChallengerDisabledTargetReset,
   applyCentralStaffDisabledTargetReset,
+  enableNoticeCreateChallengerAudience,
+  enableNoticeCreateStaffAudience,
 } from "../../model/notice-central-create-access"
 import { applyNoticeChapterPresidentCreateFormLock } from "../../model/notice-chapter-president-access"
 import {
@@ -100,10 +102,17 @@ export function NoticeCreateAudienceSection({
               ) {
                 onChange({
                   ...applyNoticeChapterPresidentCreateFormLock({
-                    form: { ...form, challengerEnabled: true },
+                    form: {
+                      ...form,
+                      ...enableNoticeCreateChallengerAudience(
+                        form,
+                        centralUnrestrictedCreate,
+                      ),
+                    },
                     ...chapterPresidentCreateLock,
                   }),
                   challengerEnabled: true,
+                  staffEnabled: false,
                 })
                 return
               }
@@ -115,10 +124,17 @@ export function NoticeCreateAudienceSection({
               ) {
                 onChange({
                   ...applyNoticeSchoolExecutiveChallengerCreateLock({
-                    form: { ...form, challengerEnabled: true },
+                    form: {
+                      ...form,
+                      ...enableNoticeCreateChallengerAudience(
+                        form,
+                        centralUnrestrictedCreate,
+                      ),
+                    },
                     ...schoolExecutiveCreateLock,
                   }),
                   challengerEnabled: true,
+                  staffEnabled: false,
                 })
                 return
               }
@@ -129,8 +145,11 @@ export function NoticeCreateAudienceSection({
                 form.orgMode !== "umc"
               ) {
                 onChange({
+                  ...enableNoticeCreateChallengerAudience(
+                    form,
+                    centralUnrestrictedCreate,
+                  ),
                   chapterId: null,
-                  challengerEnabled,
                   orgMode: "umc",
                   schoolId: null,
                 })
@@ -147,7 +166,17 @@ export function NoticeCreateAudienceSection({
                 return
               }
 
-              onChange({ challengerEnabled })
+              if (challengerEnabled) {
+                onChange(
+                  enableNoticeCreateChallengerAudience(
+                    form,
+                    centralUnrestrictedCreate,
+                  ),
+                )
+                return
+              }
+
+              onChange({ challengerEnabled: false })
             }}
             size="lg"
           >
@@ -181,6 +210,7 @@ export function NoticeCreateAudienceSection({
                   chapterId: null,
                   schoolId: schoolExecutiveCreateLock.schoolId,
                   staffEnabled: true,
+                  challengerEnabled: false,
                   staffScope: NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
                   targetGisuId: schoolExecutiveCreateLock.targetGisuId,
                 })
@@ -189,16 +219,18 @@ export function NoticeCreateAudienceSection({
 
               if (
                 staffEnabled &&
-                !form.challengerEnabled &&
                 !schoolExecutiveLocked &&
                 (form.orgMode === "chapter" || form.gisuMode === "all")
               ) {
                 onChange({
+                  ...enableNoticeCreateStaffAudience(
+                    form,
+                    centralUnrestrictedCreate,
+                  ),
                   chapterId: null,
                   gisuMode:
                     form.gisuMode === "all" ? "specific" : form.gisuMode,
                   orgMode: form.orgMode === "chapter" ? "umc" : form.orgMode,
-                  staffEnabled,
                 })
                 return
               }
@@ -213,7 +245,17 @@ export function NoticeCreateAudienceSection({
                 return
               }
 
-              onChange({ staffEnabled })
+              if (staffEnabled) {
+                onChange(
+                  enableNoticeCreateStaffAudience(
+                    form,
+                    centralUnrestrictedCreate,
+                  ),
+                )
+                return
+              }
+
+              onChange({ staffEnabled: false })
             }}
             size="lg"
           >

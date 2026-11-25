@@ -1,15 +1,19 @@
+import { useQuery } from "@tanstack/react-query"
 import { SearchField } from "@umc-product/react"
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 
+import { useSelectedGisu } from "@/entities/gisu"
 import { cn } from "@/shared/lib/cn"
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 
-import { MOCK_WITHDRAWALS } from "../model/mock-withdrawals"
+import { searchWithdrawalRegisterTargets } from "../model/load-withdrawal-register-target"
+import {
+  mapRegisterTargetToWithdrawalMember,
+  type WithdrawalRegisterTarget,
+} from "../model/map-challenger-to-register-target"
 import { WithdrawalRegisterMemberSearchDropdown } from "./withdrawal-register-member-search-dropdown"
 import { WithdrawalRegisterSection } from "./withdrawal-register-section"
 import { WithdrawalRegisterTargetSelectedBar } from "./withdrawal-register-target-selected-bar"
-
-import type { WithdrawalMember } from "../model/types"
 
 const WITHDRAWAL_REGISTER_MEMBER_SEARCH_DEBOUNCE_MS = 300
 
@@ -37,22 +41,9 @@ function SectionFieldLabel({
   )
 }
 
-function filterMembersByKeyword(keyword: string): WithdrawalMember[] {
-  const query = keyword.trim().toLowerCase()
-  if (!query) {
-    return []
-  }
-  return MOCK_WITHDRAWALS.filter(
-    (member) =>
-      member.status === "pending" &&
-      (member.name.toLowerCase().includes(query) ||
-        member.nickname.toLowerCase().includes(query)),
-  )
-}
-
 type WithdrawalRegisterTargetSectionProps = {
-  selectedMember: WithdrawalMember | null
-  onSelectMember: (member: WithdrawalMember | null) => void
+  selectedTarget: WithdrawalRegisterTarget | null
+  onSelectTarget: (target: WithdrawalRegisterTarget | null) => void
 }
 
 /**
@@ -60,9 +51,10 @@ type WithdrawalRegisterTargetSectionProps = {
  * 검색 디바운스는 공지 목록과 동일 `useDebouncedValue`(300ms).
  */
 export function WithdrawalRegisterTargetSection({
-  onSelectMember,
-  selectedMember,
+  onSelectTarget,
+  selectedTarget,
 }: WithdrawalRegisterTargetSectionProps) {
+  const selectedGisu = useSelectedGisu()
   const [queryInput, setQueryInput] = useState("")
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
@@ -72,10 +64,26 @@ export function WithdrawalRegisterTargetSection({
     WITHDRAWAL_REGISTER_MEMBER_SEARCH_DEBOUNCE_MS,
   )
 
-  const searchResults = useMemo(
-    () => filterMembersByKeyword(debouncedQuery),
-    [debouncedQuery],
-  )
+  const trimmedQuery = debouncedQuery.trim()
+  const searchQuery = useQuery({
+    queryKey: [
+      "withdrawal",
+      "register-member-search",
+      selectedGisu.gisuId,
+      trimmedQuery,
+    ],
+    queryFn: () =>
+      searchWithdrawalRegisterTargets({
+        keyword: trimmedQuery,
+        gisuId: selectedGisu.gisuId,
+      }),
+    enabled: trimmedQuery.length > 0 && selectedGisu.gisuId != null,
+    retry: false,
+  })
+
+  const searchResults = useMemo(() => {
+    return (searchQuery.data ?? []).map(mapRegisterTargetToWithdrawalMember)
+  }, [searchQuery.data])
 
   useEffect(() => {
     return () => {
@@ -90,15 +98,19 @@ export function WithdrawalRegisterTargetSection({
   }, [debouncedQuery, searchResults])
 
   const showDropdown =
-    dropdownOpen && debouncedQuery.trim().length > 0 && selectedMember == null
+    dropdownOpen && trimmedQuery.length > 0 && selectedTarget == null
 
   const activeOptionId =
     highlightedIndex >= 0 && searchResults[highlightedIndex] != null
       ? `withdrawal-member-option-${searchResults[highlightedIndex].id}`
       : undefined
 
-  const pickMember = (member: WithdrawalMember) => {
-    onSelectMember(member)
+  const pickTargetByMemberId = (memberId: string) => {
+    const match = searchQuery.data?.find((target) => target.id === memberId)
+    if (match == null) {
+      return
+    }
+    onSelectTarget(match)
     setQueryInput("")
     setDropdownOpen(false)
     setHighlightedIndex(-1)
@@ -108,7 +120,7 @@ export function WithdrawalRegisterTargetSection({
     const hasResults = searchResults.length > 0
 
     if (event.key === "ArrowDown") {
-      if (debouncedQuery.trim().length === 0) {
+      if (trimmedQuery.length === 0) {
         return
       }
       event.preventDefault()
@@ -143,7 +155,7 @@ export function WithdrawalRegisterTargetSection({
         return
       }
       event.preventDefault()
-      pickMember(member)
+      pickTargetByMemberId(member.id)
       return
     }
 
@@ -153,6 +165,11 @@ export function WithdrawalRegisterTargetSection({
     }
   }
 
+  const selectedMember =
+    selectedTarget != null
+      ? mapRegisterTargetToWithdrawalMember(selectedTarget)
+      : null
+
   return (
     <WithdrawalRegisterSection title="탈부 대상">
       <div className="flex w-full flex-col gap-(--umc-spacing-gap-12)">
@@ -161,7 +178,7 @@ export function WithdrawalRegisterTargetSection({
           <WithdrawalRegisterTargetSelectedBar
             member={selectedMember}
             onClear={() => {
-              onSelectMember(null)
+              onSelectTarget(null)
               setQueryInput("")
               setDropdownOpen(false)
               setHighlightedIndex(-1)
@@ -202,9 +219,9 @@ export function WithdrawalRegisterTargetSection({
               highlightedIndex={highlightedIndex}
               members={searchResults}
               onHighlightIndex={setHighlightedIndex}
-              onSelectMember={pickMember}
+              onSelectMember={(member) => pickTargetByMemberId(member.id)}
               searchQuery={debouncedQuery}
-              visible={showDropdown}
+              visible={showDropdown && !searchQuery.isFetching}
             />
           </div>
         )}

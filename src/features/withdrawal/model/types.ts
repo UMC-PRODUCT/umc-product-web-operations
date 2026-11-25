@@ -18,6 +18,8 @@ export type WithdrawalMember = {
   generationNumber: number
   schoolLabel: string
   part: PartTagPart
+  /** API 파트 없음 등 — 표시용. 있으면 `getWithdrawalPartLabel(part)` 대신 사용 */
+  partLabel?: string
   reasonType: WithdrawalReasonType
   reasonLabel: string
   status: WithdrawalStatus

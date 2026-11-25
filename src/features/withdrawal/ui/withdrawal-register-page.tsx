@@ -1,11 +1,13 @@
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useToast } from "@umc-product/react"
 import { useMemo, useState } from "react"
 
+import { useSelectedGisu } from "@/entities/gisu"
 import { useFormLeaveConfirm } from "@/shared/lib/use-form-leave-confirm"
 
-import { mapWithdrawalMemberToProfileMember } from "../model/map-withdrawal-register-member"
-import { MOCK_WITHDRAWALS } from "../model/mock-withdrawals"
+import { loadWithdrawalRegisterTargetByRouteId } from "../model/load-withdrawal-register-target"
+import { submitWithdrawalRegister } from "../model/submit-withdrawal-register"
 import { buildWithdrawalLocationState } from "../model/withdrawal-location-state"
 import { isWithdrawalRegisterFormDirty } from "../model/withdrawal-register-dirty"
 import {
@@ -26,7 +28,7 @@ import { WithdrawalRegisterServiceNotice } from "./withdrawal-register-service-n
 import { WithdrawalRegisterSummaryPanel } from "./withdrawal-register-summary-panel"
 import { WithdrawalRegisterTargetSection } from "./withdrawal-register-target-section"
 
-import type { WithdrawalMember } from "../model/types"
+import type { WithdrawalRegisterTarget } from "../model/map-challenger-to-register-target"
 
 type WithdrawalRegisterPageProps = {
   memberId?: string
@@ -37,41 +39,40 @@ export function WithdrawalRegisterPage({
 }: WithdrawalRegisterPageProps) {
   const navigate = useNavigate()
   const toast = useToast()
+  const selectedGisu = useSelectedGisu()
   const [form, setForm] = useState<WithdrawalRegisterFormState>(
     INITIAL_WITHDRAWAL_REGISTER_FORM,
   )
   const [showReasonError, setShowReasonError] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [pickedMember, setPickedMember] = useState<WithdrawalMember | null>(
-    null,
-  )
+  const [pickedTarget, setPickedTarget] =
+    useState<WithdrawalRegisterTarget | null>(null)
 
   const isPreselectedMember = memberId != null
 
-  const withdrawalMember = useMemo(() => {
-    if (isPreselectedMember) {
-      return (
-        MOCK_WITHDRAWALS.find(
-          (member) =>
-            member.id === memberId || String(member.challengerId) === memberId,
-        ) ?? null
-      )
-    }
-    return pickedMember
-  }, [isPreselectedMember, memberId, pickedMember])
+  const preselectedTargetQuery = useQuery({
+    queryKey: ["withdrawal", "register-prefill", memberId, selectedGisu.gisuId],
+    queryFn: () =>
+      loadWithdrawalRegisterTargetByRouteId({
+        routeMemberId: memberId!,
+        gisuId: selectedGisu.gisuId,
+      }),
+    enabled: isPreselectedMember && selectedGisu.gisuId != null,
+    retry: false,
+  })
 
-  const profileMember = useMemo(
-    () =>
-      withdrawalMember != null
-        ? mapWithdrawalMemberToProfileMember(withdrawalMember)
-        : null,
-    [withdrawalMember],
-  )
+  const registerTarget = isPreselectedMember
+    ? (preselectedTargetQuery.data ?? null)
+    : pickedTarget
 
   const isDirty = useMemo(
     () =>
-      isWithdrawalRegisterFormDirty(form, pickedMember, isPreselectedMember),
-    [form, isPreselectedMember, pickedMember],
+      isWithdrawalRegisterFormDirty(
+        form,
+        registerTarget != null,
+        isPreselectedMember,
+      ),
+    [form, isPreselectedMember, registerTarget],
   )
 
   const {
@@ -88,7 +89,7 @@ export function WithdrawalRegisterPage({
   })
 
   const canSubmitForm = useMemo(() => {
-    if (profileMember == null) {
+    if (registerTarget == null) {
       return false
     }
     if (form.reasonType == null || form.reasonId == null) {
@@ -104,7 +105,7 @@ export function WithdrawalRegisterPage({
       findWithdrawalRegisterReason(form.reasonId)?.reasonType ===
       form.reasonType
     )
-  }, [form.otherReasonDetail, form.reasonId, form.reasonType, profileMember])
+  }, [form.otherReasonDetail, form.reasonId, form.reasonType, registerTarget])
 
   const patchForm = (patch: Partial<WithdrawalRegisterFormState>) => {
     setForm((current) => ({ ...current, ...patch }))
@@ -115,7 +116,7 @@ export function WithdrawalRegisterPage({
   }
 
   const handleSubmit = () => {
-    if (profileMember == null) {
+    if (registerTarget == null) {
       return
     }
     if (!canSubmitForm) {
@@ -125,16 +126,20 @@ export function WithdrawalRegisterPage({
     setIsSubmitting(true)
     void (async () => {
       try {
-        // TODO: 탈부 등록 API 연동 — 실패 시 catch에서 failure toast
-        await new Promise((resolve) => {
-          setTimeout(resolve, 400)
+        const result = await submitWithdrawalRegister({
+          target: registerTarget,
+          form,
         })
+        if (!result.ok) {
+          showWithdrawalRegisterFailureToast(toast)
+          return
+        }
         allowLeave()
         await navigate({
           state: buildWithdrawalLocationState({
             registerSuccessToast: formatWithdrawalRegisterSuccessToastMessage(
-              profileMember.name,
-              profileMember.nickname,
+              registerTarget.name,
+              registerTarget.nickname,
             ),
           }),
           search: { mock: undefined },
@@ -148,7 +153,21 @@ export function WithdrawalRegisterPage({
     })()
   }
 
-  if (isPreselectedMember && profileMember == null) {
+  if (
+    isPreselectedMember &&
+    preselectedTargetQuery.isPending &&
+    selectedGisu.gisuId != null
+  ) {
+    return (
+      <section className="flex flex-col gap-(--umc-spacing-gap-20) pl-(--umc-spacing-padding-12)">
+        <p className="text-body-3-regular text-neutral-medium-600">
+          구성원 정보를 불러오는 중이에요
+        </p>
+      </section>
+    )
+  }
+
+  if (isPreselectedMember && registerTarget == null) {
     return (
       <section className="flex flex-col gap-(--umc-spacing-gap-20) pl-(--umc-spacing-padding-12)">
         <p className="text-body-3-regular text-neutral-medium-600">
@@ -168,12 +187,12 @@ export function WithdrawalRegisterPage({
 
       <div className="flex w-full items-start gap-(--umc-spacing-gap-32)">
         <div className="flex min-w-0 flex-1 flex-col gap-(--umc-spacing-gap-32)">
-          {isPreselectedMember && profileMember != null ? (
-            <WithdrawalRegisterProfileCard member={profileMember} />
+          {isPreselectedMember && registerTarget != null ? (
+            <WithdrawalRegisterProfileCard member={registerTarget} />
           ) : (
             <WithdrawalRegisterTargetSection
-              onSelectMember={setPickedMember}
-              selectedMember={pickedMember}
+              onSelectTarget={setPickedTarget}
+              selectedTarget={pickedTarget}
             />
           )}
           <WithdrawalRegisterInfoSection
@@ -196,7 +215,7 @@ export function WithdrawalRegisterPage({
           canSubmit={canSubmitForm}
           form={form}
           isSubmitting={isSubmitting}
-          member={profileMember}
+          member={registerTarget}
           onCancel={handleCancel}
           onSubmit={handleSubmit}
         />
