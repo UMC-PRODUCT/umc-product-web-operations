@@ -227,6 +227,7 @@ export function mapRegisterTargetToWithdrawalMember(
     status: "pending",
     withdrawnAtLabel: null,
     challengerId: target.challengerId,
+    deactivationId: null,
   }
 }
 

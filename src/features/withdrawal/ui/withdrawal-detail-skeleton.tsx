@@ -92,28 +92,16 @@ export function WithdrawalDetailSkeleton() {
       <div className="flex w-full flex-col gap-(--umc-spacing-gap-4)">
         <Skeleton className="h-[22px] w-[74px] rounded-[4px]" />
         <div className="flex w-full items-center gap-(--umc-spacing-gap-4)">
-          <p className="text-body-2-regular text-neutral-medium-600 whitespace-nowrap">
-            10/22 21:10
-          </p>
-          <p className="text-body-2-regular text-neutral-medium-600 whitespace-nowrap">
-            탈부 등록 · 루카
-          </p>
+          <Skeleton className="h-[22px] w-[72px] shrink-0 rounded-[4px]" />
+          <Skeleton className="h-[22px] w-[120px] shrink-0 rounded-[4px]" />
         </div>
         <div className="flex w-full items-center gap-(--umc-spacing-gap-4)">
-          <p className="text-body-2-regular text-neutral-medium-600 whitespace-nowrap">
-            10/22 21:10
-          </p>
-          <p className="text-body-2-regular text-neutral-medium-600 whitespace-nowrap">
-            탈부 등록 · 루카
-          </p>
+          <Skeleton className="h-[22px] w-[72px] shrink-0 rounded-[4px]" />
+          <Skeleton className="h-[22px] w-[120px] shrink-0 rounded-[4px]" />
         </div>
         <div className="flex w-full items-center gap-(--umc-spacing-gap-4)">
-          <p className="text-body-2-regular text-neutral-medium-600 whitespace-nowrap">
-            10/22 21:10
-          </p>
-          <p className="text-body-2-regular text-neutral-medium-600 whitespace-nowrap">
-            탈부 등록 · 루카
-          </p>
+          <Skeleton className="h-[22px] w-[72px] shrink-0 rounded-[4px]" />
+          <Skeleton className="h-[22px] w-[120px] shrink-0 rounded-[4px]" />
         </div>
       </div>
     </div>

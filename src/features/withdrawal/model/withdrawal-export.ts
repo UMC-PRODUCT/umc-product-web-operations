@@ -38,12 +38,16 @@ export type WithdrawalExportFormState = {
 }
 
 export function createInitialWithdrawalExportForm(): WithdrawalExportFormState {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
   return {
-    startDate: null,
+    startDate: today,
     endDate: null,
     schoolId: null,
     types: new Set(),
-    columns: new Set(),
+    columns: new Set(
+      WITHDRAWAL_EXPORT_COLUMN_OPTIONS.map((option) => option.value),
+    ),
     personalConsent: false,
   }
 }

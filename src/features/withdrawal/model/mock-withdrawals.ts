@@ -3,7 +3,9 @@ import type { WithdrawalMember } from "./types"
 /** Figma 탈부 관리 테이블 목 데이터 (API 연동 전) */
 export const MOCK_WITHDRAWALS: WithdrawalMember[] = [
   {
-    id: "1",
+    id: "challenger:1",
+    challengerId: 1,
+    deactivationId: null,
     name: "김땡땡",
     nickname: "닉네임닉네임",
     chapterLabel: "서울 지부",
@@ -17,6 +19,8 @@ export const MOCK_WITHDRAWALS: WithdrawalMember[] = [
   },
   {
     id: "2",
+    challengerId: 2,
+    deactivationId: 2,
     name: "김땡땡",
     nickname: "닉네임닉네임",
     chapterLabel: "서울 지부",
@@ -29,7 +33,9 @@ export const MOCK_WITHDRAWALS: WithdrawalMember[] = [
     withdrawnAtLabel: "10/23",
   },
   {
-    id: "3",
+    id: "challenger:3",
+    challengerId: 3,
+    deactivationId: null,
     name: "김땡땡",
     nickname: "닉네임닉네임",
     chapterLabel: "서울 지부",
@@ -44,8 +50,8 @@ export const MOCK_WITHDRAWALS: WithdrawalMember[] = [
 ]
 
 export const WITHDRAWAL_REASON_FILTER_OPTIONS = [
-  { value: "voluntary", label: "자의" },
-  { value: "involuntary", label: "타의" },
+  { value: "voluntary", label: "자진 탈부" },
+  { value: "involuntary", label: "타의 탈부" },
 ] as const
 
 export const WITHDRAWAL_STATUS_FILTER_OPTIONS = [
@@ -56,7 +62,7 @@ export const WITHDRAWAL_STATUS_FILTER_OPTIONS = [
 export function withdrawalReasonTypeLabel(
   reasonType: WithdrawalMember["reasonType"],
 ): string {
-  return reasonType === "voluntary" ? "자의" : "타의"
+  return reasonType === "voluntary" ? "자진" : "타의"
 }
 
 export function withdrawalStatusLabel(
