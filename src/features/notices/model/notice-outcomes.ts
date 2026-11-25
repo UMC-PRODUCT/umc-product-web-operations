@@ -31,10 +31,6 @@ export const NOTICE_CREATE_PUBLISH_FAILURE_RETRY_LABEL = "다시시도"
 /** Figma 2704:48597 프레임 너비 — `toast.show({ width })` */
 export const NOTICE_CREATE_PUBLISH_FAILURE_TOAST_WIDTH = 427
 
-/** @deprecated 목록 Toast 문구는 NOTICE_CREATE_PUBLISH_FAILURE_TOAST_MESSAGE 사용 */
-export const NOTICE_CREATE_PUBLISH_NETWORK_ERROR_MESSAGE =
-  NOTICE_CREATE_PUBLISH_FAILURE_TOAST_MESSAGE
-
 /** 서버가 HTTP 오류(4xx·5xx)로 응답했을 때 기본 안내 — 무응답(네트워크)과 구분 */
 export const NOTICE_CREATE_PUBLISH_SERVER_ERROR_MESSAGE =
   "서버에서 공지를 처리하지 못했어요. 잠시 후 다시 시도해 주세요"
