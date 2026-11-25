@@ -1,5 +1,6 @@
 import { Button, Divider } from "@umc-product/react"
 
+import { formatWithdrawalMemberDisplayName } from "../model/format-withdrawal-member-meta"
 import { getWithdrawalPartLabel } from "../model/member-part-label"
 import {
   findWithdrawalRegisterReason,
@@ -106,7 +107,7 @@ export function WithdrawalRegisterSummaryPanel({
               <SummaryRow
                 label="대상"
                 subValue={targetSubLine}
-                value={`${member.name} / ${member.nickname}`}
+                value={formatWithdrawalMemberDisplayName(member)}
               />
             ) : null}
             {reasonTypeLabel != null ? (

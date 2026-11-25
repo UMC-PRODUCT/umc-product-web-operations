@@ -1,13 +1,12 @@
-import type { WithdrawalMember } from "./types"
 import type { WithdrawalRegisterFormState } from "./withdrawal-register-form"
 
 /** 탈부 등록 폼·대상 선택에 사용자 입력이 있으면 true */
 export function isWithdrawalRegisterFormDirty(
   form: WithdrawalRegisterFormState,
-  pickedMember: WithdrawalMember | null,
+  hasSelectedTarget: boolean,
   isPreselectedMember: boolean,
 ): boolean {
-  if (!isPreselectedMember && pickedMember != null) {
+  if (!isPreselectedMember && hasSelectedTarget) {
     return true
   }
 
