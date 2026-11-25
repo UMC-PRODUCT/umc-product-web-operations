@@ -1,6 +1,14 @@
 import "./withdrawal-register-member-search-dropdown.css"
 
 import { SearchIcon } from "@umc-product/icons"
+import { ScrollFog } from "@umc-product/react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 
 import { cn } from "@/shared/lib/cn"
 import { EmptyState } from "@/shared/ui/empty-state"
@@ -10,6 +18,12 @@ import { formatWithdrawalMemberOrgMeta } from "../model/format-withdrawal-member
 import type { WithdrawalMember } from "../model/types"
 
 const MENU_SIZE = "md" as const
+/** Figma — 5행까지 고정, 6행 이상 세로 스크롤 */
+const MEMBER_SEARCH_DROPDOWN_MAX_VISIBLE_ROWS = 5
+/** DS Menu md 행 높이 (패딩 포함) */
+const MEMBER_SEARCH_DROPDOWN_ROW_HEIGHT_PX = 44
+const MEMBER_SEARCH_DROPDOWN_SCROLL_MAX_HEIGHT_PX =
+  MEMBER_SEARCH_DROPDOWN_MAX_VISIBLE_ROWS * MEMBER_SEARCH_DROPDOWN_ROW_HEIGHT_PX
 
 function MemberSearchRowLabel({
   caption,
@@ -93,6 +107,70 @@ export function WithdrawalRegisterMemberSearchDropdown({
   searchQuery,
   visible,
 }: WithdrawalRegisterMemberSearchDropdownProps) {
+  const listScrollRef = useRef<HTMLDivElement>(null)
+  const [showBottomListScrollFog, setShowBottomListScrollFog] = useState(false)
+  const shouldScrollList =
+    members.length > MEMBER_SEARCH_DROPDOWN_MAX_VISIBLE_ROWS
+
+  const updateListScrollFog = useCallback(() => {
+    const element = listScrollRef.current
+    if (element == null || !shouldScrollList) {
+      setShowBottomListScrollFog(false)
+      return
+    }
+    const hasOverflow = element.scrollHeight - element.clientHeight > 1
+    const atBottom =
+      element.scrollTop + element.clientHeight >= element.scrollHeight - 1
+    setShowBottomListScrollFog(hasOverflow && !atBottom)
+  }, [shouldScrollList])
+
+  useLayoutEffect(() => {
+    if (!visible || members.length === 0) {
+      setShowBottomListScrollFog(false)
+      return
+    }
+    updateListScrollFog()
+    const rafId = requestAnimationFrame(updateListScrollFog)
+    return () => {
+      cancelAnimationFrame(rafId)
+    }
+  }, [members, visible, updateListScrollFog])
+
+  useEffect(() => {
+    if (!visible || !shouldScrollList) {
+      return
+    }
+    const element = listScrollRef.current
+    if (element == null) {
+      return
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateListScrollFog()
+    })
+    observer.observe(element)
+    element.addEventListener("scroll", updateListScrollFog, { passive: true })
+
+    return () => {
+      observer.disconnect()
+      element.removeEventListener("scroll", updateListScrollFog)
+    }
+  }, [visible, shouldScrollList, members.length, updateListScrollFog])
+
+  useEffect(() => {
+    if (!shouldScrollList || highlightedIndex < 0) {
+      return
+    }
+    const member = members[highlightedIndex]
+    if (member == null) {
+      return
+    }
+    const option = listScrollRef.current?.querySelector<HTMLElement>(
+      `#withdrawal-member-option-${member.id}`,
+    )
+    option?.scrollIntoView({ block: "nearest" })
+  }, [highlightedIndex, members, shouldScrollList])
+
   if (!visible) {
     return null
   }
@@ -110,19 +188,38 @@ export function WithdrawalRegisterMemberSearchDropdown({
       {members.length === 0 ? (
         <MemberSearchEmptyState query={searchQuery} />
       ) : (
-        members.map((member, index) => (
-          <MemberSearchDropdownRow
-            highlighted={highlightedIndex === index}
-            key={member.id}
-            member={member}
-            onHighlight={() => {
-              onHighlightIndex(index)
-            }}
-            onSelect={() => {
-              onSelectMember(member)
-            }}
-          />
-        ))
+        <div className="relative overflow-hidden">
+          <div
+            className={cn(shouldScrollList && "overflow-y-auto")}
+            ref={listScrollRef}
+            style={
+              shouldScrollList
+                ? { maxHeight: MEMBER_SEARCH_DROPDOWN_SCROLL_MAX_HEIGHT_PX }
+                : undefined
+            }
+          >
+            {members.map((member, index) => (
+              <MemberSearchDropdownRow
+                highlighted={highlightedIndex === index}
+                key={member.id}
+                member={member}
+                onHighlight={() => {
+                  onHighlightIndex(index)
+                }}
+                onSelect={() => {
+                  onSelectMember(member)
+                }}
+              />
+            ))}
+          </div>
+          {showBottomListScrollFog ? (
+            <ScrollFog
+              aria-hidden
+              className="pointer-events-none absolute right-0 bottom-0 left-0 h-[74px]"
+              side="bottom"
+            />
+          ) : null}
+        </div>
       )}
     </div>
   )
