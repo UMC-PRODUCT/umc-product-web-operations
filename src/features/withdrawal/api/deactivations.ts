@@ -6,6 +6,9 @@ import type { MemberPart } from "@/entities/member"
 /** CHALLENGER-105 목록 status — PENDING=등록 전, REGISTERED=탈부 */
 export type DeactivationListStatus = "PENDING" | "REGISTERED"
 
+/** CHALLENGER-105 목록 type — VOLUNTARY=자진, INVOLUNTARY=타의 */
+export type DeactivationListType = "VOLUNTARY" | "INVOLUNTARY"
+
 export type DeactivationReasonCode =
   | "VOLUNTARY_ACADEMIC_AND_SCHEDULE"
   | "VOLUNTARY_CAREER_PREPARATION"
@@ -54,6 +57,8 @@ export type ListDeactivationsParams = {
   part?: MemberPart
   keyword?: string
   reason?: DeactivationReasonCode
+  /** 자진/타의 그룹 필터 */
+  type?: DeactivationListType
   status?: DeactivationListStatus
   page: number
   size: number
@@ -76,6 +81,7 @@ export async function listDeactivations(params: ListDeactivationsParams) {
         ...(params.part ? { part: params.part } : {}),
         ...(params.keyword ? { keyword: params.keyword } : {}),
         ...(params.reason ? { reason: params.reason } : {}),
+        ...(params.type ? { type: params.type } : {}),
         ...(params.status ? { status: params.status } : {}),
         ...(params.sort?.length ? { sort: params.sort } : {}),
       },

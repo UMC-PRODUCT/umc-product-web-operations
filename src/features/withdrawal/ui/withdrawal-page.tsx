@@ -24,6 +24,7 @@ import {
   downloadCsvBlob,
   resolveExportFilename,
   toDeactivationListStatus,
+  toDeactivationListType,
   toDeactivationPart,
   toExportColumns,
   toExportTypes,
@@ -162,13 +163,14 @@ export function WithdrawalPage({
       part: toDeactivationPart(part),
       keyword: debouncedQuery || undefined,
       status: toDeactivationListStatus(status),
-      // 자의/타의 그룹 필터는 API 단일 reason과 불일치 → 표시만 유지
+      type: toDeactivationListType(reason),
     }),
     [
       chapterId,
       debouncedQuery,
       page,
       part,
+      reason,
       schoolId,
       selectedGisu.gisuId,
       status,
@@ -615,8 +617,8 @@ export function WithdrawalPage({
         onOpenChange={(open) => {
           setDetailOpen(open)
           if (!open) {
+            // 닫힘 애니메이션 동안 detail을 유지해야 스켈레톤으로 깜빡이지 않음
             setDetailDeactivationId(null)
-            setDetail(null)
           }
         }}
         open={detailOpen}

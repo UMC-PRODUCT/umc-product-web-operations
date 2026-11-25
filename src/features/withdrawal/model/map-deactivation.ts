@@ -13,6 +13,7 @@ import type {
   DeactivationDetail,
   DeactivationListItem,
   DeactivationListStatus,
+  DeactivationListType,
   DeactivationReasonCode,
   ExportDeactivationColumn,
   ExportDeactivationType,
@@ -91,6 +92,18 @@ export function toDeactivationListStatus(
   }
   if (status === "withdrawn") {
     return "REGISTERED"
+  }
+  return undefined
+}
+
+export function toDeactivationListType(
+  reasonType: string | null,
+): DeactivationListType | undefined {
+  if (reasonType === "voluntary") {
+    return "VOLUNTARY"
+  }
+  if (reasonType === "involuntary") {
+    return "INVOLUNTARY"
   }
   return undefined
 }
