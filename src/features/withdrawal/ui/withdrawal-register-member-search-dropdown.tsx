@@ -13,7 +13,10 @@ import {
 import { cn } from "@/shared/lib/cn"
 import { EmptyState } from "@/shared/ui/empty-state"
 
-import { formatWithdrawalMemberOrgMeta } from "../model/format-withdrawal-member-meta"
+import {
+  formatWithdrawalMemberDisplayName,
+  formatWithdrawalMemberOrgMeta,
+} from "../model/format-withdrawal-member-meta"
 
 import type { WithdrawalMember } from "../model/types"
 
@@ -54,7 +57,7 @@ function MemberSearchDropdownRow({
   onSelect: () => void
 }) {
   const meta = formatWithdrawalMemberOrgMeta(member)
-  const label = `${member.name} / ${member.nickname}`
+  const label = formatWithdrawalMemberDisplayName(member)
 
   return (
     <button

@@ -1,6 +1,7 @@
 import { PersonIcon } from "@umc-product/icons"
 import { StatusTag } from "@umc-product/react"
 
+import { formatWithdrawalMemberDisplayName } from "../model/format-withdrawal-member-meta"
 import { getWithdrawalPartLabel } from "../model/member-part-label"
 import {
   withdrawalRegisterMemberStatusLabel,
@@ -35,7 +36,7 @@ export function WithdrawalRegisterProfileCard({
           <div className="flex min-w-0 flex-col items-start justify-center gap-(--umc-spacing-gap-8)">
             <div className="flex items-center gap-(--umc-spacing-gap-12)">
               <h2 className="text-title-2-semibold text-neutral-default-900 truncate">
-                {member.name} / {member.nickname}
+                {formatWithdrawalMemberDisplayName(member)}
               </h2>
               <StatusTag
                 color={withdrawalRegisterMemberStatusTagColor(member.status)}
