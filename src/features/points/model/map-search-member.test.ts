@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest"
 
 import {
   challengerPointList,
+  toDetailMember,
   toGrantPointBody,
   toPointHistoryItem,
 } from "./map-point-history"
 import {
   getPartFilterOptions,
+  memberStatusLabel,
+  memberStatusTagColor,
   toChapterOptions,
   toMemberSearchPart,
   toOrganizationId,
@@ -299,5 +302,47 @@ describe("point grant body", () => {
       rewardTotal: 3,
       penaltyTotal: -3,
     })
+  })
+
+  it("maps challenger status labels and StatusTag colors", () => {
+    expect(memberStatusLabel("active")).toBe("활동")
+    expect(memberStatusLabel("graduated")).toBe("수료")
+    expect(memberStatusLabel("expelled")).toBe("제명")
+    expect(memberStatusLabel("withdrawn")).toBe("탈부")
+
+    expect(memberStatusTagColor("active")).toBe("brand")
+    expect(memberStatusTagColor("graduated")).toBe("neutral")
+    expect(memberStatusTagColor("expelled")).toBe("error")
+    expect(memberStatusTagColor("withdrawn")).toBe("warning")
+  })
+
+  it("keeps detail member status from challengerStatus", () => {
+    expect(
+      toDetailMember({
+        challengerId: 34,
+        memberId: 12,
+        name: "김운영",
+        nickname: "하늘",
+        schoolName: "중앙대학교",
+        gisu: 11,
+        part: "WEB",
+        challengerStatus: "WITHDRAWN",
+        roles: [],
+      }).status,
+    ).toBe("withdrawn")
+
+    expect(
+      toDetailMember({
+        challengerId: 35,
+        memberId: 13,
+        name: "이제명",
+        nickname: "별",
+        schoolName: "중앙대학교",
+        gisu: 11,
+        part: "WEB",
+        challengerStatus: "EXPELLED",
+        roles: [],
+      }).status,
+    ).toBe("expelled")
   })
 })
