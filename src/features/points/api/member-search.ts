@@ -3,7 +3,7 @@ import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
 import type { MemberPart, RoleType } from "@/entities/member"
 
-/** CHALLENGER-201 `/api/v2/challenger/search` part 필터·응답 */
+/** CHALLENGER-202 `/api/v2/challenger/admin/search` part 필터·응답 */
 export type MemberSearchPart = MemberPart
 
 export type ChallengerStatus = "ACTIVE" | "GRADUATED" | "EXPELLED" | "WITHDRAWN"
@@ -55,9 +55,9 @@ export type SearchMembersParams = {
 
 export const MEMBER_SEARCH_PAGE_SIZE = 10
 
-/** GET /api/v2/challenger/search (CHALLENGER-201) */
+/** GET /api/v2/challenger/admin/search (CHALLENGER-202) */
 export async function searchMembers(params: SearchMembersParams) {
-  const { data } = await api.get<unknown>("/v2/challenger/search", {
+  const { data } = await api.get<unknown>("/v2/challenger/admin/search", {
     params: {
       page: params.page,
       size: params.size,

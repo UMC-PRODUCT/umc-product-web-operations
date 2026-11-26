@@ -59,8 +59,11 @@ export type GrantChallengerPointBody = {
   pointValue?: number
 }
 
+/** GET /api/v2/challenger/admin/{challengerId} (CHALLENGER-203) */
 export async function fetchChallenger(challengerId: number) {
-  const { data } = await api.get<unknown>(`/v1/challenger/${challengerId}`)
+  const { data } = await api.get<unknown>(
+    `/v2/challenger/admin/${challengerId}`,
+  )
   return unwrapApiResult<ChallengerInfo>(data)
 }
 
