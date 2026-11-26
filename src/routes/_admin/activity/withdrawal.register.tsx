@@ -1,11 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { useMemo } from "react"
 
-import { WithdrawalRegisterPage } from "@/features/withdrawal"
+import {
+  canAccessWithdrawalManagement,
+  WithdrawalAccessDenied,
+  WithdrawalRegisterPage,
+} from "@/features/withdrawal"
 
 export const Route = createFileRoute("/_admin/activity/withdrawal/register")({
   component: WithdrawalRegisterRoute,
 })
 
 function WithdrawalRegisterRoute() {
+  const { session } = Route.useRouteContext()
+  const canAccess = useMemo(
+    () =>
+      canAccessWithdrawalManagement({
+        scope: session.scope,
+        roleTypes: session.roleTypes,
+      }),
+    [session.roleTypes, session.scope],
+  )
+
+  if (!canAccess) {
+    return <WithdrawalAccessDenied />
+  }
+
   return <WithdrawalRegisterPage />
 }

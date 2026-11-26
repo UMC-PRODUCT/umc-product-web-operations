@@ -34,7 +34,7 @@ type WithdrawalExportPanelProps = {
   onOpenChange: (open: boolean) => void
   schoolOptions: readonly FilterOption[]
   fieldAccess: WithdrawalExportFieldAccess
-  /** 필터 조건에 맞는 예상 건수 (목/API) */
+  /** 선택 건수 (CTA 라벨) */
   exportCount: number
   /** `false`면 패널을 닫지 않음 (실패 토스트 등) */
   onExport: (input: {
@@ -257,8 +257,8 @@ function ExportDateField({
 }
 
 /**
- * Figma 2547:50414 / 50445 / 50478 / 2541:44063 / 2541:44813
- * — 탈부 기록 내보내기 Panel.
+ * Figma 2547:50414 등 — 역할별 기간·학교 + 유형·열.
+ * 중앙: 기간·학교 / 회장단: 기간만·학교 고정 / 일반: 전체 고정
  */
 export function WithdrawalExportPanel({
   open,
@@ -335,9 +335,7 @@ export function WithdrawalExportPanel({
   const canExport = periodReady && hasColumns && consentReady && !submitting
 
   const exportLabel =
-    periodReady && exportCount > 0
-      ? `${exportCount}건ㆍCSV 내보내기`
-      : "CSV 내보내기"
+    exportCount > 0 ? `${exportCount}건ㆍCSV 내보내기` : "CSV 내보내기"
 
   const toggleType = (value: WithdrawalExportTypeValue) => {
     setForm((prev) => {
