@@ -33,6 +33,10 @@ import {
 } from "../model/map-deactivation"
 import { MOCK_WITHDRAWALS } from "../model/mock-withdrawals"
 import {
+  DEFAULT_FILTER_EXPORT_COLUMNS,
+  type WithdrawalExportFieldAccess,
+} from "../model/withdrawal-export"
+import {
   showWithdrawalExportFailureToast,
   showWithdrawalExportSuccessToast,
 } from "./show-withdrawal-export-toast"
@@ -49,7 +53,6 @@ import { WithdrawalToolbar } from "./withdrawal-toolbar"
 
 import type { WithdrawalMember } from "../model/types"
 import type { WithdrawalDetail } from "../model/withdrawal-detail"
-import type { WithdrawalExportFieldAccess } from "../model/withdrawal-export"
 
 const PART_FILTER_OPTIONS = [
   { value: "web-pe", label: "Web/PE" },
@@ -367,15 +370,16 @@ export function WithdrawalPage({
   }, [members, selectedIds])
 
   const hasSelection = selectedDeactivationIds.length > 0
-  const csvExportMode: WithdrawalCsvExportMode = "selected"
-  const csvExportCount = selectedDeactivationIds.length
+  /** 미선택 CSV → 전체(필터) 확인 모달. 선택은 Panel에서 열 고른 뒤 내보냄 */
+  const csvExportMode: WithdrawalCsvExportMode = "all"
   const exportCountHint = useMock
     ? members.length
     : typeof listQuery.data?.totalElements === "number"
       ? listQuery.data.totalElements
       : members.length
+  const csvExportCount = exportCountHint
 
-  const runSelectedExport = async () => {
+  const runFilterExport = async () => {
     if (mock === "export-error") {
       showWithdrawalExportFailureToast(toast)
       setCsvExportOpen(false)
@@ -386,21 +390,17 @@ export function WithdrawalPage({
       setCsvExportOpen(false)
       return
     }
-    if (selectedDeactivationIds.length === 0) {
-      return
-    }
 
     setExportSubmitting(true)
     try {
       const { blob, headers } = await exportDeactivationsCsv({
         gisuId: selectedGisu.gisuId ?? undefined,
-        deactivationIds: selectedDeactivationIds,
-        columns: [
-          "ORGANIZATION",
-          "REASON",
-          "REGISTERED_DATE",
-          "REGISTRAR_ROLE",
-        ],
+        chapterId:
+          chapterId == null ? undefined : Number.parseInt(chapterId, 10),
+        schoolId: schoolId == null ? undefined : Number.parseInt(schoolId, 10),
+        part: toDeactivationPart(part),
+        keyword: debouncedQuery || undefined,
+        columns: toExportColumns(new Set(DEFAULT_FILTER_EXPORT_COLUMNS)),
       })
       downloadCsvBlob(
         blob,
@@ -412,7 +412,6 @@ export function WithdrawalPage({
       )
       showWithdrawalExportSuccessToast(toast, csvExportCount)
       setCsvExportOpen(false)
-      setSelectedIds(new Set())
     } catch {
       showWithdrawalExportFailureToast(toast)
       setCsvExportOpen(false)
@@ -467,10 +466,12 @@ export function WithdrawalPage({
             color={hasSelection ? "neutral" : "white"}
             onClick={() => {
               if (hasSelection) {
-                setCsvExportOpen(true)
+                // 역할별 기간·학교 Panel (중앙 / 회장단 / 일반)
+                setExportPanelOpen(true)
                 return
               }
-              setExportPanelOpen(true)
+              // Figma 2235:13734 — 전체(필터) 확인 모달
+              setCsvExportOpen(true)
             }}
             size="sm"
             type="button"
@@ -543,14 +544,14 @@ export function WithdrawalPage({
           if (exportSubmitting) {
             return
           }
-          void runSelectedExport()
+          void runFilterExport()
         }}
         onOpenChange={setCsvExportOpen}
         open={csvExportOpen}
       />
 
       <WithdrawalExportPanel
-        exportCount={exportCountHint}
+        exportCount={selectedDeactivationIds.length}
         fieldAccess={exportFieldAccess}
         onExport={async (input) => {
           if (mock === "export-error") {
@@ -558,8 +559,15 @@ export function WithdrawalPage({
             return false
           }
           if (useMock) {
-            showWithdrawalExportSuccessToast(toast, exportCountHint)
+            showWithdrawalExportSuccessToast(
+              toast,
+              selectedDeactivationIds.length,
+            )
+            setSelectedIds(new Set())
             return true
+          }
+          if (selectedDeactivationIds.length === 0) {
+            return false
           }
 
           try {
@@ -576,13 +584,10 @@ export function WithdrawalPage({
 
             const { blob, headers } = await exportDeactivationsCsv({
               gisuId: selectedGisu.gisuId ?? undefined,
-              chapterId:
-                chapterId == null ? undefined : Number.parseInt(chapterId, 10),
+              deactivationIds: selectedDeactivationIds,
               schoolId: Number.isFinite(schoolIdValue)
                 ? schoolIdValue
                 : undefined,
-              part: toDeactivationPart(part),
-              keyword: debouncedQuery || undefined,
               types: toExportTypes(input.types),
               startDate,
               endDate,
@@ -596,7 +601,11 @@ export function WithdrawalPage({
                   : undefined,
               ),
             )
-            showWithdrawalExportSuccessToast(toast, exportCountHint)
+            showWithdrawalExportSuccessToast(
+              toast,
+              selectedDeactivationIds.length,
+            )
+            setSelectedIds(new Set())
             return true
           } catch {
             showWithdrawalExportFailureToast(toast)

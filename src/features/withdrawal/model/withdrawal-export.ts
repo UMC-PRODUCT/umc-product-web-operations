@@ -52,6 +52,14 @@ export function createInitialWithdrawalExportForm(): WithdrawalExportFormState {
   }
 }
 
+/** 미선택(전체) 확인 모달에서 바로 내보낼 때 쓰는 기본 열 */
+export const DEFAULT_FILTER_EXPORT_COLUMNS: WithdrawalExportColumnValue[] = [
+  "org",
+  "reason",
+  "date",
+  "role",
+]
+
 export function isPersonalColumnSelected(
   columns: Set<WithdrawalExportColumnValue>,
 ): boolean {
