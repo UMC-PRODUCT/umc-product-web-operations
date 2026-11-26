@@ -78,6 +78,26 @@ export function NoticeDetailPage({
     imageLoadState === "pending" || imageLoadState === "loading"
 
   const createdMeta = `${notice.authorDisplay} · ${notice.createdAt}`
+  const detailMetaItems = [
+    {
+      label: "대상",
+      showDividerAfter: true,
+      value: notice.targetDisplay,
+    },
+    {
+      label: "작성",
+      showDividerAfter: notice.hasBeenUpdated,
+      value: createdMeta,
+    },
+    ...(notice.hasBeenUpdated
+      ? [
+          {
+            label: "수정",
+            value: notice.updatedAt,
+          },
+        ]
+      : []),
+  ]
   const isImageLoading = imageLoadState === "loading"
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const deleteMutation = useMutation({
@@ -116,24 +136,7 @@ export function NoticeDetailPage({
                 <h1 className="text-heading-4-semibold text-neutral-default-900">
                   {notice.title}
                 </h1>
-                <NoticeDetailMetaRow
-                  items={[
-                    {
-                      label: "대상",
-                      showDividerAfter: true,
-                      value: notice.targetDisplay,
-                    },
-                    {
-                      label: "작성",
-                      showDividerAfter: true,
-                      value: createdMeta,
-                    },
-                    {
-                      label: "수정",
-                      value: notice.updatedAt,
-                    },
-                  ]}
-                />
+                <NoticeDetailMetaRow items={detailMetaItems} />
               </div>
               {canManageNotice ? (
                 <div className="flex shrink-0 items-start gap-(--umc-spacing-gap-12)">

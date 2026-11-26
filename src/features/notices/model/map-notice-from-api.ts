@@ -239,6 +239,18 @@ export function mapNoticeSummaryToNotice(
   }
 }
 
+function isNoticeUpdatedAfterCreate(
+  createdAt: string,
+  updatedAt: string,
+): boolean {
+  const createdMs = Date.parse(createdAt)
+  const updatedMs = Date.parse(updatedAt)
+  if (Number.isNaN(createdMs) || Number.isNaN(updatedMs)) {
+    return false
+  }
+  return updatedMs > createdMs
+}
+
 export function mapNoticeDetailResponse(
   detail: GetNoticeDetailResponse,
   context?: NoticeTargetDisplayContext,
@@ -291,6 +303,10 @@ export function mapNoticeDetailResponse(
       : undefined,
     poll: detail.vote ? mapNoticeVoteInfoToPoll(detail.vote) : undefined,
     targetDisplay: formatTargetDisplay(detail.targetInfo, context),
+    hasBeenUpdated: isNoticeUpdatedAfterCreate(
+      detail.createdAt,
+      detail.updatedAt,
+    ),
     updatedAt: formatNoticeDetailDateTime(detail.updatedAt),
   }
 }

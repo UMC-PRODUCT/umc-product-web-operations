@@ -161,6 +161,25 @@ describe("mapNoticeDetailResponse", () => {
     expect(detail.link?.url).toBe("https://forms.gle/test")
     expect(detail.poll?.options[0]?.isSelected).toBe(true)
     expect(detail.poll?.settingsLabel).toContain("복수선택")
+    expect(detail.hasBeenUpdated).toBe(true)
+  })
+
+  it("marks detail as not updated when createdAt and updatedAt are equal", () => {
+    const detail = mapNoticeDetailResponse({
+      id: 1,
+      title: "신규",
+      content: "본문",
+      createdAt: "2026-10-20T05:00:00.000Z",
+      updatedAt: "2026-10-20T05:00:00.000Z",
+      mustRead: false,
+      viewCount: 0,
+      authorMemberId: 2,
+      author: { memberId: 2, name: "작성자" },
+      images: [],
+      links: [],
+    })
+
+    expect(detail.hasBeenUpdated).toBe(false)
   })
 
   it("maps CLOSED vote to closed poll status for detail card", () => {
