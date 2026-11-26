@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
 
 import {
+  canAccessWithdrawalManagement,
   resolveWithdrawalExportFieldAccess,
+  WithdrawalAccessDenied,
   type WithdrawalListMock,
   WithdrawalPage,
 } from "@/features/withdrawal"
@@ -32,6 +34,14 @@ export const Route = createFileRoute("/_admin/activity/withdrawal/")({
 function WithdrawalIndexPage() {
   const { session } = Route.useRouteContext()
   const { mock } = Route.useSearch()
+  const canAccess = useMemo(
+    () =>
+      canAccessWithdrawalManagement({
+        scope: session.scope,
+        roleTypes: session.roleTypes,
+      }),
+    [session.roleTypes, session.scope],
+  )
   const exportFieldAccess = useMemo(
     () =>
       resolveWithdrawalExportFieldAccess({
@@ -42,6 +52,10 @@ function WithdrawalIndexPage() {
       }),
     [session.roleTypes, session.schoolId, session.schoolName, session.scope],
   )
+
+  if (!canAccess) {
+    return <WithdrawalAccessDenied />
+  }
 
   return <WithdrawalPage exportFieldAccess={exportFieldAccess} mock={mock} />
 }
