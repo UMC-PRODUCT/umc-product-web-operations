@@ -8,14 +8,14 @@ import { toNoticeOperatorSession } from "./-notice-session"
 
 import type { NoticePart } from "@/features/notices"
 import type { NoticeCreateStaffScope } from "@/features/notices"
-import type { NoticeScopeStage } from "@/features/notices"
+import type { NoticeListScopeStage } from "@/features/notices"
 
 type NoticesSearch = {
   /** 목록 검색·필터 (뒤로가기 복원용). 탭·페이지는 history/local state */
   chapterScope?: string
   q?: string
   schoolScope?: string
-  scopeStage?: NoticeScopeStage
+  scopeStage?: NoticeListScopeStage
   scope?: string
   part?: NoticePart
   staffRecipient?: NoticeCreateStaffScope

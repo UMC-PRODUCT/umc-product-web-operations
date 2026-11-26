@@ -4,9 +4,12 @@ import { useMemo } from "react"
 import {
   applyCentralChallengerDisabledTargetReset,
   applyCentralStaffDisabledTargetReset,
+  applyNoticeCentralHqChallengerGisuTarget,
+  applyNoticeCentralHqStaffScopeTarget,
   enableNoticeCreateChallengerAudience,
   enableNoticeCreateStaffAudience,
 } from "../../model/notice-central-create-access"
+import { applyNoticeCreateChallengerUmcOnlyOrgPatch } from "../../model/notice-challenger-target-rules"
 import { applyNoticeChapterPresidentCreateFormLock } from "../../model/notice-chapter-president-access"
 import {
   NOTICE_CREATE_STAFF_SCOPE_OPTIONS,
@@ -29,6 +32,8 @@ type NoticeCreateAudienceSectionProps = {
   form: NoticeCreateFormState
   locks: NoticeCreateFormLocks
   onChange: (patch: Partial<NoticeCreateFormState>) => void
+  /** HQ_LEAD: 활성 기수·중앙운영진 대상 보정 */
+  sessionGisuId?: number | null
 }
 
 /** 공지 종류 (챌린저 / 운영진 대상, 운영진 범위) */
@@ -36,27 +41,47 @@ export function NoticeCreateAudienceSection({
   form,
   locks,
   onChange,
+  sessionGisuId = null,
 }: NoticeCreateAudienceSectionProps) {
   const {
+    centralAdminStaffChipRestricted,
+    centralLeadStaffChipRestricted,
     centralUnrestrictedCreate,
     chapterPresidentAudienceLocked,
+    chapterPresidentChallengerActive,
     chapterPresidentCreateLock,
     chapterPresidentLocked,
     lockAudienceAndTarget,
     schoolExecutiveCreateLock,
     schoolExecutiveLocked,
     schoolExecutiveStaffActive,
+    schoolStaffAudienceLocked,
+    schoolStaffCreateLock,
+    schoolStaffLocked,
+    noticeCreateSuperAdmin,
   } = locks
+
+  const challengerAudienceLocked =
+    chapterPresidentAudienceLocked || schoolStaffAudienceLocked
 
   const staffScopeOptions = useMemo(
     () =>
       NOTICE_CREATE_STAFF_SCOPE_OPTIONS.map((option) => ({
         ...option,
         disabled:
-          schoolExecutiveStaffActive &&
-          option.value !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
+          (schoolExecutiveStaffActive &&
+            option.value !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE) ||
+          ((centralLeadStaffChipRestricted ||
+            centralAdminStaffChipRestricted) &&
+            option.value === "SCHOOL_PART_LEADER") ||
+          (centralAdminStaffChipRestricted &&
+            option.value === "CENTRAL_MEMBER"),
       })),
-    [schoolExecutiveStaffActive],
+    [
+      centralAdminStaffChipRestricted,
+      centralLeadStaffChipRestricted,
+      schoolExecutiveStaffActive,
+    ],
   )
 
   const applyStaffScopeChange = (staffScope: NoticeCreateStaffScope) => {
@@ -72,7 +97,75 @@ export function NoticeCreateAudienceSection({
       }
     }
 
+    if (
+      (centralLeadStaffChipRestricted || centralAdminStaffChipRestricted) &&
+      sessionGisuId != null
+    ) {
+      Object.assign(
+        patch,
+        applyNoticeCentralHqStaffScopeTarget(
+          { ...form, ...patch },
+          sessionGisuId,
+          {
+            centralAdminStaffChipRestricted,
+            centralLeadStaffChipRestricted,
+          },
+        ),
+      )
+    }
+
     onChange(patch)
+  }
+
+  const withChallengerUmcOnlyOrg = (
+    patch: Partial<NoticeCreateFormState>,
+  ): Partial<NoticeCreateFormState> => {
+    if (
+      noticeCreateSuperAdmin ||
+      centralUnrestrictedCreate ||
+      chapterPresidentLocked ||
+      schoolExecutiveLocked ||
+      schoolStaffLocked
+    ) {
+      return patch
+    }
+
+    return {
+      ...patch,
+      ...applyNoticeCreateChallengerUmcOnlyOrgPatch(
+        { ...form, ...patch },
+        {
+          chapterPresidentChallengerActive:
+            chapterPresidentChallengerActive || chapterPresidentLocked,
+          schoolExecutiveLocked,
+        },
+      ),
+    }
+  }
+
+  const withCentralHqTarget = (
+    patch: Partial<NoticeCreateFormState>,
+  ): Partial<NoticeCreateFormState> => {
+    if (
+      sessionGisuId == null ||
+      (!centralLeadStaffChipRestricted && !centralAdminStaffChipRestricted)
+    ) {
+      return patch
+    }
+
+    const merged = { ...form, ...patch }
+
+    return {
+      ...patch,
+      ...applyNoticeCentralHqChallengerGisuTarget(merged, sessionGisuId, {
+        centralAdminStaffChipRestricted,
+        centralLeadStaffChipRestricted,
+      }),
+      ...applyNoticeCentralHqStaffScopeTarget(merged, sessionGisuId, {
+        centralAdminStaffChipRestricted,
+        centralLeadStaffChipRestricted,
+      }),
+    }
   }
 
   return (
@@ -80,19 +173,17 @@ export function NoticeCreateAudienceSection({
       <div className="flex flex-col gap-(--umc-spacing-gap-16)">
         <div className="flex items-center gap-(--umc-spacing-gap-8)">
           <Checkbox
-            checked={
-              chapterPresidentAudienceLocked ? true : form.challengerEnabled
-            }
+            checked={challengerAudienceLocked ? true : form.challengerEnabled}
             color={
-              chapterPresidentAudienceLocked || form.challengerEnabled
+              challengerAudienceLocked || form.challengerEnabled
                 ? "brand"
                 : "neutral"
             }
-            disabled={!chapterPresidentAudienceLocked && lockAudienceAndTarget}
+            disabled={!challengerAudienceLocked && lockAudienceAndTarget}
             labelPlacement="end"
-            readOnly={chapterPresidentAudienceLocked}
+            readOnly={challengerAudienceLocked}
             onCheckedChange={(checked) => {
-              if (chapterPresidentAudienceLocked) {
+              if (challengerAudienceLocked) {
                 return
               }
 
@@ -143,19 +234,43 @@ export function NoticeCreateAudienceSection({
               }
 
               if (
+                schoolStaffLocked &&
+                schoolStaffCreateLock != null &&
+                challengerEnabled
+              ) {
+                onChange({
+                  ...applyNoticeSchoolExecutiveChallengerCreateLock({
+                    form: {
+                      ...form,
+                      ...enableNoticeCreateChallengerAudience(
+                        form,
+                        centralUnrestrictedCreate,
+                      ),
+                    },
+                    ...schoolStaffCreateLock,
+                  }),
+                  challengerEnabled: true,
+                  staffEnabled: false,
+                })
+                return
+              }
+
+              if (
                 challengerEnabled &&
                 form.gisuMode === "all" &&
                 form.orgMode !== "umc"
               ) {
-                onChange({
-                  ...enableNoticeCreateChallengerAudience(
-                    form,
-                    centralUnrestrictedCreate,
-                  ),
-                  chapterId: null,
-                  orgMode: "umc",
-                  schoolId: null,
-                })
+                onChange(
+                  withCentralHqTarget({
+                    ...enableNoticeCreateChallengerAudience(
+                      form,
+                      centralUnrestrictedCreate,
+                    ),
+                    chapterId: null,
+                    orgMode: "umc",
+                    schoolId: null,
+                  }),
+                )
                 return
               }
 
@@ -163,7 +278,8 @@ export function NoticeCreateAudienceSection({
                 !challengerEnabled &&
                 centralUnrestrictedCreate &&
                 !chapterPresidentLocked &&
-                !schoolExecutiveLocked
+                !schoolExecutiveLocked &&
+                !schoolStaffLocked
               ) {
                 onChange(applyCentralChallengerDisabledTargetReset(form))
                 return
@@ -171,9 +287,13 @@ export function NoticeCreateAudienceSection({
 
               if (challengerEnabled) {
                 onChange(
-                  enableNoticeCreateChallengerAudience(
-                    form,
-                    centralUnrestrictedCreate,
+                  withCentralHqTarget(
+                    withChallengerUmcOnlyOrg(
+                      enableNoticeCreateChallengerAudience(
+                        form,
+                        centralUnrestrictedCreate,
+                      ),
+                    ),
                   ),
                 )
                 return
@@ -193,10 +313,14 @@ export function NoticeCreateAudienceSection({
           <Checkbox
             checked={form.staffEnabled}
             color={form.staffEnabled ? "brand" : "neutral"}
-            disabled={chapterPresidentAudienceLocked || lockAudienceAndTarget}
+            disabled={
+              challengerAudienceLocked ||
+              schoolStaffAudienceLocked ||
+              lockAudienceAndTarget
+            }
             labelPlacement="end"
             onCheckedChange={(checked) => {
-              if (chapterPresidentAudienceLocked) {
+              if (challengerAudienceLocked || schoolStaffAudienceLocked) {
                 return
               }
 
@@ -225,16 +349,18 @@ export function NoticeCreateAudienceSection({
                 !schoolExecutiveLocked &&
                 (form.orgMode === "chapter" || form.gisuMode === "all")
               ) {
-                onChange({
-                  ...enableNoticeCreateStaffAudience(
-                    form,
-                    centralUnrestrictedCreate,
-                  ),
-                  chapterId: null,
-                  gisuMode:
-                    form.gisuMode === "all" ? "specific" : form.gisuMode,
-                  orgMode: form.orgMode === "chapter" ? "umc" : form.orgMode,
-                })
+                onChange(
+                  withCentralHqTarget({
+                    ...enableNoticeCreateStaffAudience(
+                      form,
+                      centralUnrestrictedCreate,
+                    ),
+                    chapterId: null,
+                    gisuMode:
+                      form.gisuMode === "all" ? "specific" : form.gisuMode,
+                    orgMode: form.orgMode === "chapter" ? "umc" : form.orgMode,
+                  }),
+                )
                 return
               }
 
@@ -250,9 +376,11 @@ export function NoticeCreateAudienceSection({
 
               if (staffEnabled) {
                 onChange(
-                  enableNoticeCreateStaffAudience(
-                    form,
-                    centralUnrestrictedCreate,
+                  withCentralHqTarget(
+                    enableNoticeCreateStaffAudience(
+                      form,
+                      centralUnrestrictedCreate,
+                    ),
                   ),
                 )
                 return

@@ -15,16 +15,25 @@ import type {
   NoticeChapterPresidentCreateLock,
   NoticeFormMode,
   NoticeSchoolExecutiveCreateLock,
+  NoticeSchoolStaffCreateLock,
 } from "./notice-create-form-locks"
 
 type NoticeCreateFormFieldsProps = {
   /** 슈퍼·중앙: 챌린저 해제 시 대상 필터 초기화 */
   centralUnrestrictedCreate?: boolean
+  noticeCreateSuperAdmin?: boolean
+  /** HQ_ADMIN: 중앙 운영진·학교 운영진 칩 비활성 */
+  centralAdminStaffChipRestricted?: boolean
+  /** HQ_LEAD: 학교 운영진 칩 비활성 */
+  centralLeadStaffChipRestricted?: boolean
   /** 지부장: 챌린저 대상 공지만 작성 (체크 고정) */
   chapterPresidentChallengerOnly?: boolean
   chapterPresidentCreateLock?: NoticeChapterPresidentCreateLock | null
   schoolExecutiveCreateLock?: NoticeSchoolExecutiveCreateLock | null
-  /** 교내 파트장·기타 운영진: 챌린저/운영진 공지 시 파트 필수 */
+  /** 교내 파트장·기타 운영진: 챌린저 공지만 작성 */
+  schoolStaffChallengerOnly?: boolean
+  schoolStaffCreateLock?: NoticeSchoolStaffCreateLock | null
+  /** 교내 파트장·기타 운영진: 챌린저 공지 시 파트 필수 */
   schoolStaffPartsRequired?: boolean
   form: NoticeCreateFormState
   isOrganizationLoading: boolean
@@ -38,16 +47,23 @@ type NoticeCreateFormFieldsProps = {
   onVoteEditClick?: () => void
   attachedVotePoll?: NoticePoll | null
   attachedVoteNoticeId?: string
+  recipientSummaryLine: string
+  sessionGisuId?: number | null
+  sessionGisuLabel?: string | null
   showRequiredFieldErrors: boolean
-  targetSummaryLine: string
   voteDraft?: NoticeCreateVoteDraft | null
 }
 
 export function NoticeCreateFormFields({
+  centralAdminStaffChipRestricted = false,
+  centralLeadStaffChipRestricted = false,
   centralUnrestrictedCreate = false,
+  noticeCreateSuperAdmin = false,
   chapterPresidentChallengerOnly = false,
   chapterPresidentCreateLock = null,
   schoolExecutiveCreateLock = null,
+  schoolStaffChallengerOnly = false,
+  schoolStaffCreateLock = null,
   schoolStaffPartsRequired = false,
   form,
   isOrganizationLoading,
@@ -61,17 +77,24 @@ export function NoticeCreateFormFields({
   onVoteEditClick,
   attachedVotePoll = null,
   attachedVoteNoticeId,
+  recipientSummaryLine,
+  sessionGisuId = null,
+  sessionGisuLabel = null,
   showRequiredFieldErrors,
-  targetSummaryLine,
   voteDraft = null,
 }: NoticeCreateFormFieldsProps) {
   const locks = resolveNoticeCreateFormLocks({
+    centralAdminStaffChipRestricted,
+    centralLeadStaffChipRestricted,
     centralUnrestrictedCreate,
     chapterPresidentChallengerOnly,
     chapterPresidentCreateLock,
     form,
     mode,
     schoolExecutiveCreateLock,
+    schoolStaffChallengerOnly,
+    schoolStaffCreateLock,
+    noticeCreateSuperAdmin,
   })
 
   return (
@@ -80,6 +103,7 @@ export function NoticeCreateFormFields({
         form={form}
         locks={locks}
         onChange={onChange}
+        sessionGisuId={sessionGisuId}
       />
       <NoticeCreateTargetSection
         form={form}
@@ -88,8 +112,10 @@ export function NoticeCreateFormFields({
         onChange={onChange}
         organization={organization}
         partOptions={partOptions}
+        recipientSummaryLine={recipientSummaryLine}
         schoolStaffPartsRequired={schoolStaffPartsRequired}
-        targetSummaryLine={targetSummaryLine}
+        sessionGisuId={sessionGisuId}
+        sessionGisuLabel={sessionGisuLabel}
       />
       <NoticeCreateContentSection
         attachedVoteNoticeId={attachedVoteNoticeId}

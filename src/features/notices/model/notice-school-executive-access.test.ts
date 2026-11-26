@@ -80,8 +80,9 @@ describe("applyNoticeSchoolExecutiveChallengerCreateLock", () => {
 })
 
 describe("NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS", () => {
-  it("includes school core and part leader only", () => {
+  it("includes 모든 운영진·회장단·학교 운영진 (중앙 운영진 없음)", () => {
     expect(NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS).toEqual([
+      "ALL_STAFF",
       "SCHOOL_CORE",
       "SCHOOL_PART_LEADER",
     ])

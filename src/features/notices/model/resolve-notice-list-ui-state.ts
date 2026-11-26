@@ -1,5 +1,6 @@
 import { normalizeNoticeListFiltersForApi } from "./build-notice-list-params"
 import { parseNoticeScopeFilter } from "./notice-scope-filter"
+import { NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS } from "./notice-scope-stage"
 
 import type { NoticeListOrganizationOptions } from "./notice-list-organization-query"
 import type {
@@ -32,6 +33,10 @@ export function hasAppliedNoticeListApiFilters(input: {
   }
 
   if (input.filters.staffRecipient != null) {
+    return true
+  }
+
+  if (input.filters.scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS) {
     return true
   }
 

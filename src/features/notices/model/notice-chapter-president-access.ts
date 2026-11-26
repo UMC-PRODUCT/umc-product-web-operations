@@ -1,8 +1,14 @@
+import {
+  isNoticeSuperAdminContext,
+  type NoticeAdminAccessContext,
+} from "./notice-admin-access-context"
 import { encodeChapterScope } from "./notice-scope-filter"
 
 import type { NoticeListChapterOption } from "./map-gisu-organization"
-import type { NoticeAdminAccessContext } from "./notice-admin-access-context"
-import type { NoticeCreateFormState } from "./notice-create-form"
+import type {
+  NoticeCreateFormState,
+  NoticeCreateStaffScope,
+} from "./notice-create-form"
 import type { NoticeListOrganizationOptions } from "./notice-list-organization-query"
 
 /** 지부장 — 챌린저 탭·챌린저 대상 공지 작성 UI 제약 (운영진 탭/운영진 공지는 별도) */
@@ -12,7 +18,7 @@ export function isNoticeChapterPresidentChallengerContext(
     "isSuperAdmin" | "scope" | "roleTypes"
   >,
 ): boolean {
-  if (session.isSuperAdmin) {
+  if (isNoticeSuperAdminContext(session)) {
     return false
   }
 
@@ -22,6 +28,10 @@ export function isNoticeChapterPresidentChallengerContext(
 
   return session.roleTypes.includes("CHAPTER_PRESIDENT")
 }
+
+/** 지부장(CHAPTER_ADMIN) 운영진 목록 — 받는 사람 필터 (Figma 2808-42322) */
+export const NOTICE_CHAPTER_ADMIN_STAFF_LIST_RECIPIENTS: NoticeCreateStaffScope[] =
+  ["ALL_STAFF", "SCHOOL_CORE"]
 
 export type NoticeChapterPresidentChallengerLock = {
   chapterId: number

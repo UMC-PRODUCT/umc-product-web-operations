@@ -69,7 +69,7 @@ describe("resolveNoticeSchoolStaffLock", () => {
 })
 
 describe("validateNoticeSchoolStaffCreateParts", () => {
-  it("requires at least one part when audience is selected", () => {
+  it("requires at least one part for challenger notices", () => {
     expect(
       validateNoticeSchoolStaffCreateParts({
         ...INITIAL_NOTICE_CREATE_FORM,
@@ -78,11 +78,22 @@ describe("validateNoticeSchoolStaffCreateParts", () => {
       }),
     ).toBe("파트를 하나 이상 선택해 주세요")
   })
+
+  it("does not require parts when challenger is off", () => {
+    expect(
+      validateNoticeSchoolStaffCreateParts({
+        ...INITIAL_NOTICE_CREATE_FORM,
+        challengerEnabled: false,
+        parts: [],
+      }),
+    ).toBeNull()
+  })
 })
 
 describe("NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS", () => {
-  it("is school part leader only", () => {
+  it("includes 모든 운영진·학교 운영진 only (회장단 없음)", () => {
     expect(NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS).toEqual([
+      "ALL_STAFF",
       "SCHOOL_PART_LEADER",
     ])
   })

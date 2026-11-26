@@ -1,10 +1,12 @@
 import {
+  isNoticeSuperAdminContext,
+  type NoticeAdminAccessContext,
+} from "./notice-admin-access-context"
+import {
   type NoticeCreateFormState,
   type NoticeCreateStaffScope,
 } from "./notice-create-form"
 import { isStaffCentralNoticeTab } from "./notice-staff-target-rules"
-
-import type { NoticeAdminAccessContext } from "./notice-admin-access-context"
 
 const CENTRAL_NOTICE_CREATE_ROLES = new Set([
   "CENTRAL_PRESIDENT",
@@ -13,6 +15,225 @@ const CENTRAL_NOTICE_CREATE_ROLES = new Set([
   "CENTRAL_EDUCATION_TEAM_MEMBER",
 ])
 
+const CENTRAL_HQ_LEAD_ROLES = new Set([
+  "CENTRAL_PRESIDENT",
+  "CENTRAL_VICE_PRESIDENT",
+])
+
+const CENTRAL_HQ_ADMIN_ROLES = new Set([
+  "CENTRAL_OPERATING_TEAM_MEMBER",
+  "CENTRAL_EDUCATION_TEAM_MEMBER",
+])
+
+/** 중앙운영사무국 총괄·부총괄(HQ_LEAD) — 학교 운영진 칩 비활성 */
+export function isNoticeCentralLeadStaffChipRestricted(
+  session: Pick<
+    NoticeAdminAccessContext,
+    "isSuperAdmin" | "scope" | "roleTypes"
+  >,
+): boolean {
+  if (isNoticeSuperAdminContext(session)) {
+    return false
+  }
+
+  if (session.scope !== "CENTRAL") {
+    return false
+  }
+
+  return session.roleTypes.some((role) => CENTRAL_HQ_LEAD_ROLES.has(role))
+}
+
+/** 운영국·교육국(HQ_ADMIN) — 중앙 운영진·학교 운영진 칩 비활성 */
+export function isNoticeCentralAdminStaffChipRestricted(
+  session: Pick<
+    NoticeAdminAccessContext,
+    "isSuperAdmin" | "scope" | "roleTypes"
+  >,
+): boolean {
+  if (isNoticeSuperAdminContext(session)) {
+    return false
+  }
+
+  if (session.scope !== "CENTRAL") {
+    return false
+  }
+
+  if (isNoticeCentralLeadStaffChipRestricted(session)) {
+    return false
+  }
+
+  return session.roleTypes.some((role) => CENTRAL_HQ_ADMIN_ROLES.has(role))
+}
+
+const HQ_LEAD_ACTIVE_GISU_STAFF_SCOPES = new Set<NoticeCreateStaffScope>([
+  "ALL_STAFF",
+  "CENTRAL_MEMBER",
+  "SCHOOL_CORE",
+])
+
+const HQ_ADMIN_ACTIVE_GISU_STAFF_SCOPES = new Set<NoticeCreateStaffScope>([
+  "ALL_STAFF",
+  "SCHOOL_CORE",
+])
+
+function isCentralHqStaffScopeTargetPolicy(
+  staffScope: NoticeCreateStaffScope,
+  centralLeadStaffChipRestricted: boolean,
+  centralAdminStaffChipRestricted: boolean,
+): boolean {
+  if (
+    centralLeadStaffChipRestricted &&
+    HQ_LEAD_ACTIVE_GISU_STAFF_SCOPES.has(staffScope)
+  ) {
+    return true
+  }
+
+  return (
+    centralAdminStaffChipRestricted &&
+    HQ_ADMIN_ACTIVE_GISU_STAFF_SCOPES.has(staffScope)
+  )
+}
+
+/** HQ_LEAD·HQ_ADMIN + 운영진: 활성 기수 고정 */
+export function isNoticeCentralHqStaffGisuLocked(
+  centralLeadStaffChipRestricted: boolean,
+  centralAdminStaffChipRestricted: boolean,
+  form: Pick<NoticeCreateFormState, "staffEnabled" | "staffScope">,
+): boolean {
+  return (
+    form.staffEnabled &&
+    isCentralHqStaffScopeTargetPolicy(
+      form.staffScope,
+      centralLeadStaffChipRestricted,
+      centralAdminStaffChipRestricted,
+    )
+  )
+}
+
+/** @deprecated use isNoticeCentralHqStaffGisuLocked */
+export function isNoticeCentralLeadStaffGisuLocked(
+  centralLeadStaffChipRestricted: boolean,
+  form: Pick<NoticeCreateFormState, "staffEnabled" | "staffScope">,
+): boolean {
+  return isNoticeCentralHqStaffGisuLocked(
+    centralLeadStaffChipRestricted,
+    false,
+    form,
+  )
+}
+
+/** HQ_LEAD·HQ_ADMIN + 챌린저 공지: 활성 기수 고정 */
+export function isNoticeCentralHqChallengerGisuLocked(
+  centralLeadStaffChipRestricted: boolean,
+  centralAdminStaffChipRestricted: boolean,
+  form: Pick<NoticeCreateFormState, "challengerEnabled" | "staffEnabled">,
+): boolean {
+  return (
+    (centralLeadStaffChipRestricted || centralAdminStaffChipRestricted) &&
+    form.challengerEnabled &&
+    !form.staffEnabled
+  )
+}
+
+export function applyNoticeCentralHqChallengerGisuTarget(
+  form: NoticeCreateFormState,
+  sessionGisuId: number,
+  options: {
+    centralAdminStaffChipRestricted: boolean
+    centralLeadStaffChipRestricted: boolean
+  },
+): Partial<NoticeCreateFormState> {
+  if (
+    !isNoticeCentralHqChallengerGisuLocked(
+      options.centralLeadStaffChipRestricted,
+      options.centralAdminStaffChipRestricted,
+      form,
+    )
+  ) {
+    return {}
+  }
+
+  const patch: Partial<NoticeCreateFormState> = {}
+
+  if (form.gisuMode !== "specific" || form.targetGisuId !== sessionGisuId) {
+    patch.gisuMode = "specific"
+    patch.targetGisuId = sessionGisuId
+  }
+
+  return patch
+}
+
+/** HQ_LEAD + 중앙 운영진 칩: 조직 행 숨김 */
+export function isNoticeCentralLeadStaffOrgRowHidden(
+  centralLeadStaffChipRestricted: boolean,
+  form: Pick<
+    NoticeCreateFormState,
+    "challengerEnabled" | "staffEnabled" | "staffScope"
+  >,
+): boolean {
+  return (
+    centralLeadStaffChipRestricted &&
+    form.staffEnabled &&
+    !form.challengerEnabled &&
+    form.staffScope === "CENTRAL_MEMBER"
+  )
+}
+
+/** HQ_LEAD·HQ_ADMIN 운영진 칩별 대상 보정 (활성 기수 · 중앙운영진 시 조직 초기화) */
+export function applyNoticeCentralHqStaffScopeTarget(
+  form: NoticeCreateFormState,
+  sessionGisuId: number,
+  options: {
+    centralAdminStaffChipRestricted: boolean
+    centralLeadStaffChipRestricted: boolean
+  },
+): Partial<NoticeCreateFormState> {
+  if (
+    !form.staffEnabled ||
+    !isCentralHqStaffScopeTargetPolicy(
+      form.staffScope,
+      options.centralLeadStaffChipRestricted,
+      options.centralAdminStaffChipRestricted,
+    )
+  ) {
+    return {}
+  }
+
+  const patch: Partial<NoticeCreateFormState> = {}
+
+  if (form.gisuMode !== "specific" || form.targetGisuId !== sessionGisuId) {
+    patch.gisuMode = "specific"
+    patch.targetGisuId = sessionGisuId
+  }
+
+  if (form.staffScope === "CENTRAL_MEMBER" && !form.challengerEnabled) {
+    if (
+      form.orgMode !== "umc" ||
+      form.chapterId != null ||
+      form.schoolId != null
+    ) {
+      patch.orgMode = "umc"
+      patch.chapterId = null
+      patch.schoolId = null
+    }
+    if (form.parts.length > 0) {
+      patch.parts = []
+    }
+  }
+
+  return patch
+}
+
+export function applyNoticeCentralLeadStaffScopeTarget(
+  form: NoticeCreateFormState,
+  sessionGisuId: number,
+): Partial<NoticeCreateFormState> {
+  return applyNoticeCentralHqStaffScopeTarget(form, sessionGisuId, {
+    centralAdminStaffChipRestricted: false,
+    centralLeadStaffChipRestricted: true,
+  })
+}
+
 /** 슈퍼어드민·중앙 운영진 — 작성 시 체크 해제하면 대상을 해당 모드의 초기값으로 */
 export function isNoticeCentralUnrestrictedCreateContext(
   session: Pick<
@@ -20,7 +241,7 @@ export function isNoticeCentralUnrestrictedCreateContext(
     "isSuperAdmin" | "scope" | "roleTypes"
   >,
 ): boolean {
-  if (session.isSuperAdmin) {
+  if (isNoticeSuperAdminContext(session)) {
     return true
   }
 

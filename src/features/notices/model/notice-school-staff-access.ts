@@ -1,7 +1,10 @@
+import {
+  isNoticeSuperAdminContext,
+  type NoticeAdminAccessContext,
+} from "./notice-admin-access-context"
 import { encodeChapterScope, encodeSchoolScope } from "./notice-scope-filter"
 
 import type { NoticeListChapterOption } from "./map-gisu-organization"
-import type { NoticeAdminAccessContext } from "./notice-admin-access-context"
 import type {
   NoticeCreateFormState,
   NoticeCreateStaffScope,
@@ -20,7 +23,7 @@ export function isNoticeSchoolStaffContext(
     "isSuperAdmin" | "scope" | "roleTypes"
   >,
 ): boolean {
-  if (session.isSuperAdmin) {
+  if (isNoticeSuperAdminContext(session)) {
     return false
   }
 
@@ -45,11 +48,19 @@ export function isNoticeSchoolStaffContext(
   return false
 }
 
-export const NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS: NoticeCreateStaffScope[] =
-  ["SCHOOL_PART_LEADER"]
+/** 교내 파트장·교내 기타 운영진 — 챌린저 공지만 작성, 파트 필수 */
+export function isNoticeSchoolStaffChallengerOnlyContext(
+  session: Pick<
+    NoticeAdminAccessContext,
+    "isSuperAdmin" | "scope" | "roleTypes"
+  >,
+): boolean {
+  return isNoticeSchoolStaffContext(session)
+}
 
-export const NOTICE_SCHOOL_STAFF_STAFF_FIXED_RECIPIENT: NoticeCreateStaffScope =
-  "SCHOOL_PART_LEADER"
+/** 교내 파트장·기타 운영진 — 운영진 목록 받는 사람 (school_admin과 동일, 회장단 없음) */
+export const NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS: NoticeCreateStaffScope[] =
+  ["ALL_STAFF", "SCHOOL_PART_LEADER"]
 
 export type NoticeSchoolStaffLock = {
   chapterId: number
@@ -124,7 +135,7 @@ export function resolveNoticeSchoolStaffLock(
 export function validateNoticeSchoolStaffCreateParts(
   form: NoticeCreateFormState,
 ): string | null {
-  if (!form.challengerEnabled && !form.staffEnabled) {
+  if (!form.challengerEnabled) {
     return null
   }
 

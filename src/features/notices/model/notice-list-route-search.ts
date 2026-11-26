@@ -1,6 +1,12 @@
+import {
+  isNoticeApiScopeStage,
+  NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS,
+  type NoticeListScopeStage,
+  type NoticeScopeStage,
+} from "./notice-scope-stage"
+
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeCreateStaffScope } from "./notice-create-form"
-import type { NoticeScopeStage } from "./notice-scope-stage"
 import type { NoticeAudience, NoticeListFilters } from "./types"
 
 const NOTICE_PART_VALUES = [
@@ -48,8 +54,15 @@ export function parseNoticeListPage(value: unknown): number {
   return Math.floor(parsed)
 }
 
-function parseNoticeListScopeStage(value: unknown): NoticeScopeStage | null {
-  if (value === "chapter" || value === "school" || value === "part") {
+function parseNoticeListScopeStage(
+  value: unknown,
+): NoticeListScopeStage | null {
+  if (
+    value === "chapter" ||
+    value === "school" ||
+    value === "part" ||
+    value === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS
+  ) {
     return value
   }
 
@@ -142,7 +155,10 @@ export function parseNoticeListFiltersFromSearch(
         ...EMPTY_LIST_FILTERS,
         query,
         scopeStage,
-        scope: parseNoticeListScopeValue(search.scope, scopeStage),
+        scope: parseNoticeListScopeValue(
+          search.scope,
+          isNoticeApiScopeStage(scopeStage) ? scopeStage : null,
+        ),
         part,
         staffRecipient: parseNoticeListStaffRecipient(search.staffRecipient),
       },
@@ -170,7 +186,7 @@ export type NoticeListFilterSearchParams = {
   q?: string
   schoolScope?: string
   scope?: string
-  scopeStage?: NoticeScopeStage
+  scopeStage?: NoticeListScopeStage
   staffRecipient?: NoticeCreateStaffScope
 }
 

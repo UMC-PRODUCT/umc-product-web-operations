@@ -12,9 +12,11 @@ import {
 import { listNotices, searchNotices } from "../api/notices-query.api"
 import {
   buildNoticeListRequest,
+  filterStaffNoticeSummariesByAllSchoolsTarget,
   filterStaffNoticeSummariesByRecipient,
   normalizeNoticeListFiltersForApi,
   NOTICE_LIST_PAGE_SIZE,
+  paginateNoticeListSummaries,
   resolveNoticeListNoticeTab,
 } from "./build-notice-list-params"
 import { buildNoticeOrganizationNameLookup } from "./map-gisu-organization"
@@ -25,6 +27,7 @@ import {
 } from "./notice-api-error"
 import { noticeKeys } from "./notice-keys"
 import { canAccessStaffNoticeTab } from "./notice-notice-tab"
+import { NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS } from "./notice-scope-stage"
 
 import type { QueryClient } from "@tanstack/react-query"
 
@@ -115,6 +118,7 @@ export function noticeListQueryKey(input: {
     apiFilters.scopeStage,
     apiFilters.scope,
     apiFilters.staffRecipient,
+    input.filters.scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS,
   ])
 }
 
@@ -155,8 +159,15 @@ export async function fetchNoticeListPage(input: {
       return { kind: "missing_gisu" }
     }
 
-    const [page, gisuList, organizationGisu] = await Promise.all([
-      fetchNoticeListSummariesPage(request, input.page),
+    const staffRecipientClientFilter =
+      input.audience === "staff" && apiFilters.staffRecipient != null
+    const allSchoolsTargetClientFilter =
+      input.audience === "staff" &&
+      input.filters.scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS
+    const needsFullListClientFilter =
+      staffRecipientClientFilter || allSchoolsTargetClientFilter
+
+    const [gisuList, organizationGisu] = await Promise.all([
       input.queryClient
         .ensureQueryData(gisuListQueryOptions())
         .catch((): GisuListItem[] => []),
@@ -164,6 +175,58 @@ export async function fetchNoticeListPage(input: {
         .ensureQueryData(gisuOrganizationQueryOptions(sessionGisuId))
         .catch(() => null),
     ])
+
+    let content: GetNoticeSummaryResponse[] = []
+    let totalElements = 0
+    let totalPages = 0
+
+    if (needsFullListClientFilter) {
+      const allSummaries: GetNoticeSummaryResponse[] = []
+      let serverPage = 0
+      let serverTotalPages = 1
+
+      do {
+        const pageResult = await fetchNoticeListSummariesPage(
+          request,
+          serverPage,
+        )
+        allSummaries.push(...pageResult.content)
+        serverTotalPages =
+          Number(pageResult.totalPages) ||
+          (Number(pageResult.totalElements) > 0 ? 1 : 0)
+        serverPage += 1
+      } while (serverPage < serverTotalPages)
+
+      let filtered = allSummaries
+      if (staffRecipientClientFilter && apiFilters.staffRecipient != null) {
+        filtered = filterStaffNoticeSummariesByRecipient(
+          filtered,
+          apiFilters.staffRecipient,
+        )
+      }
+      if (allSchoolsTargetClientFilter) {
+        filtered = filterStaffNoticeSummariesByAllSchoolsTarget(filtered)
+      }
+
+      const paginated = paginateNoticeListSummaries(
+        filtered,
+        input.page,
+        NOTICE_LIST_PAGE_SIZE,
+      )
+      content = paginated.content
+      totalElements = paginated.totalElements
+      totalPages = paginated.totalPages
+    } else {
+      const page = await fetchNoticeListSummariesPage(request, input.page)
+      content = page.content
+      totalElements = Number(page.totalElements) || 0
+      totalPages =
+        Number(page.totalPages) ||
+        (totalElements > 0
+          ? Math.ceil(totalElements / NOTICE_LIST_PAGE_SIZE)
+          : 0)
+    }
+
     const organization = toOrganizationLists(organizationGisu)
     const gisuGenerationById = buildGisuGenerationLookup(gisuList)
     const { chapterNameById, schoolNameById } =
@@ -174,30 +237,18 @@ export async function fetchNoticeListPage(input: {
       schoolNameById,
     }
 
-    // chapter/school/part는 서버 필터. 받는 사람(staffRecipient)만 API 미지원이라 현재 페이지에 클라이언트 필터 적용.
-    let content = page.content
-    if (input.audience === "staff" && apiFilters.staffRecipient != null) {
-      content = filterStaffNoticeSummariesByRecipient(
-        content,
-        apiFilters.staffRecipient,
-      )
-    }
-
-    const totalElements = Number(page.totalElements) || 0
-    const totalPages =
-      Number(page.totalPages) ||
-      (totalElements > 0 ? Math.ceil(totalElements / NOTICE_LIST_PAGE_SIZE) : 0)
+    const notices = content.map((summary) =>
+      mapNoticeSummaryForListPage(
+        summary,
+        targetDisplayContext,
+        sessionGisuId,
+        listFiltersActive,
+      ),
+    )
 
     return {
       kind: "success",
-      notices: content.map((summary) =>
-        mapNoticeSummaryForListPage(
-          summary,
-          targetDisplayContext,
-          sessionGisuId,
-          listFiltersActive,
-        ),
-      ),
+      notices,
       totalElements,
       totalPages,
     }

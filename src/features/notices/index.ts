@@ -15,7 +15,10 @@ export {
   parseNoticeLocationState,
 } from "./model/notice-location-state"
 export type { NoticeLocationState } from "./model/notice-location-state"
-export type { NoticeScopeStage } from "./model/notice-scope-stage"
+export type {
+  NoticeListScopeStage,
+  NoticeScopeStage,
+} from "./model/notice-scope-stage"
 export { canCreateNotice } from "./model/notice-session"
 export type { NoticeOperatorSession } from "./model/notice-session"
 export { canManageNoticeDetail } from "./model/notice-viewer"

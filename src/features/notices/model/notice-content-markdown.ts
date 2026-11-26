@@ -85,7 +85,10 @@ export function noticeContentHighlightColorAttrToCss(
     return NOTICE_CONTENT_HIGHLIGHT_MARK_FALLBACK_BG
   }
 
-  const [r, g, b, a] = parts.map(clampUnit)
+  const [rawR, rawG, rawB, a] = parts.map(clampUnit)
+  const r = rawR ?? 0
+  const g = rawG ?? 0
+  const b = rawB ?? 0
   const red = Math.round(r * 255)
   const green = Math.round(g * 255)
   const blue = Math.round(b * 255)

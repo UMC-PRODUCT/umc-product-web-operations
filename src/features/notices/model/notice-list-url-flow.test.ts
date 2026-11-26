@@ -20,6 +20,7 @@ function runFlow(
     audience,
   })
   const normalized = normalizeNoticeListFilters(filters, {
+    audience,
     chapterScopeOptions: ["chapter:1", "chapter:2"],
     optionsReady: true,
     partOptions: ["WEB", "DESIGN"],
@@ -144,7 +145,11 @@ describe("공지 목록 필터 URL 흐름", () => {
 
     it("학교 고정 계정은 학교별 범위를 본인 학교로 덮어쓴다", () => {
       const { next } = runFlow(
-        { scope: "school:11", scopeStage: "school" },
+        {
+          scope: "school:11",
+          scopeStage: "school",
+          staffRecipient: "SCHOOL_PART_LEADER",
+        },
         "staff",
         { staffLockedSchoolScope: "school:10" },
       )
@@ -181,11 +186,18 @@ describe("공지 목록 필터 URL 흐름", () => {
 
     it("범위 단계와 맞지 않는 scope 값은 파싱에서 버린다", () => {
       const { next } = runFlow(
-        { scope: "chapter:1", scopeStage: "school" },
+        {
+          scope: "chapter:1",
+          scopeStage: "school",
+          staffRecipient: "SCHOOL_PART_LEADER",
+        },
         "staff",
       )
 
-      expect(next).toEqual({ scopeStage: "school" })
+      expect(next).toEqual({
+        scopeStage: "school",
+        staffRecipient: "SCHOOL_PART_LEADER",
+      })
     })
   })
 

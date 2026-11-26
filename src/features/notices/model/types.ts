@@ -1,7 +1,7 @@
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeCreateStaffScope } from "./notice-create-form"
 import type { NoticeScopeFilterValue } from "./notice-scope-filter"
-import type { NoticeScopeStage } from "./notice-scope-stage"
+import type { NoticeListScopeStage } from "./notice-scope-stage"
 
 export type NoticeAudience = "challenger" | "staff"
 
@@ -46,8 +46,8 @@ export type NoticeListFilters = {
   schoolScope: NoticeScopeFilterValue
   /** 챌린저: 파트 필터. null이면 파트 전체 / 운영진: scopeStage가 part일 때 대상 */
   part: NoticePart | null
-  /** 운영진: 지부별·학교별·파트별 중 하나. null이면 범위 전체 */
-  scopeStage: NoticeScopeStage | null
+  /** 운영진: 지부별·학교별·파트별·모든 학교 대상(allSchools). null이면 범위 전체 */
+  scopeStage: NoticeListScopeStage | null
   /** 운영진: scopeStage가 chapter|school일 때만 사용 */
   scope: NoticeScopeFilterValue
   /** 운영진: 받는 사람(noticeTab). null이면 세션 기본 탭 */

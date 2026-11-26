@@ -1,6 +1,5 @@
+import { canNoticeCreateUseChallengerPartSelection } from "./notice-challenger-target-rules"
 import { isStaffUmcWideRecipientScope } from "./notice-create-staff-scope"
-import { NOTICE_LIST_FILTER_ALL } from "./notice-list-filter-all"
-import { NOTICE_SCOPE_STAGE_SELECT_OPTIONS } from "./notice-scope-stage"
 
 import type { NoticeTab } from "../api/notice-api.types"
 import type {
@@ -14,11 +13,16 @@ export function isStaffCentralNoticeTab(
   return tab === "CENTRAL_MEMBER" || tab === "SCHOOL_CORE"
 }
 
-/** 운영진 공지는 지부(org chapter) 미지원 — 챌린저 공지를 함께 쓸 때만 지부 UI */
+/** 챌린저 — 지부장 잠금 시에만 지부 UI */
 export function canNoticeCreateUseChapterOrg(form: {
   challengerEnabled: boolean
+  chapterPresidentChallengerActive?: boolean
 }): boolean {
-  return form.challengerEnabled
+  if (!form.challengerEnabled) {
+    return false
+  }
+
+  return form.chapterPresidentChallengerActive === true
 }
 
 /** NOTICE-201: 중앙운영진·회장단 이상은 targetSchoolId null */
@@ -31,12 +35,19 @@ export function canStaffNoticeUseSchoolOrg(
 export function canNoticeCreateUsePartSelection(
   form: Pick<
     NoticeCreateFormState,
-    "challengerEnabled" | "staffEnabled" | "staffScope" | "gisuMode" | "orgMode"
+    | "challengerEnabled"
+    | "staffEnabled"
+    | "staffScope"
+    | "gisuMode"
+    | "orgMode"
+    | "targetGisuId"
   >,
+  sessionGisuId?: number | null,
 ): boolean {
-  const challengerParts =
-    form.challengerEnabled &&
-    (form.gisuMode !== "all" || form.orgMode !== "umc")
+  const challengerParts = canNoticeCreateUseChallengerPartSelection(
+    form,
+    sessionGisuId,
+  )
   const staffParts =
     form.staffEnabled &&
     form.staffScope === "SCHOOL_PART_LEADER" &&
@@ -85,10 +96,3 @@ export function validateStaffNoticeCreateForm(
 
   return null
 }
-
-export const STAFF_NOTICE_LIST_SCOPE_STAGE_OPTIONS = [
-  { label: "범위 전체", value: NOTICE_LIST_FILTER_ALL },
-  ...NOTICE_SCOPE_STAGE_SELECT_OPTIONS.filter(
-    (option) => option.value !== "chapter",
-  ),
-]
