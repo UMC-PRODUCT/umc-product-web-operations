@@ -14,10 +14,13 @@ import {
   type NoticeCreateStaffScope,
 } from "../../model/notice-create-form"
 import {
+  isStaffUmcWideRecipientScope,
+  NOTICE_CREATE_STAFF_SCOPE_HINTS,
+} from "../../model/notice-create-staff-scope"
+import {
   applyNoticeSchoolExecutiveChallengerCreateLock,
   NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE,
 } from "../../model/notice-school-executive-access"
-import { isStaffCentralNoticeTab } from "../../model/notice-staff-target-rules"
 import { NoticeCreateSection } from "./notice-create-section"
 
 import type { NoticeCreateFormLocks } from "./notice-create-form-locks"
@@ -59,7 +62,7 @@ export function NoticeCreateAudienceSection({
   const applyStaffScopeChange = (staffScope: NoticeCreateStaffScope) => {
     const patch: Partial<NoticeCreateFormState> = { staffScope }
 
-    if (isStaffCentralNoticeTab(staffScope)) {
+    if (isStaffUmcWideRecipientScope(staffScope)) {
       if (form.orgMode === "school") {
         patch.orgMode = "umc"
         patch.schoolId = null
@@ -183,7 +186,7 @@ export function NoticeCreateAudienceSection({
             챌린저 대상 공지
           </Checkbox>
           <span className="text-body-3-regular text-neutral-medium-600">
-            선택한 대상 챌린저의 앱 공지 목록에 게시돼요
+            선택한 챌린저의 앱 공지 목록에 올라가요
           </span>
         </div>
         <div className="flex items-center gap-(--umc-spacing-gap-8)">
@@ -262,7 +265,7 @@ export function NoticeCreateAudienceSection({
             운영진 대상 공지
           </Checkbox>
           <span className="text-body-3-regular text-neutral-medium-600">
-            운영진에게만 보여요. 받는 운영진 범위도 고를 수 있어요
+            운영진만 볼 수 있어요
           </span>
         </div>
       </div>
@@ -270,28 +273,33 @@ export function NoticeCreateAudienceSection({
       {form.staffEnabled ? (
         <>
           <div className="border-neutral-disabled border-t" />
-          <div className="flex items-center gap-10">
-            <p className="text-body-1-regular text-neutral-strong-800 shrink-0">
-              운영진 범위
+          <div className="flex items-start gap-10">
+            <p className="text-body-1-regular text-teal-grey-700 w-[73px] shrink-0">
+              받는 운영진
             </p>
-            <OptionButtonGroup
-              aria-label="운영진 범위"
-              onValueChange={(value) => {
-                if (
-                  schoolExecutiveLocked &&
-                  value !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE
-                ) {
-                  return
-                }
+            <div className="flex min-w-0 flex-col gap-(--umc-spacing-gap-8)">
+              <OptionButtonGroup
+                aria-label="받는 운영진"
+                onValueChange={(value) => {
+                  if (
+                    schoolExecutiveLocked &&
+                    value !== NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE
+                  ) {
+                    return
+                  }
 
-                applyStaffScopeChange(value)
-              }}
-              options={staffScopeOptions}
-              size="sm"
-              type="single"
-              value={form.staffScope}
-              variant="weak"
-            />
+                  applyStaffScopeChange(value)
+                }}
+                options={staffScopeOptions}
+                size="sm"
+                type="single"
+                value={form.staffScope}
+                variant="weak"
+              />
+              <p className="text-body-3-regular text-neutral-medium-600">
+                {NOTICE_CREATE_STAFF_SCOPE_HINTS[form.staffScope]}
+              </p>
+            </div>
           </div>
         </>
       ) : null}

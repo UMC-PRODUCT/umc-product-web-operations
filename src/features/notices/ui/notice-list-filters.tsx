@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 
 import { NOTICE_CREATE_STAFF_SCOPE_OPTIONS } from "../model/notice-create-form"
+import { isStaffUmcWideRecipientScope } from "../model/notice-create-staff-scope"
 import {
   isNoticeListFilterAllValue,
   NOTICE_LIST_FILTER_ALL,
@@ -13,10 +14,7 @@ import {
   encodeSchoolScope,
   parseNoticeScopeFilter,
 } from "../model/notice-scope-filter"
-import {
-  isStaffCentralNoticeTab,
-  STAFF_NOTICE_LIST_SCOPE_STAGE_OPTIONS,
-} from "../model/notice-staff-target-rules"
+import { STAFF_NOTICE_LIST_SCOPE_STAGE_OPTIONS } from "../model/notice-staff-target-rules"
 import { NOTICE_FILTER_SELECT_TYPO_CLASS } from "./constants"
 
 import type { NoticePart } from "../api/notice-api.types"
@@ -216,7 +214,7 @@ export function NoticeListFiltersBar({
 
   const staffScopeTargetFiltersLocked =
     filters.staffRecipient != null &&
-    isStaffCentralNoticeTab(filters.staffRecipient)
+    isStaffUmcWideRecipientScope(filters.staffRecipient)
 
   const staffSchoolTargetLocked =
     staffLockedSchoolScope != null && filters.scopeStage === "school"
@@ -313,7 +311,7 @@ export function NoticeListFiltersBar({
                 : (value as NoticeCreateStaffScope)
               onFiltersChange(
                 staffRecipient != null &&
-                  isStaffCentralNoticeTab(staffRecipient)
+                  isStaffUmcWideRecipientScope(staffRecipient)
                   ? {
                       part: null,
                       scope: null,

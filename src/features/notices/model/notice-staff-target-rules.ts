@@ -1,3 +1,4 @@
+import { isStaffUmcWideRecipientScope } from "./notice-create-staff-scope"
 import { NOTICE_LIST_FILTER_ALL } from "./notice-list-filter-all"
 import { NOTICE_SCOPE_STAGE_SELECT_OPTIONS } from "./notice-scope-stage"
 
@@ -59,8 +60,11 @@ export function validateStaffNoticeCreateForm(
     return "운영진 공지는 특정 기수를 선택해 주세요"
   }
 
-  if (isStaffCentralNoticeTab(form.staffScope) && form.orgMode === "school") {
-    return "중앙운영사무국·회장단 이상 공지에는 학교를 지정할 수 없어요"
+  if (
+    isStaffUmcWideRecipientScope(form.staffScope) &&
+    form.orgMode === "school"
+  ) {
+    return "모든 운영진·중앙 운영진·회장단 공지에는 학교를 지정할 수 없어요"
   }
 
   if (
@@ -68,15 +72,15 @@ export function validateStaffNoticeCreateForm(
     form.orgMode === "school" &&
     form.schoolId == null
   ) {
-    return "교내 운영진 공지는 학교를 선택해 주세요"
+    return "학교 운영진 공지는 학교를 선택해 주세요"
   }
 
   if (
-    isStaffCentralNoticeTab(form.staffScope) &&
+    form.staffScope !== "SCHOOL_PART_LEADER" &&
     form.parts.length > 0 &&
     !form.challengerEnabled
   ) {
-    return "파트 지정은 교내 운영진 전체(받는 사람)에서만 가능해요"
+    return "파트 지정은 학교 운영진(받는 사람)에서만 가능해요"
   }
 
   return null

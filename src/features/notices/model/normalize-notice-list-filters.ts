@@ -1,4 +1,4 @@
-import { isStaffCentralNoticeTab } from "./notice-staff-target-rules"
+import { isStaffUmcWideRecipientScope } from "./notice-create-staff-scope"
 
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeCreateStaffScope } from "./notice-create-form"
@@ -102,7 +102,7 @@ export function normalizeNoticeListFilters(
     staffRecipient = staffFixedStaffRecipient
   }
 
-  if (staffRecipient != null && isStaffCentralNoticeTab(staffRecipient)) {
+  if (staffRecipient != null && isStaffUmcWideRecipientScope(staffRecipient)) {
     scopeStage = null
     scope = null
     part = null

@@ -115,7 +115,7 @@ describe("mapNoticeSummaryToNotice", () => {
     )
 
     expect(notice.audience).toBe("staff")
-    expect(notice.target).toBe("11기 · 회장단 이상 · 숙명여자대학교")
+    expect(notice.target).toBe("11기 · 회장단 · 숙명여자대학교")
   })
 })
 

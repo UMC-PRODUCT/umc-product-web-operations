@@ -11,13 +11,19 @@ import type {
 } from "../api/notice-api.types"
 
 function mapStaffScope(tab: NoticeTab): NoticeCreateStaffScope {
+  if (tab === "ALL_STAFF") {
+    return "ALL_STAFF"
+  }
   if (tab === "SCHOOL_CORE") {
     return "SCHOOL_CORE"
   }
   if (tab === "SCHOOL_PART_LEADER") {
     return "SCHOOL_PART_LEADER"
   }
-  return "CENTRAL_MEMBER"
+  if (tab === "CENTRAL_MEMBER") {
+    return "CENTRAL_MEMBER"
+  }
+  return "ALL_STAFF"
 }
 
 function mapTargetInfoToFormFields(

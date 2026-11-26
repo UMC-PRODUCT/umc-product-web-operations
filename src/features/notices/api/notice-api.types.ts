@@ -1,7 +1,11 @@
 import type { MemberPart } from "@/entities/member"
 
 export type NoticeTab =
-  "CHALLENGER" | "CENTRAL_MEMBER" | "SCHOOL_CORE" | "SCHOOL_PART_LEADER"
+  | "CHALLENGER"
+  | "ALL_STAFF"
+  | "CENTRAL_MEMBER"
+  | "SCHOOL_CORE"
+  | "SCHOOL_PART_LEADER"
 
 export type NoticePart = MemberPart
 
