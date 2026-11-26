@@ -7,12 +7,17 @@ import {
 } from "./notice-location-state"
 
 describe("parseNoticeLocationState", () => {
-  it("reads listAudience and listPage from history state", () => {
+  it("reads listAudience, listPage, listFilters from history state", () => {
     expect(
-      parseNoticeLocationState({ listAudience: "staff", listPage: 3 }),
+      parseNoticeLocationState({
+        listAudience: "staff",
+        listPage: 3,
+        listFilters: { q: "모집", scopeStage: "part", part: "DESIGN" },
+      }),
     ).toEqual({
       listAudience: "staff",
       listPage: 3,
+      listFilters: { q: "모집", scopeStage: "part", part: "DESIGN" },
     })
   })
 
@@ -40,6 +45,20 @@ describe("buildNoticeLocationState", () => {
     ).toEqual({
       listAudience: "staff",
       listPage: 2,
+    })
+  })
+
+  it("keeps empty listFilters so 전체 클리어를 state에 남긴다", () => {
+    expect(
+      buildNoticeLocationState({
+        listAudience: "challenger",
+        listPage: 1,
+        listFilters: {},
+      }),
+    ).toEqual({
+      listAudience: "challenger",
+      listPage: 1,
+      listFilters: {},
     })
   })
 })

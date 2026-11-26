@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useRouterState } from "@tanstack/react-router"
 import { useToast } from "@umc-product/react"
 import { useMemo, useState } from "react"
 
@@ -8,7 +8,11 @@ import { useFormLeaveConfirm } from "@/shared/lib/use-form-leave-confirm"
 
 import { loadWithdrawalRegisterTargetByRouteId } from "../model/load-withdrawal-register-target"
 import { submitWithdrawalRegister } from "../model/submit-withdrawal-register"
-import { buildWithdrawalLocationState } from "../model/withdrawal-location-state"
+import {
+  buildWithdrawalLocationState,
+  parseWithdrawalLocationState,
+  recallWithdrawalListView,
+} from "../model/withdrawal-location-state"
 import { isWithdrawalRegisterFormDirty } from "../model/withdrawal-register-dirty"
 import {
   INITIAL_WITHDRAWAL_REGISTER_FORM,
@@ -40,6 +44,11 @@ export function WithdrawalRegisterPage({
   const navigate = useNavigate()
   const toast = useToast()
   const selectedGisu = useSelectedGisu()
+  const listSearch = useRouterState({
+    select: (state) =>
+      parseWithdrawalLocationState(state.location.state).withdrawalListSearch ??
+      recallWithdrawalListView(),
+  })
   const [form, setForm] = useState<WithdrawalRegisterFormState>(
     INITIAL_WITHDRAWAL_REGISTER_FORM,
   )
@@ -84,7 +93,13 @@ export function WithdrawalRegisterPage({
   } = useFormLeaveConfirm({
     isDirty,
     navigateTo: (to) => {
-      void navigate({ to, search: { mock: undefined } })
+      void navigate({
+        to,
+        search: (previous) => ({ mock: previous.mock }),
+        state: buildWithdrawalLocationState(
+          listSearch == null ? {} : { withdrawalListSearch: listSearch },
+        ),
+      })
     },
   })
 
@@ -141,8 +156,9 @@ export function WithdrawalRegisterPage({
               registerTarget.name,
               registerTarget.nickname,
             ),
+            ...(listSearch == null ? {} : { withdrawalListSearch: listSearch }),
           }),
-          search: { mock: undefined },
+          search: (previous) => ({ mock: previous.mock }),
           to: "/activity/withdrawal",
         })
       } catch {

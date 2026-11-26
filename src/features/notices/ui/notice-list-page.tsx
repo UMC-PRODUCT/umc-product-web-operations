@@ -20,9 +20,13 @@ import {
   areNoticeListFilterSearchParamsEqual,
   buildNoticeListFilterSearchParams,
   parseNoticeListAudience,
-  parseNoticeListFiltersFromSearch,
 } from "../model/notice-list-route-search"
-import { buildNoticeLocationState } from "../model/notice-location-state"
+import {
+  buildNoticeLocationState,
+  noticeFiltersFromLocationState,
+  rememberNoticeListView,
+  resolveNoticeListViewState,
+} from "../model/notice-location-state"
 import {
   isNoticeSchoolExecutiveContext,
   NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS,
@@ -51,21 +55,11 @@ import { NoticeListFiltersBar } from "./notice-list-filters"
 import { NoticeListTable } from "./notice-list-table"
 import { useNoticeLocationStateFromLocation } from "./use-notice-location-state"
 
-import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeListFilterFields } from "../model/normalize-notice-list-filters"
 import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
-import type { NoticeCreateStaffScope } from "../model/notice-create-form"
-import type { NoticeScopeStage } from "../model/notice-scope-stage"
 import type { Notice, NoticeAudience, NoticeListFilters } from "../model/types"
 
 type NoticeListPageProps = {
-  listChapterScope?: string
-  listPart?: NoticePart
-  routeListQuery?: string
-  listSchoolScope?: string
-  listScope?: string
-  listScopeStage?: NoticeScopeStage
-  listStaffRecipient?: NoticeCreateStaffScope
   adminSession: NoticeAdminAccessContext
   session: NoticeOperatorSession
 }
@@ -129,43 +123,13 @@ function resolveListLoadState(
   }
 }
 
-function filtersFromListRouteSearch(input: {
-  audience: NoticeAudience
-  listChapterScope?: string
-  listPart?: NoticePart
-  routeListQuery?: string
-  listSchoolScope?: string
-  listScope?: string
-  listScopeStage?: NoticeScopeStage
-  listStaffRecipient?: NoticeCreateStaffScope
-}): Omit<NoticeListFilters, "audience"> {
-  return parseNoticeListFiltersFromSearch(
-    {
-      chapterScope: input.listChapterScope,
-      part: input.listPart,
-      q: input.routeListQuery,
-      schoolScope: input.listSchoolScope,
-      scope: input.listScope,
-      scopeStage: input.listScopeStage,
-      staffRecipient: input.listStaffRecipient,
-    },
-    { audience: input.audience },
-  ).filters
-}
-
-export function NoticeListPage({
-  listChapterScope,
-  listPart,
-  routeListQuery,
-  listSchoolScope,
-  listScope,
-  listScopeStage,
-  listStaffRecipient,
-  adminSession,
-  session,
-}: NoticeListPageProps) {
+export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
   const navigate = useNavigate()
-  const locationState = useNoticeLocationStateFromLocation()
+  const rawLocationState = useNoticeLocationStateFromLocation()
+  const locationState = useMemo(
+    () => resolveNoticeListViewState(rawLocationState),
+    [rawLocationState],
+  )
   const audience = parseNoticeListAudience(locationState.listAudience)
   const [page, setPage] = useState(() => locationState.listPage ?? 1)
   const showCreateNoticeButton = canCreateNotice(session)
@@ -175,29 +139,29 @@ export function NoticeListPage({
       setPage(locationState.listPage)
     }
   }, [locationState.listPage])
+
   const routeFilters = useMemo(
-    () =>
-      filtersFromListRouteSearch({
-        audience,
-        listChapterScope,
-        listPart,
-        routeListQuery,
-        listSchoolScope,
-        listScope,
-        listScopeStage,
-        listStaffRecipient,
-      }),
-    [
-      audience,
-      listChapterScope,
-      listPart,
-      routeListQuery,
-      listSchoolScope,
-      listScope,
-      listScopeStage,
-      listStaffRecipient,
-    ],
+    () => noticeFiltersFromLocationState(locationState, audience),
+    [audience, locationState],
   )
+
+  const commitListView = (input: {
+    listAudience?: NoticeAudience
+    listPage?: number
+    filters: Omit<NoticeListFilters, "audience">
+  }) => {
+    const nextState = buildNoticeLocationState({
+      listAudience: input.listAudience ?? audience,
+      listPage: input.listPage ?? page,
+      listFilters: buildNoticeListFilterSearchParams({
+        audience: input.listAudience ?? audience,
+        filters: input.filters,
+      }),
+    })
+    rememberNoticeListView(nextState)
+    return nextState
+  }
+
   const previousGisuIdRef = useRef(session.gisuId)
 
   useEffect(() => {
@@ -207,16 +171,18 @@ export function NoticeListPage({
 
     previousGisuIdRef.current = session.gisuId
     setPage(1)
+    const nextState = commitListView({
+      listPage: 1,
+      filters: DEFAULT_FILTERS,
+    })
     void navigate({
       replace: true,
       search: {},
-      state: buildNoticeLocationState({
-        listAudience: audience,
-        listPage: 1,
-      }),
+      state: nextState,
       to: "/notices",
     })
-  }, [audience, navigate, session.gisuId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 기수 변경 시에만 필터 초기화
+  }, [navigate, session.gisuId])
 
   const gisuListQuery = useQuery(noticeCreateGisuListQueryOptions())
 
@@ -411,13 +377,14 @@ export function NoticeListPage({
     }
 
     setPage(1)
+    const nextState = commitListView({
+      listPage: 1,
+      filters: nextFilters,
+    })
     void navigate({
       replace: true,
-      search: nextSearch,
-      state: buildNoticeLocationState({
-        listAudience: audience,
-        listPage: 1,
-      }),
+      search: {},
+      state: nextState,
       to: "/notices",
     })
   }
@@ -547,13 +514,15 @@ export function NoticeListPage({
             onValueChange={(value) => {
               const nextAudience = value as NoticeAudience
               setPage(1)
+              const nextState = commitListView({
+                listAudience: nextAudience,
+                listPage: 1,
+                filters: DEFAULT_FILTERS,
+              })
               void navigate({
                 replace: true,
                 search: {},
-                state: buildNoticeLocationState({
-                  listAudience: nextAudience,
-                  listPage: 1,
-                }),
+                state: nextState,
                 to: "/notices",
               })
             }}
@@ -598,12 +567,13 @@ export function NoticeListPage({
             isLoading={listState.isLoading}
             notices={listState.notices}
             onOpenNotice={(noticeId) => {
+              const nextState = commitListView({
+                listPage: page,
+                filters,
+              })
               void navigate({
                 params: { noticeId },
-                state: buildNoticeLocationState({
-                  listAudience: audience,
-                  listPage: page,
-                }),
+                state: nextState,
                 to: "/notices/$noticeId",
               })
             }}
@@ -616,16 +586,14 @@ export function NoticeListPage({
             <Pagination
               onPageChange={(nextPage) => {
                 setPage(nextPage)
+                const nextState = commitListView({
+                  listPage: nextPage,
+                  filters,
+                })
                 void navigate({
                   replace: true,
-                  search: buildNoticeListFilterSearchParams({
-                    audience,
-                    filters,
-                  }),
-                  state: buildNoticeLocationState({
-                    listAudience: audience,
-                    listPage: nextPage,
-                  }),
+                  search: {},
+                  state: nextState,
                   to: "/notices",
                 })
               }}
