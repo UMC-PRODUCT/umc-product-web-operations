@@ -4,16 +4,20 @@ import { useEffect, useRef } from "react"
 
 import { showPrimarySuccessToast } from "@/shared/ui/show-primary-success-toast"
 
-import { parseWithdrawalLocationState } from "../model/withdrawal-location-state"
+import {
+  buildWithdrawalLocationState,
+  parseWithdrawalLocationState,
+} from "../model/withdrawal-location-state"
 
 /** 등록 화면 → 목록 이동 후 history state로 전달된 성공 토스트를 1회 표시 */
 export function useWithdrawalRegisterSuccessToast() {
   const toast = useToast()
   const navigate = useNavigate()
-  const registerSuccessToast = useRouterState({
-    select: (state) =>
-      parseWithdrawalLocationState(state.location.state).registerSuccessToast,
+  const locationState = useRouterState({
+    select: (state) => parseWithdrawalLocationState(state.location.state),
   })
+  const registerSuccessToast = locationState.registerSuccessToast
+  const listSearch = locationState.withdrawalListSearch
   const consumedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -27,9 +31,11 @@ export function useWithdrawalRegisterSuccessToast() {
     showPrimarySuccessToast(toast, registerSuccessToast)
     void navigate({
       replace: true,
-      search: { mock: undefined },
-      state: {},
+      search: (previous) => ({ mock: previous.mock }),
+      state: buildWithdrawalLocationState(
+        listSearch == null ? {} : { withdrawalListSearch: listSearch },
+      ),
       to: "/activity/withdrawal",
     })
-  }, [navigate, registerSuccessToast, toast])
+  }, [listSearch, navigate, registerSuccessToast, toast])
 }

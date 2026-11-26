@@ -63,6 +63,7 @@ export function NoticeDetailPage({
   const detailState = buildNoticeLocationState({
     listAudience: returnAudience,
     listPage: locationState.listPage,
+    listFilters: locationState.listFilters,
   })
 
   useEffect(() => {

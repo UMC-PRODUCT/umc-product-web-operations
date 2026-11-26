@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { AddIcon } from "@umc-product/icons"
 import { Button, Pagination, useToast } from "@umc-product/react"
 import dayjs from "dayjs"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useSelectedGisu } from "@/entities/gisu"
 import {
@@ -36,6 +36,16 @@ import {
   DEFAULT_FILTER_EXPORT_COLUMNS,
   type WithdrawalExportFieldAccess,
 } from "../model/withdrawal-export"
+import {
+  clearWithdrawalListSearch,
+  toWithdrawalListPageIndex,
+  toWithdrawalListPageParam,
+  type WithdrawalListSearch,
+} from "../model/withdrawal-list-search"
+import {
+  buildWithdrawalLocationState,
+  rememberWithdrawalListView,
+} from "../model/withdrawal-location-state"
 import {
   showWithdrawalExportFailureToast,
   showWithdrawalExportSuccessToast,
@@ -76,6 +86,8 @@ type WithdrawalPageProps = {
   mock?: WithdrawalListMock
   /** 역할별 내보내기 Panel 기간·학교 필드 권한 */
   exportFieldAccess: WithdrawalExportFieldAccess
+  search: WithdrawalListSearch
+  onSearchChange: (patch: WithdrawalListSearch) => void
 }
 
 function toTotalPages(value: unknown) {
@@ -93,18 +105,21 @@ function formatDateParam(date: Date): string {
 export function WithdrawalPage({
   mock,
   exportFieldAccess,
+  search,
+  onSearchChange,
 }: WithdrawalPageProps) {
   useWithdrawalRegisterSuccessToast()
   const navigate = useNavigate()
   const selectedGisu = useSelectedGisu()
   const toast = useToast()
-  const [chapterId, setChapterId] = useState<string | null>(null)
-  const [schoolId, setSchoolId] = useState<string | null>(null)
-  const [part, setPart] = useState<string | null>(null)
-  const [reason, setReason] = useState<string | null>(null)
-  const [status, setStatus] = useState<string | null>(null)
-  const [query, setQuery] = useState("")
-  const [page, setPage] = useState(0)
+  const keyword = search.q ?? ""
+  const [queryInput, setQueryInput] = useState(keyword)
+  const page = toWithdrawalListPageIndex(search.page)
+  const chapterId = search.chapter ?? null
+  const schoolId = search.school ?? null
+  const part = search.part ?? null
+  const reason = search.reason ?? null
+  const status = search.status ?? null
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [csvExportOpen, setCsvExportOpen] = useState(false)
   const [exportPanelOpen, setExportPanelOpen] = useState(false)
@@ -116,8 +131,57 @@ export function WithdrawalPage({
   >(null)
   const [detail, setDetail] = useState<WithdrawalDetail | null>(null)
 
-  const debouncedQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
+  const debouncedQuery = useDebouncedValue(
+    queryInput.trim(),
+    SEARCH_DEBOUNCE_MS,
+  )
   const useMock = mock != null
+
+  const onSearchChangeRef = useRef(onSearchChange)
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange
+  }, [onSearchChange])
+
+  /** 마지막으로 URL과 맞춘 검색어. 우리가 보낸 값이 되돌아온 경우 입력창을 덮어쓰지 않는다 */
+  const syncedQueryRef = useRef(keyword)
+
+  useEffect(() => {
+    if (keyword === syncedQueryRef.current) {
+      return
+    }
+    syncedQueryRef.current = keyword
+    setQueryInput(keyword)
+  }, [keyword])
+
+  useEffect(() => {
+    if (debouncedQuery === syncedQueryRef.current) {
+      return
+    }
+    syncedQueryRef.current = debouncedQuery
+    onSearchChangeRef.current({
+      page: undefined,
+      q: debouncedQuery === "" ? undefined : debouncedQuery,
+    })
+  }, [debouncedQuery])
+
+  const previousGisuIdRef = useRef(selectedGisu.gisuId)
+  useEffect(() => {
+    const previousGisuId = previousGisuIdRef.current
+    previousGisuIdRef.current = selectedGisu.gisuId
+    if (
+      previousGisuId == null ||
+      selectedGisu.gisuId == null ||
+      previousGisuId === selectedGisu.gisuId
+    ) {
+      return
+    }
+    onSearchChangeRef.current({
+      chapter: undefined,
+      school: undefined,
+      part: undefined,
+      page: undefined,
+    })
+  }, [selectedGisu.gisuId])
 
   const organizationQuery = useQuery({
     ...gisuOrganizationQueryOptions(selectedGisu.gisuId),
@@ -204,7 +268,6 @@ export function WithdrawalPage({
   })
 
   useEffect(() => {
-    setPage(0)
     setSelectedIds(new Set())
   }, [
     chapterId,
@@ -266,7 +329,7 @@ export function WithdrawalPage({
     part != null ||
     reason != null ||
     status != null ||
-    query.trim().length > 0
+    queryInput.trim().length > 0
 
   useEffect(() => {
     if (useMock) {
@@ -307,14 +370,24 @@ export function WithdrawalPage({
   ])
 
   const resetFilters = () => {
-    setChapterId(null)
-    setSchoolId(null)
-    setPart(null)
-    setReason(null)
-    setStatus(null)
-    setQuery("")
-    setPage(0)
+    syncedQueryRef.current = ""
+    setQueryInput("")
+    onSearchChange(clearWithdrawalListSearch())
     setSelectedIds(new Set())
+  }
+
+  const navigateToRegister = (
+    to:
+      | "/activity/withdrawal/register"
+      | "/activity/withdrawal/$memberId/register",
+    params?: { memberId: string },
+  ) => {
+    rememberWithdrawalListView(search)
+    void navigate({
+      to,
+      ...(params == null ? {} : { params }),
+      state: buildWithdrawalLocationState({ withdrawalListSearch: search }),
+    })
   }
 
   const openWithdrawalDetail = (rowId: string) => {
@@ -451,9 +524,7 @@ export function WithdrawalPage({
                 <AddIcon aria-hidden color="currentColor" size={14} />
               }
               onClick={() => {
-                void navigate({
-                  to: "/activity/withdrawal/register",
-                })
+                navigateToRegister("/activity/withdrawal/register")
               }}
               size="sm"
               type="button"
@@ -489,17 +560,28 @@ export function WithdrawalPage({
           chapterId={chapterId}
           chapterOptions={chapterOptions}
           onChapterChange={(value) => {
-            setChapterId(value)
-            setSchoolId(null)
+            onSearchChange({
+              chapter: value ?? undefined,
+              school: undefined,
+              page: undefined,
+            })
           }}
-          onPartChange={setPart}
-          onQueryChange={setQuery}
-          onReasonChange={setReason}
-          onSchoolChange={setSchoolId}
-          onStatusChange={setStatus}
+          onPartChange={(value) => {
+            onSearchChange({ part: value ?? undefined, page: undefined })
+          }}
+          onQueryChange={setQueryInput}
+          onReasonChange={(value) => {
+            onSearchChange({ reason: value ?? undefined, page: undefined })
+          }}
+          onSchoolChange={(value) => {
+            onSearchChange({ school: value ?? undefined, page: undefined })
+          }}
+          onStatusChange={(value) => {
+            onSearchChange({ status: value ?? undefined, page: undefined })
+          }}
           part={part}
           partOptions={PART_FILTER_OPTIONS}
-          query={query}
+          query={queryInput}
           reason={reason}
           schoolId={schoolId}
           schoolOptions={schoolOptions}
@@ -511,9 +593,8 @@ export function WithdrawalPage({
           isLoading={isListLoading}
           members={members}
           onRegister={(challengerId) => {
-            void navigate({
-              to: "/activity/withdrawal/$memberId/register",
-              params: { memberId: challengerId },
+            navigateToRegister("/activity/withdrawal/$memberId/register", {
+              memberId: challengerId,
             })
           }}
           onResetFilters={resetFilters}
@@ -528,7 +609,9 @@ export function WithdrawalPage({
           <div className="flex justify-center pt-(--umc-spacing-padding-8)">
             <Pagination
               onPageChange={(next) => {
-                setPage(Math.max(0, next - 1))
+                onSearchChange({
+                  page: toWithdrawalListPageParam(Math.max(0, next - 1)),
+                })
               }}
               page={page + 1}
               totalPages={totalPages}

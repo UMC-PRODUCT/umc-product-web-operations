@@ -22,6 +22,10 @@ import {
   toPointsListPageIndex,
   toPointsListPageParam,
 } from "../model/points-list-search"
+import {
+  buildPointsLocationState,
+  rememberPointsListView,
+} from "../model/points-location-state"
 import { MemberTable } from "./MemberTable"
 import { PointsToolbar } from "./PointsToolbar"
 import { useDebouncedValue } from "./use-debounced-value"
@@ -37,7 +41,7 @@ type PointsPageProps = {
   lockedSchool?: LockedSchool | null
   /** URL `?mock=roles` — 운영 역할 다중 표시 목 데이터 */
   mock?: "roles"
-  /** URL 검색 파라미터 (단일 소스) */
+  /** 목록 필터 (history state 단일 소스) */
   search: PointsListSearch
   onSearchChange: (patch: PointsListSearch) => void
 }
@@ -282,9 +286,11 @@ export function PointsPage({
               if (challengerId == null) {
                 return
               }
+              rememberPointsListView(search)
               void navigate({
                 to: "/activity/points/$challengerId",
                 params: { challengerId: String(challengerId) },
+                state: buildPointsLocationState(search),
               })
             }}
             onRetry={() => {

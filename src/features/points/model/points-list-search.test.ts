@@ -25,6 +25,11 @@ describe("parsePointsListSearch", () => {
     })
   })
 
+  it("PE 파트 value(web-pe 등)도 허용한다", () => {
+    expect(parsePointsListSearch({ part: "web-pe" }).part).toBe("web-pe")
+    expect(parsePointsListSearch({ part: "pm" }).part).toBe("pm")
+  })
+
   it("잘못된 값은 undefined로 버린다", () => {
     expect(
       parsePointsListSearch({

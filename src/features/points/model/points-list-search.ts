@@ -13,7 +13,18 @@ export type PointsListSearch = {
 }
 
 const NUMERIC_ID_PATTERN = /^\d+$/
-const PART_VALUE_PATTERN = /^[A-Z_]+$/
+/** 툴바 파트 value: PE(pm/design/web-pe/…) + legacy(WEB/NODEJS/…) */
+const PART_VALUES = new Set([
+  "pm",
+  "design",
+  "web-pe",
+  "mobile-pe",
+  "WEB",
+  "NODEJS",
+  "SPRINGBOOT",
+  "ANDROID",
+  "IOS",
+])
 
 function parseNumericId(value: unknown): string | undefined {
   const text =
@@ -25,7 +36,7 @@ function parseNumericId(value: unknown): string | undefined {
 }
 
 function parsePartValue(value: unknown): string | undefined {
-  if (typeof value !== "string" || !PART_VALUE_PATTERN.test(value)) {
+  if (typeof value !== "string" || !PART_VALUES.has(value)) {
     return undefined
   }
   return value

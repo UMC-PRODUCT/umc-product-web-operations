@@ -27,6 +27,10 @@ import {
   formatAwardToastMessage,
   formatDeleteToastMessage,
 } from "../model/point-history"
+import {
+  buildPointsLocationState,
+  recallPointsListView,
+} from "../model/points-location-state"
 import { AwardPointsModal } from "./AwardPointsModal"
 import { DeletePointHistoryDialog } from "./DeletePointHistoryDialog"
 import { MemberDetailNetworkError } from "./MemberDetailNetworkError"
@@ -177,7 +181,10 @@ export function MemberDetailPage({
     return (
       <MemberDetailPermissionDenied
         onGoToList={() => {
-          void navigate({ to: "/activity/points" })
+          void navigate({
+            to: "/activity/points",
+            state: buildPointsLocationState(recallPointsListView()),
+          })
         }}
       />
     )

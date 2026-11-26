@@ -28,8 +28,13 @@ export function useNoticeDetailImageLoadFlow({
       buildNoticeLocationState({
         listAudience: locationState.listAudience,
         listPage: locationState.listPage,
+        listFilters: locationState.listFilters,
       }),
-    [locationState.listAudience, locationState.listPage],
+    [
+      locationState.listAudience,
+      locationState.listFilters,
+      locationState.listPage,
+    ],
   )
 
   const baseDetailSearch = useCallback(
