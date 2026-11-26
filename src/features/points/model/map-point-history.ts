@@ -161,6 +161,7 @@ export function toDetailMember(info: ChallengerInfo): PointsMember {
     challengerId: info.challengerId,
     generation: info.gisu,
     part: info.part,
+    challengerStatus: info.challengerStatus,
     isAdminInActiveGisu: (info.roles?.length ?? 0) > 0,
     roleTypes: info.roles
       ?.map((role) => role.roleType)

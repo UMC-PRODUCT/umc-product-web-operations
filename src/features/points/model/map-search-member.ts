@@ -247,14 +247,15 @@ export function mapChallengerStatus(
   }
 }
 
+/** Figma Tag/Status — 활동·수료·제명·탈부 */
 export function memberStatusLabel(status: MemberStatus): string {
   switch (status) {
     case "graduated":
       return "수료"
     case "expelled":
-      return "제적"
+      return "제명"
     case "withdrawn":
-      return "탈퇴"
+      return "탈부"
     case "active":
     default:
       return "활동"
@@ -263,8 +264,18 @@ export function memberStatusLabel(status: MemberStatus): string {
 
 export function memberStatusTagColor(
   status: MemberStatus,
-): "brand" | "neutral" {
-  return status === "active" ? "brand" : "neutral"
+): "brand" | "neutral" | "error" | "warning" {
+  switch (status) {
+    case "graduated":
+      return "neutral"
+    case "expelled":
+      return "error"
+    case "withdrawn":
+      return "warning"
+    case "active":
+    default:
+      return "brand"
+  }
 }
 
 export function toPointsMember(item: SearchMemberItem): PointsMember {
