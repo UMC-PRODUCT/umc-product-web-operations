@@ -39,9 +39,9 @@ const IMAGE_ADD_LABEL = (
 
 const IMAGE_ADD_DESCRIPTION = (
   <>
-    jpg, jpeg, png, gif,
+    jpg, jpeg, png, webp
     <br />
-    webp, gif, heic
+    장당 5MB
     <br />
     최대 10장까지
   </>
