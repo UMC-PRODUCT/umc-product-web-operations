@@ -1,17 +1,51 @@
-import { useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { AddIcon } from "@umc-product/icons"
-import { Button, useToast } from "@umc-product/react"
-import { useMemo, useState } from "react"
+import { Button, Pagination, useToast } from "@umc-product/react"
+import dayjs from "dayjs"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useSelectedGisu } from "@/entities/gisu"
 import {
   gisuOrganizationQueryOptions,
   toOrganizationLists,
 } from "@/entities/organization"
+import { isForbiddenError, isNotFoundError } from "@/shared/lib/http-status"
+import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 
+import {
+  DEACTIVATION_LIST_PAGE_SIZE,
+  exportDeactivationsCsv,
+  getDeactivationDetail,
+  listDeactivations,
+} from "../api/deactivations"
+import { deactivationKeys } from "../model/deactivation-keys"
+import {
+  downloadCsvBlob,
+  resolveExportFilename,
+  toDeactivationListStatus,
+  toDeactivationListType,
+  toDeactivationPart,
+  toExportColumns,
+  toExportTypes,
+  toWithdrawalDetail,
+  toWithdrawalMember,
+} from "../model/map-deactivation"
 import { MOCK_WITHDRAWALS } from "../model/mock-withdrawals"
-import { toMockWithdrawalDetail } from "../model/withdrawal-detail"
+import {
+  DEFAULT_FILTER_EXPORT_COLUMNS,
+  type WithdrawalExportFieldAccess,
+} from "../model/withdrawal-export"
+import {
+  clearWithdrawalListSearch,
+  toWithdrawalListPageIndex,
+  toWithdrawalListPageParam,
+  type WithdrawalListSearch,
+} from "../model/withdrawal-list-search"
+import {
+  buildWithdrawalLocationState,
+  rememberWithdrawalListView,
+} from "../model/withdrawal-location-state"
 import {
   showWithdrawalExportFailureToast,
   showWithdrawalExportSuccessToast,
@@ -27,8 +61,8 @@ import { WithdrawalExportPanel } from "./withdrawal-export-panel"
 import { WithdrawalTable } from "./withdrawal-table"
 import { WithdrawalToolbar } from "./withdrawal-toolbar"
 
+import type { WithdrawalMember } from "../model/types"
 import type { WithdrawalDetail } from "../model/withdrawal-detail"
-import type { WithdrawalExportFieldAccess } from "../model/withdrawal-export"
 
 const PART_FILTER_OPTIONS = [
   { value: "web-pe", label: "Web/PE" },
@@ -36,6 +70,8 @@ const PART_FILTER_OPTIONS = [
   { value: "pm", label: "Plan" },
   { value: "mobile-pe", label: "Mobile/PE" },
 ] as const
+
+const SEARCH_DEBOUNCE_MS = 300
 
 export type WithdrawalListMock =
   | "loading"
@@ -50,31 +86,102 @@ type WithdrawalPageProps = {
   mock?: WithdrawalListMock
   /** 역할별 내보내기 Panel 기간·학교 필드 권한 */
   exportFieldAccess: WithdrawalExportFieldAccess
+  search: WithdrawalListSearch
+  onSearchChange: (patch: WithdrawalListSearch) => void
+}
+
+function toTotalPages(value: unknown) {
+  if (typeof value !== "number" && typeof value !== "string") {
+    return 0
+  }
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
+}
+
+function formatDateParam(date: Date): string {
+  return dayjs(date).format("YYYY-MM-DD")
 }
 
 export function WithdrawalPage({
   mock,
   exportFieldAccess,
+  search,
+  onSearchChange,
 }: WithdrawalPageProps) {
   useWithdrawalRegisterSuccessToast()
   const navigate = useNavigate()
   const selectedGisu = useSelectedGisu()
   const toast = useToast()
-  const [chapterId, setChapterId] = useState<string | null>(null)
-  const [schoolId, setSchoolId] = useState<string | null>(null)
-  const [part, setPart] = useState<string | null>(null)
-  const [reason, setReason] = useState<string | null>(null)
-  const [status, setStatus] = useState<string | null>(null)
-  const [query, setQuery] = useState("")
+  const keyword = search.q ?? ""
+  const [queryInput, setQueryInput] = useState(keyword)
+  const page = toWithdrawalListPageIndex(search.page)
+  const chapterId = search.chapter ?? null
+  const schoolId = search.school ?? null
+  const part = search.part ?? null
+  const reason = search.reason ?? null
+  const status = search.status ?? null
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
-  const [retryKey, setRetryKey] = useState(0)
   const [csvExportOpen, setCsvExportOpen] = useState(false)
   const [exportPanelOpen, setExportPanelOpen] = useState(false)
+  const [exportSubmitting, setExportSubmitting] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
-  const [detailLoading, setDetailLoading] = useState(false)
   const [detailErrorOpen, setDetailErrorOpen] = useState(false)
-  const [detailMemberId, setDetailMemberId] = useState<string | null>(null)
+  const [detailDeactivationId, setDetailDeactivationId] = useState<
+    number | null
+  >(null)
   const [detail, setDetail] = useState<WithdrawalDetail | null>(null)
+
+  const debouncedQuery = useDebouncedValue(
+    queryInput.trim(),
+    SEARCH_DEBOUNCE_MS,
+  )
+  const useMock = mock != null
+
+  const onSearchChangeRef = useRef(onSearchChange)
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange
+  }, [onSearchChange])
+
+  /** 마지막으로 URL과 맞춘 검색어. 우리가 보낸 값이 되돌아온 경우 입력창을 덮어쓰지 않는다 */
+  const syncedQueryRef = useRef(keyword)
+
+  useEffect(() => {
+    if (keyword === syncedQueryRef.current) {
+      return
+    }
+    syncedQueryRef.current = keyword
+    setQueryInput(keyword)
+  }, [keyword])
+
+  useEffect(() => {
+    if (debouncedQuery === syncedQueryRef.current) {
+      return
+    }
+    syncedQueryRef.current = debouncedQuery
+    onSearchChangeRef.current({
+      page: undefined,
+      q: debouncedQuery === "" ? undefined : debouncedQuery,
+    })
+  }, [debouncedQuery])
+
+  const previousGisuIdRef = useRef(selectedGisu.gisuId)
+  useEffect(() => {
+    const previousGisuId = previousGisuIdRef.current
+    previousGisuIdRef.current = selectedGisu.gisuId
+    if (
+      previousGisuId == null ||
+      selectedGisu.gisuId == null ||
+      previousGisuId === selectedGisu.gisuId
+    ) {
+      return
+    }
+    onSearchChangeRef.current({
+      chapter: undefined,
+      school: undefined,
+      part: undefined,
+      page: undefined,
+    })
+  }, [selectedGisu.gisuId])
 
   const organizationQuery = useQuery({
     ...gisuOrganizationQueryOptions(selectedGisu.gisuId),
@@ -113,18 +220,71 @@ export function WithdrawalPage({
     organizationLists.schoolsByChapterId,
   ])
 
-  const hasActiveFilters =
-    chapterId != null ||
-    schoolId != null ||
-    part != null ||
-    reason != null ||
-    status != null ||
-    query.trim().length > 0
+  const listParams = useMemo(
+    () => ({
+      page,
+      size: DEACTIVATION_LIST_PAGE_SIZE,
+      gisuId: selectedGisu.gisuId ?? undefined,
+      chapterId: chapterId == null ? undefined : Number.parseInt(chapterId, 10),
+      schoolId: schoolId == null ? undefined : Number.parseInt(schoolId, 10),
+      part: toDeactivationPart(part),
+      keyword: debouncedQuery || undefined,
+      status: toDeactivationListStatus(status),
+      type: toDeactivationListType(reason),
+    }),
+    [
+      chapterId,
+      debouncedQuery,
+      page,
+      part,
+      reason,
+      schoolId,
+      selectedGisu.gisuId,
+      status,
+    ],
+  )
 
-  const members = useMemo(() => {
-    const sourceMembers = mock === "empty" ? [] : MOCK_WITHDRAWALS
-    const keyword = query.trim().toLowerCase()
-    return sourceMembers.filter((member) => {
+  const listQuery = useQuery({
+    queryKey: deactivationKeys.list(listParams),
+    queryFn: () => listDeactivations(listParams),
+    enabled: !useMock && !selectedGisu.isPending && selectedGisu.gisuId != null,
+    placeholderData: keepPreviousData,
+    retry: false,
+  })
+
+  const detailQuery = useQuery({
+    queryKey:
+      detailDeactivationId == null
+        ? deactivationKeys.detail(-1)
+        : deactivationKeys.detail(detailDeactivationId),
+    queryFn: () => getDeactivationDetail(detailDeactivationId!),
+    enabled:
+      !useMock &&
+      detailOpen &&
+      detailDeactivationId != null &&
+      mock !== "detail-loading" &&
+      mock !== "detail-error",
+    retry: false,
+  })
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [
+    chapterId,
+    schoolId,
+    part,
+    reason,
+    status,
+    debouncedQuery,
+    selectedGisu.gisuId,
+  ])
+
+  const mockMembers = useMemo(() => {
+    if (mock === "empty") {
+      return [] as WithdrawalMember[]
+    }
+    const keyword = debouncedQuery.toLowerCase()
+    return MOCK_WITHDRAWALS.filter((member) => {
       if (part != null && member.part !== part) {
         return false
       }
@@ -142,30 +302,105 @@ export function WithdrawalPage({
         member.nickname.toLowerCase().includes(keyword)
       )
     })
-  }, [mock, part, query, reason, status])
+  }, [debouncedQuery, mock, part, reason, status])
 
-  const resetFilters = () => {
-    setChapterId(null)
-    setSchoolId(null)
-    setPart(null)
-    setReason(null)
-    setStatus(null)
-    setQuery("")
-    setSelectedIds(new Set())
-  }
+  const members = useMemo(() => {
+    if (useMock) {
+      return mockMembers
+    }
+    return (listQuery.data?.content ?? [])
+      .map(toWithdrawalMember)
+      .filter((member): member is WithdrawalMember => member != null)
+  }, [listQuery.data?.content, mockMembers, useMock])
 
-  const openWithdrawalDetail = (memberId: string) => {
-    const member = members.find((item) => item.id === memberId)
-    if (member == null) {
+  const totalPages = useMock ? 1 : toTotalPages(listQuery.data?.totalPages)
+  const isForbidden = !useMock && isForbiddenError(listQuery.error)
+  const isListError =
+    mock === "error" || (!useMock && listQuery.isError && !isForbidden)
+  const isListLoading =
+    mock === "loading" ||
+    (!useMock &&
+      (selectedGisu.isPending ||
+        (listQuery.isPending && listQuery.data == null)))
+
+  const hasActiveFilters =
+    chapterId != null ||
+    schoolId != null ||
+    part != null ||
+    reason != null ||
+    status != null ||
+    queryInput.trim().length > 0
+
+  useEffect(() => {
+    if (useMock) {
+      if (mock === "detail-error") {
+        setDetail(null)
+        setDetailOpen(false)
+        setDetailErrorOpen(true)
+        return
+      }
+      if (mock === "detail-loading") {
+        setDetail(null)
+        return
+      }
       return
     }
 
-    setDetailMemberId(memberId)
+    if (!detailOpen || detailDeactivationId == null) {
+      return
+    }
+
+    if (detailQuery.isError) {
+      setDetail(null)
+      setDetailOpen(false)
+      setDetailErrorOpen(true)
+      return
+    }
+
+    if (detailQuery.data != null) {
+      setDetail(toWithdrawalDetail(detailQuery.data))
+    }
+  }, [
+    detailDeactivationId,
+    detailOpen,
+    detailQuery.data,
+    detailQuery.isError,
+    mock,
+    useMock,
+  ])
+
+  const resetFilters = () => {
+    syncedQueryRef.current = ""
+    setQueryInput("")
+    onSearchChange(clearWithdrawalListSearch())
+    setSelectedIds(new Set())
+  }
+
+  const navigateToRegister = (
+    to:
+      | "/activity/withdrawal/register"
+      | "/activity/withdrawal/$memberId/register",
+    params?: { memberId: string },
+  ) => {
+    rememberWithdrawalListView(search)
+    void navigate({
+      to,
+      ...(params == null ? {} : { params }),
+      state: buildWithdrawalLocationState({ withdrawalListSearch: search }),
+    })
+  }
+
+  const openWithdrawalDetail = (rowId: string) => {
+    const member = members.find((item) => item.id === rowId)
+    if (member?.deactivationId == null) {
+      return
+    }
+
+    setDetailDeactivationId(member.deactivationId)
     setDetailErrorOpen(false)
 
     if (mock === "detail-error") {
       setDetailOpen(false)
-      setDetailLoading(false)
       setDetail(null)
       setDetailErrorOpen(true)
       return
@@ -174,17 +409,89 @@ export function WithdrawalPage({
     setDetailOpen(true)
     if (mock === "detail-loading") {
       setDetail(null)
-      setDetailLoading(true)
       return
     }
 
-    setDetailLoading(false)
-    setDetail(toMockWithdrawalDetail(member))
+    if (useMock) {
+      setDetail(
+        toWithdrawalDetail({
+          deactivationId: member.deactivationId,
+          challenger: {
+            challengerId: member.challengerId,
+            name: member.name,
+            nickname: member.nickname,
+            schoolName: member.schoolLabel,
+            chapterName: member.chapterLabel,
+            generation: member.generationNumber,
+          },
+          reasonName: member.reasonLabel,
+          memo: "",
+          images: [],
+          links: [],
+          histories: [],
+        }),
+      )
+    }
   }
 
-  const hasSelection = selectedIds.size > 0
-  const csvExportMode: WithdrawalCsvExportMode = "selected"
-  const csvExportCount = selectedIds.size
+  const selectedDeactivationIds = useMemo(() => {
+    return members
+      .filter(
+        (member) => selectedIds.has(member.id) && member.deactivationId != null,
+      )
+      .map((member) => member.deactivationId!)
+  }, [members, selectedIds])
+
+  const hasSelection = selectedDeactivationIds.length > 0
+  /** 미선택 CSV → 전체(필터) 확인 모달. 선택은 Panel에서 열 고른 뒤 내보냄 */
+  const csvExportMode: WithdrawalCsvExportMode = "all"
+  const exportCountHint = useMock
+    ? members.length
+    : typeof listQuery.data?.totalElements === "number"
+      ? listQuery.data.totalElements
+      : members.length
+  const csvExportCount = exportCountHint
+
+  const runFilterExport = async () => {
+    if (mock === "export-error") {
+      showWithdrawalExportFailureToast(toast)
+      setCsvExportOpen(false)
+      return
+    }
+    if (useMock) {
+      showWithdrawalExportSuccessToast(toast, csvExportCount)
+      setCsvExportOpen(false)
+      return
+    }
+
+    setExportSubmitting(true)
+    try {
+      const { blob, headers } = await exportDeactivationsCsv({
+        gisuId: selectedGisu.gisuId ?? undefined,
+        chapterId:
+          chapterId == null ? undefined : Number.parseInt(chapterId, 10),
+        schoolId: schoolId == null ? undefined : Number.parseInt(schoolId, 10),
+        part: toDeactivationPart(part),
+        keyword: debouncedQuery || undefined,
+        columns: toExportColumns(new Set(DEFAULT_FILTER_EXPORT_COLUMNS)),
+      })
+      downloadCsvBlob(
+        blob,
+        resolveExportFilename(
+          typeof headers["content-disposition"] === "string"
+            ? headers["content-disposition"]
+            : undefined,
+        ),
+      )
+      showWithdrawalExportSuccessToast(toast, csvExportCount)
+      setCsvExportOpen(false)
+    } catch {
+      showWithdrawalExportFailureToast(toast)
+      setCsvExportOpen(false)
+    } finally {
+      setExportSubmitting(false)
+    }
+  }
 
   return (
     <section className="relative flex flex-col gap-(--umc-spacing-gap-32) pl-(--umc-spacing-padding-12)">
@@ -217,9 +524,7 @@ export function WithdrawalPage({
                 <AddIcon aria-hidden color="currentColor" size={14} />
               }
               onClick={() => {
-                void navigate({
-                  to: "/activity/withdrawal/register",
-                })
+                navigateToRegister("/activity/withdrawal/register")
               }}
               size="sm"
               type="button"
@@ -232,17 +537,19 @@ export function WithdrawalPage({
             color={hasSelection ? "neutral" : "white"}
             onClick={() => {
               if (hasSelection) {
-                setCsvExportOpen(true)
+                // 역할별 기간·학교 Panel (중앙 / 회장단 / 일반)
+                setExportPanelOpen(true)
                 return
               }
-              setExportPanelOpen(true)
+              // Figma 2235:13734 — 전체(필터) 확인 모달
+              setCsvExportOpen(true)
             }}
             size="sm"
             type="button"
             variant="fill"
           >
             {hasSelection
-              ? `${selectedIds.size}명ㆍCSV 내보내기`
+              ? `${selectedDeactivationIds.length}명ㆍCSV 내보내기`
               : "CSV 내보내기"}
           </Button>
         </div>
@@ -253,17 +560,28 @@ export function WithdrawalPage({
           chapterId={chapterId}
           chapterOptions={chapterOptions}
           onChapterChange={(value) => {
-            setChapterId(value)
-            setSchoolId(null)
+            onSearchChange({
+              chapter: value ?? undefined,
+              school: undefined,
+              page: undefined,
+            })
           }}
-          onPartChange={setPart}
-          onQueryChange={setQuery}
-          onReasonChange={setReason}
-          onSchoolChange={setSchoolId}
-          onStatusChange={setStatus}
+          onPartChange={(value) => {
+            onSearchChange({ part: value ?? undefined, page: undefined })
+          }}
+          onQueryChange={setQueryInput}
+          onReasonChange={(value) => {
+            onSearchChange({ reason: value ?? undefined, page: undefined })
+          }}
+          onSchoolChange={(value) => {
+            onSearchChange({ school: value ?? undefined, page: undefined })
+          }}
+          onStatusChange={(value) => {
+            onSearchChange({ status: value ?? undefined, page: undefined })
+          }}
           part={part}
           partOptions={PART_FILTER_OPTIONS}
-          query={query}
+          query={queryInput}
           reason={reason}
           schoolId={schoolId}
           schoolOptions={schoolOptions}
@@ -271,52 +589,111 @@ export function WithdrawalPage({
         />
         <WithdrawalTable
           hasActiveFilters={hasActiveFilters}
-          isError={mock === "error"}
-          isLoading={mock === "loading"}
-          key={retryKey}
+          isError={isListError || isForbidden}
+          isLoading={isListLoading}
           members={members}
-          onRegister={(memberId) => {
-            void navigate({
-              to: "/activity/withdrawal/$memberId/register",
-              params: { memberId },
+          onRegister={(challengerId) => {
+            navigateToRegister("/activity/withdrawal/$memberId/register", {
+              memberId: challengerId,
             })
           }}
           onResetFilters={resetFilters}
           onRetry={() => {
-            setRetryKey((value) => value + 1)
+            void listQuery.refetch()
           }}
           onSelectedIdsChange={setSelectedIds}
           onViewDetail={openWithdrawalDetail}
           selectedIds={selectedIds}
         />
+        {!useMock && totalPages > 1 && members.length > 0 ? (
+          <div className="flex justify-center pt-(--umc-spacing-padding-8)">
+            <Pagination
+              onPageChange={(next) => {
+                onSearchChange({
+                  page: toWithdrawalListPageParam(Math.max(0, next - 1)),
+                })
+              }}
+              page={page + 1}
+              totalPages={totalPages}
+            />
+          </div>
+        ) : null}
       </div>
 
       <WithdrawalCsvExportDialog
         count={csvExportCount}
         mode={csvExportMode}
         onConfirm={() => {
-          if (mock === "export-error") {
-            showWithdrawalExportFailureToast(toast)
-            setCsvExportOpen(false)
+          if (exportSubmitting) {
             return
           }
-          showWithdrawalExportSuccessToast(toast, csvExportCount)
-          setCsvExportOpen(false)
+          void runFilterExport()
         }}
         onOpenChange={setCsvExportOpen}
         open={csvExportOpen}
       />
 
       <WithdrawalExportPanel
-        exportCount={members.length}
+        exportCount={selectedDeactivationIds.length}
         fieldAccess={exportFieldAccess}
-        onExport={() => {
+        onExport={async (input) => {
           if (mock === "export-error") {
             showWithdrawalExportFailureToast(toast)
             return false
           }
-          showWithdrawalExportSuccessToast(toast, members.length)
-          return true
+          if (useMock) {
+            showWithdrawalExportSuccessToast(
+              toast,
+              selectedDeactivationIds.length,
+            )
+            setSelectedIds(new Set())
+            return true
+          }
+          if (selectedDeactivationIds.length === 0) {
+            return false
+          }
+
+          try {
+            const startDate = input.startDate
+              ? formatDateParam(input.startDate)
+              : undefined
+            const endDate = input.endDate
+              ? formatDateParam(input.endDate)
+              : undefined
+            const schoolIdValue =
+              input.schoolId == null
+                ? undefined
+                : Number.parseInt(input.schoolId, 10)
+
+            const { blob, headers } = await exportDeactivationsCsv({
+              gisuId: selectedGisu.gisuId ?? undefined,
+              deactivationIds: selectedDeactivationIds,
+              schoolId: Number.isFinite(schoolIdValue)
+                ? schoolIdValue
+                : undefined,
+              types: toExportTypes(input.types),
+              startDate,
+              endDate,
+              columns: toExportColumns(new Set(input.columns)),
+            })
+            downloadCsvBlob(
+              blob,
+              resolveExportFilename(
+                typeof headers["content-disposition"] === "string"
+                  ? headers["content-disposition"]
+                  : undefined,
+              ),
+            )
+            showWithdrawalExportSuccessToast(
+              toast,
+              selectedDeactivationIds.length,
+            )
+            setSelectedIds(new Set())
+            return true
+          } catch {
+            showWithdrawalExportFailureToast(toast)
+            return false
+          }
         }}
         onOpenChange={setExportPanelOpen}
         open={exportPanelOpen}
@@ -325,11 +702,15 @@ export function WithdrawalPage({
 
       <WithdrawalDetailPanel
         detail={detail}
-        isLoading={detailLoading}
+        isLoading={
+          mock === "detail-loading" ||
+          (!useMock && detailOpen && detailQuery.isPending)
+        }
         onOpenChange={(open) => {
           setDetailOpen(open)
           if (!open) {
-            setDetailLoading(false)
+            // 닫힘 애니메이션 동안 detail을 유지해야 스켈레톤으로 깜빡이지 않음
+            setDetailDeactivationId(null)
           }
         }}
         open={detailOpen}
@@ -338,11 +719,16 @@ export function WithdrawalPage({
       <WithdrawalDetailErrorDialog
         onOpenChange={setDetailErrorOpen}
         onRetry={() => {
-          if (detailMemberId == null) {
+          if (detailDeactivationId == null) {
             setDetailErrorOpen(false)
             return
           }
-          openWithdrawalDetail(detailMemberId)
+          if (isNotFoundError(detailQuery.error)) {
+            setDetailErrorOpen(false)
+            return
+          }
+          setDetailOpen(true)
+          void detailQuery.refetch()
         }}
         open={detailErrorOpen}
       />

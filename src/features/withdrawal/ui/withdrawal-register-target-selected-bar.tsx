@@ -1,7 +1,10 @@
 import { CloseIcon, PersonIcon } from "@umc-product/icons"
 import { IconButton } from "@umc-product/react"
 
-import { formatWithdrawalMemberSelectedBarMeta } from "../model/format-withdrawal-member-meta"
+import {
+  formatWithdrawalMemberDisplayName,
+  formatWithdrawalMemberSelectedBarMeta,
+} from "../model/format-withdrawal-member-meta"
 
 import type { WithdrawalMember } from "../model/types"
 
@@ -34,7 +37,7 @@ export function WithdrawalRegisterTargetSelectedBar({
         </div>
         <p className="text-body-3-semibold flex min-w-0 flex-wrap items-center gap-(--umc-spacing-gap-8)">
           <span className="text-neutral-default-900">
-            {member.name} / {member.nickname}
+            {formatWithdrawalMemberDisplayName(member)}
           </span>
           {meta ? (
             <span className="text-neutral-weak-500 font-normal">{meta}</span>

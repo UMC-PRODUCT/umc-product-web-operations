@@ -1,7 +1,7 @@
 import { api } from "@/shared/api/client"
 import { unwrapApiResult } from "@/shared/api/unwrap-api-result"
 
-import type { MemberSearchPart } from "./member-search"
+import type { ChallengerStatus, MemberSearchPart } from "./member-search"
 
 export type PointType =
   | "BEST_WORKBOOK"
@@ -44,6 +44,7 @@ export type ChallengerInfo = {
   chapterId?: number | null
   chapterName?: string | null
   part?: MemberSearchPart | null
+  challengerStatus?: ChallengerStatus | null
   challengerPoints?: ChallengerPointInfo[] | null
   points?: ChallengerPointInfo[] | null
   totalPoints?: number | null
@@ -59,8 +60,11 @@ export type GrantChallengerPointBody = {
   pointValue?: number
 }
 
+/** GET /api/v2/challenger/admin/{challengerId} (CHALLENGER-203) */
 export async function fetchChallenger(challengerId: number) {
-  const { data } = await api.get<unknown>(`/v1/challenger/${challengerId}`)
+  const { data } = await api.get<unknown>(
+    `/v2/challenger/admin/${challengerId}`,
+  )
   return unwrapApiResult<ChallengerInfo>(data)
 }
 

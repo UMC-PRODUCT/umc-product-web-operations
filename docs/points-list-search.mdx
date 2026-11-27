@@ -1,6 +1,6 @@
 # 상벌점 목록: 기수·지부·학교·파트와 검색
 
-상벌점 관리 목록은 필터 네 개와 검색어로 `GET /api/v2/member/search`를 호출한다. 기수, 지부, 학교는 서로 다른 API에서 오고, 파트만 화면 고정 값이다. 지부는 API의 챕터다. `/api/v1/chapters`는 호출하지 않는다.
+상벌점 관리 목록은 필터 네 개와 검색어로 `GET /api/v2/challenger/admin/search`를 호출한다. 기수, 지부, 학교는 서로 다른 API에서 오고, 파트만 화면 고정 값이다. 지부는 API의 챕터다. `/api/v1/chapters`는 호출하지 않는다.
 
 요청 경로는 클라이언트가 `/v1/...`, `/v2/...`로 보내고, 베이스 URL이 `/api`를 붙여 스펙 경로가 된다.
 
@@ -108,7 +108,7 @@ const keyword = useDebouncedValue(query.trim(), 300)
 ```
 
 - 지연은 300ms다.
-- 입력이 바뀔 때마다 이전 타이머를 취소하고 다시 잰다. 타이핑이 멈춘 뒤 한 번만 `keyword`가 바뀌고, 그때 React Query 키가 바뀌어 `GET /api/v2/member/search`가 나간다.
+- 입력이 바뀔 때마다 이전 타이머를 취소하고 다시 잰다. 타이핑이 멈춘 뒤 한 번만 `keyword`가 바뀌고, 그때 React Query 키가 바뀌어 `GET /api/v2/challenger/admin/search`가 나간다.
 - 첫 화면의 초기값은 빈 문자열이라 300ms를 기다리지 않고 바로 목록을 조회한다.
 - `query.trim()` 결과가 같으면, 예를 들어 `"김"` 뒤에 공백만 더해도, 효과 의존성이 그대로라 추가 요청이 없다.
 - 앞뒤 공백을 지운 값이 빈 문자열이면 `keyword` 파라미터를 빼서 이름 조건 없는 목록을 조회한다.
@@ -123,7 +123,7 @@ const keyword = useDebouncedValue(query.trim(), 300)
 기수 목록 조회가 끝난 뒤 아래를 호출한다.
 
 ```
-GET /api/v2/member/search?page={page}&size=10
+GET /api/v2/challenger/admin/search?page={page}&size=10
 ```
 
 값이 있는 것만 붙인다.
@@ -136,7 +136,7 @@ GET /api/v2/member/search?page={page}&size=10
 
 React Query 키는 `["members", "search", { keyword, gisuId, part, chapterId, schoolId, page, size }]`다. 키 안의 `part`는 화면 값(`pm` 등)이고, 실제 요청의 `part`는 `PLAN` 같은 API 값이다. `retry`는 꺼져 있다. 실패 후 다시 시도는 네트워크 오류 화면의 재시도 버튼만 한다. 그 버튼은 같은 조건으로 `refetch`한다.
 
-호출자에게 챌린저 기록이 없으면 이 검색은 403이다. 그 경우 기존 권한 없음 UI를 보여 준다.
+운영진 권한이 없거나 허용 범위 밖 필터면 이 검색은 403이다. 그 경우 기존 권한 없음 UI를 보여 준다.
 
 ## 표에 그리는 방식
 

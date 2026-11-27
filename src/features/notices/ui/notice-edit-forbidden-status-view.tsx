@@ -25,6 +25,7 @@ export function NoticeEditForbiddenStatusView() {
               state: buildNoticeLocationState({
                 listAudience: locationState.listAudience,
                 listPage: locationState.listPage,
+                listFilters: locationState.listFilters,
               }),
               to: "/notices",
             })

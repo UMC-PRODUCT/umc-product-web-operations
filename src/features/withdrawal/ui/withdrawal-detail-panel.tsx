@@ -293,9 +293,9 @@ export function WithdrawalDetailPanel({
       open={open}
       title="탈부 상세보기"
     >
-      {isLoading || detail == null ? (
+      {isLoading ? (
         <WithdrawalDetailSkeleton />
-      ) : (
+      ) : detail == null ? null : (
         <div className="flex w-full flex-col gap-(--umc-spacing-gap-20) pt-(--umc-spacing-padding-16)">
           <div className="flex w-full flex-col gap-(--umc-spacing-gap-16)">
             <div className="bg-fill-neutral-weak-75 flex w-full items-start rounded-(--umc-radius-12) px-(--umc-spacing-padding-16) py-(--umc-spacing-padding-12)">

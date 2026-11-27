@@ -13,6 +13,8 @@ export {
   buildNoticeListReturnSearch,
   buildNoticeLocationState,
   parseNoticeLocationState,
+  rememberNoticeListView,
+  resolveNoticeListViewState,
 } from "./model/notice-location-state"
 export type { NoticeLocationState } from "./model/notice-location-state"
 export type {

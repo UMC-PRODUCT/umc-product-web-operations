@@ -65,6 +65,7 @@ export function NoticeEditPage({
   const detailState = buildNoticeLocationState({
     listAudience: locationState.listAudience,
     listPage: locationState.listPage,
+    listFilters: locationState.listFilters,
   })
   const baselineFormRef = useRef(initialForm)
   const [form, setForm] = useState<NoticeCreateFormState>(initialForm)

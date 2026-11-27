@@ -59,8 +59,13 @@ export function WithdrawalTable({
   onRetry,
   onResetFilters,
 }: WithdrawalTableProps) {
+  const selectableMembers = useMemo(
+    () => members.filter((member) => member.deactivationId != null),
+    [members],
+  )
   const allSelected =
-    members.length > 0 && members.every((member) => selectedIds.has(member.id))
+    selectableMembers.length > 0 &&
+    selectableMembers.every((member) => selectedIds.has(member.id))
 
   const columns = useMemo(
     () => [
@@ -71,31 +76,41 @@ export function WithdrawalTable({
             aria-label="전체 선택"
             checked={allSelected}
             color="brand"
+            disabled={selectableMembers.length === 0}
             onCheckedChange={(checked) => {
               if (checked) {
-                onSelectedIdsChange(new Set(members.map((member) => member.id)))
+                onSelectedIdsChange(
+                  new Set(selectableMembers.map((member) => member.id)),
+                )
                 return
               }
               onSelectedIdsChange(new Set())
             }}
           />
         ),
-        cell: ({ row }) => (
-          <Checkbox
-            aria-label={`${row.original.name} 선택`}
-            checked={selectedIds.has(row.original.id)}
-            color="brand"
-            onCheckedChange={(checked) => {
-              const next = new Set(selectedIds)
-              if (checked) {
-                next.add(row.original.id)
-              } else {
-                next.delete(row.original.id)
-              }
-              onSelectedIdsChange(next)
-            }}
-          />
-        ),
+        cell: ({ row }) => {
+          const selectable = row.original.deactivationId != null
+          return (
+            <Checkbox
+              aria-label={`${row.original.name} 선택`}
+              checked={selectedIds.has(row.original.id)}
+              color="brand"
+              disabled={!selectable}
+              onCheckedChange={(checked) => {
+                if (!selectable) {
+                  return
+                }
+                const next = new Set(selectedIds)
+                if (checked) {
+                  next.add(row.original.id)
+                } else {
+                  next.delete(row.original.id)
+                }
+                onSelectedIdsChange(next)
+              }}
+            />
+          )
+        },
         meta: {
           headerClass: "shrink-0",
           cellClass: "shrink-0",
@@ -190,35 +205,31 @@ export function WithdrawalTable({
         id: "action",
         header: "",
         cell: ({ row }) => {
-          // Figma 2222:20074: 등록 전 → 상세보기, 탈부 → 탈부 등록하기
-          if (row.original.status === "withdrawn") {
+          // deactivationId가 있을 때만 상세. 없으면 등록 플로우.
+          if (row.original.deactivationId != null) {
             return (
               <TextButton
-                color="brand"
-                onClick={() => onRegister(row.original.id)}
+                color="neutral"
+                onClick={() => onViewDetail(row.original.id)}
                 size="xs"
-                trailingIcon={
-                  <ChevronRightIcon
-                    aria-hidden
-                    color="currentColor"
-                    size={16}
-                  />
-                }
                 type="button"
+                variant="underline"
               >
-                탈부 등록하기
+                상세보기
               </TextButton>
             )
           }
           return (
             <TextButton
-              color="neutral"
-              onClick={() => onViewDetail(row.original.id)}
+              color="brand"
+              onClick={() => onRegister(String(row.original.challengerId))}
               size="xs"
+              trailingIcon={
+                <ChevronRightIcon aria-hidden color="currentColor" size={16} />
+              }
               type="button"
-              variant="underline"
             >
-              상세보기
+              탈부 등록하기
             </TextButton>
           )
         },
@@ -231,10 +242,10 @@ export function WithdrawalTable({
     ],
     [
       allSelected,
-      members,
       onRegister,
       onSelectedIdsChange,
       onViewDetail,
+      selectableMembers,
       selectedIds,
     ],
   )

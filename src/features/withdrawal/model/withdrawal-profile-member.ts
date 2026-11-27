@@ -5,6 +5,8 @@ export type WithdrawalRegisterMemberStatus =
 
 export type WithdrawalRegisterProfileMember = {
   id: string
+  memberId?: number | null
+  challengerId?: number | null
   name: string
   nickname: string
   schoolLabel: string

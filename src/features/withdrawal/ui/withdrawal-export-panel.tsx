@@ -1,6 +1,6 @@
 import { RemoveCircleIcon } from "@umc-product/icons"
 import {
-  BottomSheetActions,
+  Button,
   Calendar,
   type CalendarRange,
   Checkbox,
@@ -34,7 +34,7 @@ type WithdrawalExportPanelProps = {
   onOpenChange: (open: boolean) => void
   schoolOptions: readonly FilterOption[]
   fieldAccess: WithdrawalExportFieldAccess
-  /** 필터 조건에 맞는 예상 건수 (목/API) */
+  /** 선택 건수 (CTA 라벨) */
   exportCount: number
   /** `false`면 패널을 닫지 않음 (실패 토스트 등) */
   onExport: (input: {
@@ -94,6 +94,7 @@ type ExportDateFieldProps = {
   disabled?: boolean
   /** disabled일 때 날짜 자리에 표시 (Figma 일반: 「전체」) */
   lockedValue?: string
+  isDateDisabled?: (date: Date) => boolean
   onOpen: (field: DateField) => void
   onDismiss: () => void
   onChange: (date: Date) => void
@@ -108,6 +109,7 @@ function ExportDateField({
   ranges,
   disabled = false,
   lockedValue,
+  isDateDisabled,
   onOpen,
   onDismiss,
   onChange,
@@ -198,6 +200,7 @@ function ExportDateField({
           >
             <Calendar
               className="max-w-none shadow-(--umc-shadow-drop-neutral-2)"
+              isDateDisabled={isDateDisabled}
               markedDates={[]}
               onValueChange={(next) => {
                 onChange(next)
@@ -214,7 +217,12 @@ function ExportDateField({
   return (
     <div className="relative min-w-0 flex-1" ref={anchorRef}>
       <TextFieldBoxField
-        className="w-full gap-(--umc-spacing-gap-6)"
+        className={cn(
+          "w-full gap-(--umc-spacing-gap-6)",
+          // 캘린더는 portal이라 focus-within이 풀림 → 열린 동안 typing 스타일 유지
+          isOpen &&
+            "[--umc-text-field-box-field-bg:var(--umc-text-field-box-field-typing-bg)] [--umc-text-field-box-field-border-color:var(--umc-color-border-primary-strong-500)]",
+        )}
         data-type={hasDate && !disabled ? "text" : undefined}
         disabled={disabled}
         size="lg"
@@ -225,6 +233,8 @@ function ExportDateField({
             "gap-(--umc-spacing-gap-6) border-0 bg-transparent p-0",
             disabled && "cursor-default",
           )}
+          // DS TextFieldBox: focus-within + [data-filled] 일 때 typing 배경
+          data-filled={isOpen || hasDate ? "" : undefined}
           disabled={disabled}
           onClick={() => {
             if (disabled) {
@@ -247,8 +257,8 @@ function ExportDateField({
 }
 
 /**
- * Figma 2547:50414 / 50445 / 50478 / 2541:44063 / 2541:44813
- * — 탈부 기록 내보내기 Panel.
+ * Figma 2547:50414 등 — 역할별 기간·학교 + 유형·열.
+ * 중앙: 기간·학교 / 회장단: 기간만·학교 고정 / 일반: 전체 고정
  */
 export function WithdrawalExportPanel({
   open,
@@ -260,7 +270,6 @@ export function WithdrawalExportPanel({
 }: WithdrawalExportPanelProps) {
   const [form, setForm] = useState(createInitialWithdrawalExportForm)
   const [openDateField, setOpenDateField] = useState<DateField | null>(null)
-  const [consentAttempted, setConsentAttempted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -273,7 +282,6 @@ export function WithdrawalExportPanel({
     }
     setForm(initial)
     setOpenDateField(null)
-    setConsentAttempted(false)
     setSubmitting(false)
   }, [open, fieldAccess.lockedSchool])
 
@@ -289,20 +297,45 @@ export function WithdrawalExportPanel({
     return [{ value: ALL_SCHOOL, label: "전체" }, ...schoolOptions]
   }, [fieldAccess.lockedSchool, schoolOptions])
 
+  /**
+   * DS Calendar:
+   * - `value` / `onValueChange`: 지금 고르는 날짜
+   * - `ranges`: 선택 기간 띠(시작·끝 채움 + 중간 연결). 허용 범위가 아님.
+   * 시작만/종료만 있어도 해당 날을 single로 넘겨 선택이 보이게 한다.
+   */
   const calendarRanges = useMemo<CalendarRange[]>(() => {
-    const today = dayjs().startOf("day").toDate()
-    return [{ start: new Date(2020, 0, 1), end: today }]
+    const start =
+      form.startDate == null
+        ? null
+        : dayjs(form.startDate).startOf("day").toDate()
+    const end =
+      form.endDate == null ? null : dayjs(form.endDate).startOf("day").toDate()
+
+    if (start != null && end != null) {
+      return start <= end ? [{ start, end }] : [{ start: end, end: start }]
+    }
+    if (start != null) {
+      return [{ start, end: start }]
+    }
+    if (end != null) {
+      return [{ start: end, end }]
+    }
+    return []
+  }, [form.endDate, form.startDate])
+
+  const isExportDateDisabled = useMemo(() => {
+    const today = dayjs().startOf("day")
+    return (date: Date) => dayjs(date).startOf("day").isAfter(today)
   }, [])
 
   const personalSelected = isPersonalColumnSelected(form.columns)
   const periodReady = !fieldAccess.periodSelectable || hasExportPeriod(form)
-  const consentInvalid =
-    personalSelected && !form.personalConsent && consentAttempted
+  const hasColumns = form.columns.size > 0
+  const consentReady = !personalSelected || form.personalConsent
+  const canExport = periodReady && hasColumns && consentReady && !submitting
 
   const exportLabel =
-    periodReady && exportCount > 0
-      ? `${exportCount}건ㆍCSV 내보내기`
-      : "CSV 내보내기"
+    exportCount > 0 ? `${exportCount}건ㆍCSV 내보내기` : "CSV 내보내기"
 
   const toggleType = (value: WithdrawalExportTypeValue) => {
     setForm((prev) => {
@@ -331,9 +364,6 @@ export function WithdrawalExportPanel({
         personalConsent: stillPersonal ? prev.personalConsent : false,
       }
     })
-    if (value === "personal") {
-      setConsentAttempted(false)
-    }
   }
 
   const handleClose = () => {
@@ -341,17 +371,7 @@ export function WithdrawalExportPanel({
   }
 
   const handleExport = async () => {
-    if (!periodReady) {
-      return
-    }
-    if (personalSelected && !form.personalConsent) {
-      setConsentAttempted(true)
-      return
-    }
-    if (
-      fieldAccess.periodSelectable &&
-      (form.startDate == null || form.endDate == null)
-    ) {
+    if (!canExport) {
       return
     }
 
@@ -379,19 +399,30 @@ export function WithdrawalExportPanel({
   return (
     <Panel
       actions={
-        <BottomSheetActions
-          layout="emphasis"
-          primary={{
-            label: submitting ? "내보내는 중..." : exportLabel,
-            onClick: () => {
+        <div className="umc-bottom-sheet-actions" data-layout="emphasis">
+          <Button
+            color="neutral"
+            onClick={handleClose}
+            size="md"
+            type="button"
+            variant="weak"
+          >
+            돌아가기
+          </Button>
+          <Button
+            color="brand"
+            disabled={!canExport}
+            isLoading={submitting}
+            onClick={() => {
               void handleExport()
-            },
-          }}
-          secondary={{
-            label: "돌아가기",
-            onClick: handleClose,
-          }}
-        />
+            }}
+            size="md"
+            type="button"
+            variant="fill"
+          >
+            {submitting ? "내보내는 중..." : exportLabel}
+          </Button>
+        </div>
       }
       description="기수 · 학교 · 파트 · 시기별 탈부 현황을 CSV로 받아요."
       headSlot={<PanelCloseButton />}
@@ -407,10 +438,22 @@ export function WithdrawalExportPanel({
               date={form.startDate}
               disabled={!fieldAccess.periodSelectable}
               field="start"
+              isDateDisabled={isExportDateDisabled}
               label="시작"
               lockedValue="전체"
               onChange={(next) => {
-                setForm((prev) => ({ ...prev, startDate: next }))
+                const startDate = dayjs(next).startOf("day").toDate()
+                setForm((prev) => {
+                  const end =
+                    prev.endDate == null
+                      ? null
+                      : dayjs(prev.endDate).startOf("day").toDate()
+                  // 종료보다 늦은 시작을 고르면 기간을 맞춰 정규화
+                  if (end != null && dayjs(startDate).isAfter(dayjs(end))) {
+                    return { ...prev, startDate: end, endDate: startDate }
+                  }
+                  return { ...prev, startDate }
+                })
               }}
               onClear={() => {
                 setForm((prev) => ({ ...prev, startDate: null }))
@@ -426,10 +469,22 @@ export function WithdrawalExportPanel({
               date={form.endDate}
               disabled={!fieldAccess.periodSelectable}
               field="end"
+              isDateDisabled={isExportDateDisabled}
               label="종료"
               lockedValue="전체"
               onChange={(next) => {
-                setForm((prev) => ({ ...prev, endDate: next }))
+                const endDate = dayjs(next).startOf("day").toDate()
+                setForm((prev) => {
+                  const start =
+                    prev.startDate == null
+                      ? null
+                      : dayjs(prev.startDate).startOf("day").toDate()
+                  // 시작보다 이른 종료를 고르면 기간을 맞춰 정규화
+                  if (start != null && dayjs(endDate).isBefore(dayjs(start))) {
+                    return { ...prev, startDate: endDate, endDate: start }
+                  }
+                  return { ...prev, endDate }
+                })
               }}
               onClear={() => {
                 setForm((prev) => ({ ...prev, endDate: null }))
@@ -522,7 +577,7 @@ export function WithdrawalExportPanel({
             <div
               className={cn(
                 "bg-fill-neutral-weak-75 border-neutral-disabled flex w-full flex-col",
-                "items-end gap-(--umc-spacing-gap-8) rounded-(--umc-radius-14)",
+                "items-start gap-(--umc-spacing-gap-8) rounded-(--umc-radius-14)",
                 "border px-(--umc-spacing-padding-16) py-(--umc-spacing-padding-12)",
               )}
             >
@@ -532,28 +587,22 @@ export function WithdrawalExportPanel({
                 <br />
                 공유 드라이브에만 두고 다음 기수 리크루팅이 끝나면 지워 주세요
               </p>
-              <Checkbox
-                checked={form.personalConsent}
-                color="brand"
-                labelPlacement="start"
-                onCheckedChange={(checked) => {
-                  setForm((prev) => ({ ...prev, personalConsent: checked }))
-                  if (checked) {
-                    setConsentAttempted(false)
-                  }
-                }}
-                size="md"
-              >
-                <span className="text-label-4-medium text-neutral-strong-800">
-                  확인했어요
-                </span>
-              </Checkbox>
+              <div className="flex w-full justify-end">
+                <Checkbox
+                  checked={form.personalConsent}
+                  color="brand"
+                  labelPlacement="start"
+                  onCheckedChange={(checked) => {
+                    setForm((prev) => ({ ...prev, personalConsent: checked }))
+                  }}
+                  size="md"
+                >
+                  <span className="text-label-4-medium text-neutral-strong-800">
+                    확인했어요
+                  </span>
+                </Checkbox>
+              </div>
             </div>
-            {consentInvalid ? (
-              <p className="text-body-3-regular text-error px-1">
-                필수 동의를 확인해 주세요
-              </p>
-            ) : null}
           </div>
         ) : null}
       </div>
