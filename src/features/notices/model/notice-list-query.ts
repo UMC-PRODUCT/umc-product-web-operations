@@ -25,6 +25,19 @@ import {
   isNoticeForbiddenError,
   isNoticeNetworkError,
 } from "./notice-api-error"
+import {
+  type ChallengerListScopeFilters,
+  challengerListScopeNeedsClientAndFilter,
+  filterChallengerNoticeSummariesByScope,
+  prepareNoticeListRequestForChallengerClientFilter,
+  shouldStripPartFromChallengerListRequest,
+} from "./notice-challenger-list-scope-filter"
+import {
+  type ChapterPresidentChallengerListScope,
+  filterChallengerNoticeSummariesForChapterPresident,
+  filterStaffNoticeSummariesForChapterPresident,
+  filterStaffNoticeSummariesForChapterPresidentRecipient,
+} from "./notice-chapter-president-access"
 import { noticeKeys } from "./notice-keys"
 import { canAccessStaffNoticeTab } from "./notice-notice-tab"
 import { NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS } from "./notice-scope-stage"
@@ -52,19 +65,12 @@ function mapNoticeSummaryForListPage(
   listFiltersActive: boolean,
 ) {
   const notice = mapNoticeSummaryToNotice(summary, context)
-  const cacheKey = noticeTargetLabelCacheKey(gisuId, notice.id)
 
   if (!listFiltersActive) {
+    const cacheKey = noticeTargetLabelCacheKey(gisuId, notice.id)
     noticeListTargetLabelByKey.set(cacheKey, notice.target)
-    return notice
   }
 
-  const cachedTarget = noticeListTargetLabelByKey.get(cacheKey)
-  if (cachedTarget != null) {
-    return { ...notice, target: cachedTarget }
-  }
-
-  noticeListTargetLabelByKey.set(cacheKey, notice.target)
   return notice
 }
 
@@ -94,6 +100,8 @@ export function noticeListQueryKey(input: {
   audience: NoticeAudience
   filters: NoticeListQueryFilterFields
   page: number
+  chapterPresidentChallengerListScope?: ChapterPresidentChallengerListScope | null
+  chapterPresidentStaffListActive?: boolean
   session: Pick<
     NoticeOperatorSession,
     "gisuId" | "id" | "isSuperAdmin" | "roleTypes"
@@ -119,6 +127,8 @@ export function noticeListQueryKey(input: {
     apiFilters.scope,
     apiFilters.staffRecipient,
     input.filters.scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS,
+    input.chapterPresidentChallengerListScope?.chapterId ?? null,
+    input.chapterPresidentStaffListActive === true,
   ])
 }
 
@@ -126,6 +136,8 @@ export async function fetchNoticeListPage(input: {
   audience: NoticeAudience
   filters: NoticeListQueryFilterFields
   page: number
+  chapterPresidentChallengerListScope?: ChapterPresidentChallengerListScope | null
+  chapterPresidentStaffListActive?: boolean
   queryClient: QueryClient
   session: NoticeOperatorSession
 }): Promise<NoticeListQueryResult> {
@@ -160,12 +172,33 @@ export async function fetchNoticeListPage(input: {
     }
 
     const staffRecipientClientFilter =
-      input.audience === "staff" && apiFilters.staffRecipient != null
+      input.audience === "staff" && input.filters.staffRecipient != null
     const allSchoolsTargetClientFilter =
       input.audience === "staff" &&
       input.filters.scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS
+    const challengerListScope: ChallengerListScopeFilters = {
+      chapterId: request.params.chapterId ?? null,
+      schoolId: request.params.schoolId ?? null,
+      part: request.params.part ?? null,
+    }
+    const chapterPresidentChallengerViewFilter =
+      input.audience === "challenger" &&
+      input.chapterPresidentChallengerListScope != null
+    const chapterPresidentStaffListActive =
+      input.audience === "staff" &&
+      input.chapterPresidentStaffListActive === true
+    const chapterPresidentStaffViewFilter = chapterPresidentStaffListActive
+    const challengerScopeClientFilter =
+      input.audience === "challenger" &&
+      challengerListScopeNeedsClientAndFilter(challengerListScope) &&
+      (!chapterPresidentChallengerViewFilter ||
+        shouldStripPartFromChallengerListRequest(challengerListScope))
     const needsFullListClientFilter =
-      staffRecipientClientFilter || allSchoolsTargetClientFilter
+      staffRecipientClientFilter ||
+      allSchoolsTargetClientFilter ||
+      challengerScopeClientFilter ||
+      chapterPresidentChallengerViewFilter ||
+      chapterPresidentStaffViewFilter
 
     const [gisuList, organizationGisu] = await Promise.all([
       input.queryClient
@@ -180,6 +213,28 @@ export async function fetchNoticeListPage(input: {
     let totalElements = 0
     let totalPages = 0
 
+    const challengerScopeForFilter: ChallengerListScopeFilters = {
+      ...challengerListScope,
+      chapterSchoolIds:
+        challengerListScope.chapterId != null && organizationGisu != null
+          ? (
+              toOrganizationLists(organizationGisu).schoolsByChapterId.get(
+                challengerListScope.chapterId,
+              ) ?? []
+            ).map((school) => school.schoolId)
+          : undefined,
+    }
+
+    const listRequestForFetch =
+      input.audience === "challenger" &&
+      needsFullListClientFilter &&
+      shouldStripPartFromChallengerListRequest(challengerListScope)
+        ? prepareNoticeListRequestForChallengerClientFilter(
+            request,
+            challengerListScope,
+          )
+        : request
+
     if (needsFullListClientFilter) {
       const allSummaries: GetNoticeSummaryResponse[] = []
       let serverPage = 0
@@ -187,7 +242,7 @@ export async function fetchNoticeListPage(input: {
 
       do {
         const pageResult = await fetchNoticeListSummariesPage(
-          request,
+          listRequestForFetch,
           serverPage,
         )
         allSummaries.push(...pageResult.content)
@@ -198,16 +253,41 @@ export async function fetchNoticeListPage(input: {
       } while (serverPage < serverTotalPages)
 
       let filtered = allSummaries
-      if (staffRecipientClientFilter && apiFilters.staffRecipient != null) {
+      if (chapterPresidentStaffViewFilter) {
+        filtered =
+          staffRecipientClientFilter && input.filters.staffRecipient != null
+            ? filterStaffNoticeSummariesForChapterPresidentRecipient(
+                filtered,
+                input.filters.staffRecipient,
+              )
+            : filterStaffNoticeSummariesForChapterPresident(filtered)
+      } else if (
+        staffRecipientClientFilter &&
+        input.filters.staffRecipient != null
+      ) {
         filtered = filterStaffNoticeSummariesByRecipient(
           filtered,
-          apiFilters.staffRecipient,
+          input.filters.staffRecipient,
         )
       }
       if (allSchoolsTargetClientFilter) {
         filtered = filterStaffNoticeSummariesByAllSchoolsTarget(filtered)
       }
-
+      if (
+        chapterPresidentChallengerViewFilter &&
+        input.chapterPresidentChallengerListScope != null
+      ) {
+        filtered = filterChallengerNoticeSummariesForChapterPresident(
+          filtered,
+          input.chapterPresidentChallengerListScope,
+          challengerScopeForFilter,
+        )
+      } else if (challengerScopeClientFilter) {
+        filtered = filterChallengerNoticeSummariesByScope(
+          filtered,
+          challengerScopeForFilter,
+        )
+      }
       const paginated = paginateNoticeListSummaries(
         filtered,
         input.page,
@@ -267,6 +347,8 @@ export function noticeListQueryOptions(input: {
   audience: NoticeAudience
   filters: NoticeListQueryFilterFields
   page: number
+  chapterPresidentChallengerListScope?: ChapterPresidentChallengerListScope | null
+  chapterPresidentStaffListActive?: boolean
   session: NoticeOperatorSession
 }) {
   return queryOptions({

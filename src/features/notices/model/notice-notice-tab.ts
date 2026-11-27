@@ -2,19 +2,25 @@ import type { NoticeTab } from "../api/notice-api.types"
 import type { NoticeOperatorSession } from "./notice-session"
 import type { NoticeAudience } from "./types"
 
-const CENTRAL_ROLES = new Set<string>([
+/** NOTICE-001 운영진 목록 noticeTab=CENTRAL_MEMBER (중앙 운영진 조회) */
+const CENTRAL_MEMBER_LIST_ROLES = new Set<string>([
   "CENTRAL_PRESIDENT",
   "CENTRAL_VICE_PRESIDENT",
   "CENTRAL_OPERATING_TEAM_MEMBER",
   "CENTRAL_EDUCATION_TEAM_MEMBER",
-  // 지부장은 운영진 탭에서 CENTRAL_MEMBER로 요청한다.
-  // 겸임(학교 회장 등)이어도 CENTRAL이 SCHOOL_CORE보다 먼저 매칭된다.
-  "CHAPTER_PRESIDENT",
 ])
 
-const SCHOOL_CORE_ROLES = new Set<string>([
+const CHAPTER_PRESIDENT_ROLE = "CHAPTER_PRESIDENT"
+
+/** NOTICE-001 운영진 탭 — noticeTab=SCHOOL_CORE (회장단) */
+const SCHOOL_EXECUTIVE_ROLES = new Set<string>([
   "SCHOOL_PRESIDENT",
   "SCHOOL_VICE_PRESIDENT",
+])
+
+/** NOTICE-001 — noticeTab=SCHOOL_PART_LEADER (파트장·교내 기타 운영진) */
+const SCHOOL_STAFF_LIST_ROLES = new Set<string>([
+  "SCHOOL_PART_LEADER",
   "SCHOOL_ETC_ADMIN",
 ])
 
@@ -27,13 +33,16 @@ export function canAccessStaffNoticeTab(
   }
 
   const roles = session.roleTypes
-  if (roles.some((role) => CENTRAL_ROLES.has(role))) {
+  if (roles.some((role) => CENTRAL_MEMBER_LIST_ROLES.has(role))) {
     return true
   }
-  if (roles.includes("SCHOOL_PART_LEADER")) {
+  if (roles.includes(CHAPTER_PRESIDENT_ROLE)) {
     return true
   }
-  if (roles.some((role) => SCHOOL_CORE_ROLES.has(role))) {
+  if (roles.some((role) => SCHOOL_STAFF_LIST_ROLES.has(role))) {
+    return true
+  }
+  if (roles.some((role) => SCHOOL_EXECUTIVE_ROLES.has(role))) {
     return true
   }
 
@@ -53,14 +62,18 @@ export function resolveNoticeTab(
   }
 
   const roles = session.roleTypes
-  if (roles.some((role) => CENTRAL_ROLES.has(role))) {
+  if (roles.some((role) => CENTRAL_MEMBER_LIST_ROLES.has(role))) {
     return "CENTRAL_MEMBER"
   }
-  if (roles.includes("SCHOOL_PART_LEADER")) {
-    return "SCHOOL_PART_LEADER"
-  }
-  if (roles.some((role) => SCHOOL_CORE_ROLES.has(role))) {
+  // NOTICE-001 — 지부장은 SCHOOL_CORE·SCHOOL_PART_LEADER 대상만, CENTRAL_MEMBER 탭 요청 시 403
+  if (roles.includes(CHAPTER_PRESIDENT_ROLE)) {
     return "SCHOOL_CORE"
+  }
+  if (roles.some((role) => SCHOOL_EXECUTIVE_ROLES.has(role))) {
+    return "SCHOOL_CORE"
+  }
+  if (roles.some((role) => SCHOOL_STAFF_LIST_ROLES.has(role))) {
+    return "SCHOOL_PART_LEADER"
   }
 
   return "CENTRAL_MEMBER"

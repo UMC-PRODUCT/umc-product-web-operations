@@ -332,6 +332,24 @@ export function NoticeListPage({
       ? ("schoolAdmin" as const)
       : ("default" as const)
 
+  const chapterPresidentChallengerListScope = useMemo(() => {
+    if (
+      audience !== "challenger" ||
+      chapterPresidentChallengerLock == null ||
+      session.gisuId == null
+    ) {
+      return null
+    }
+
+    return {
+      chapterId: chapterPresidentChallengerLock.chapterId,
+      schoolIdsInChapter: chapterPresidentChallengerLock.schoolOptions.map(
+        (school) => school.schoolId,
+      ),
+      sessionGisuId: session.gisuId,
+    }
+  }, [audience, chapterPresidentChallengerLock, session.gisuId])
+
   const challengerLockedChapterScope = chapterPresidentUnresolved
     ? null
     : (chapterPresidentChallengerLock?.chapterScope ??
@@ -455,6 +473,8 @@ export function NoticeListPage({
   const listQuery = useQuery(
     noticeListQueryOptions({
       audience,
+      chapterPresidentChallengerListScope,
+      chapterPresidentStaffListActive: chapterPresidentStaffListActive,
       filters,
       page: page - 1,
       session,
@@ -464,6 +484,8 @@ export function NoticeListPage({
   const registeredQuery = useQuery(
     noticeListQueryOptions({
       audience,
+      chapterPresidentChallengerListScope,
+      chapterPresidentStaffListActive: chapterPresidentStaffListActive,
       filters: DEFAULT_FILTERS,
       page: 0,
       session,

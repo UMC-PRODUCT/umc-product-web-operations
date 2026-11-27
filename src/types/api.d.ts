@@ -14080,8 +14080,14 @@ export interface components {
             authorChallengerId?: number;
             /** Format: int64 */
             authorMemberId?: number;
+            /**
+             * @description 등록 시 대상자 푸시 알림 요청 여부
+             * @example true
+             */
+            shouldNotify?: boolean;
             mustRead?: boolean;
             vote?: components["schemas"]["NoticeVoteInfo"];
+            hasVote?: boolean;
             images?: components["schemas"]["NoticeImageInfo"][];
             links?: components["schemas"]["NoticeLinkInfo"][];
             targetInfo?: components["schemas"]["NoticeTargetInfo"];

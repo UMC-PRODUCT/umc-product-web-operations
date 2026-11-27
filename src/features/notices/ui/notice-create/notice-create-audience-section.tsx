@@ -175,9 +175,11 @@ export function NoticeCreateAudienceSection({
           <Checkbox
             checked={challengerAudienceLocked ? true : form.challengerEnabled}
             color={
-              challengerAudienceLocked || form.challengerEnabled
-                ? "brand"
-                : "neutral"
+              lockAudienceAndTarget
+                ? "neutral"
+                : challengerAudienceLocked || form.challengerEnabled
+                  ? "brand"
+                  : "neutral"
             }
             disabled={!challengerAudienceLocked && lockAudienceAndTarget}
             labelPlacement="end"
@@ -312,7 +314,13 @@ export function NoticeCreateAudienceSection({
         <div className="flex items-center gap-(--umc-spacing-gap-8)">
           <Checkbox
             checked={form.staffEnabled}
-            color={form.staffEnabled ? "brand" : "neutral"}
+            color={
+              lockAudienceAndTarget
+                ? "neutral"
+                : form.staffEnabled
+                  ? "brand"
+                  : "neutral"
+            }
             disabled={
               challengerAudienceLocked ||
               schoolStaffAudienceLocked ||

@@ -117,6 +117,64 @@ describe("mapNoticeSummaryToNotice", () => {
     expect(notice.audience).toBe("staff")
     expect(notice.target).toBe("11기 · 회장단 · 숙명여자대학교")
   })
+
+  it("shows 모든 운영진 for UMC-wide SCHOOL_PART_LEADER (ALL_STAFF create mapping)", () => {
+    const notice = mapNoticeSummaryToNotice(
+      {
+        id: 3,
+        title: "전체 운영진",
+        content: "c",
+        createdAt: "2026-10-20T05:00:00.000Z",
+        mustRead: false,
+        viewCount: 0,
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        targetInfo: {
+          targetNoticeTab: "SCHOOL_PART_LEADER",
+          targetGisuId: 6,
+        },
+      },
+      {
+        gisuGenerationById: buildGisuGenerationLookup([
+          { gisuId: 6, generation: 11 },
+        ]),
+      },
+    )
+
+    expect(notice.target).toBe("11기 · 모든 운영진")
+    expect(notice.target).not.toContain("학교 운영진")
+  })
+
+  it("shows 학교 운영진 when school or parts are set on SCHOOL_PART_LEADER", () => {
+    const withSchool = mapNoticeSummaryToNotice(
+      {
+        id: 4,
+        title: "t",
+        content: "c",
+        createdAt: "2026-10-20T05:00:00.000Z",
+        mustRead: false,
+        viewCount: 0,
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        targetInfo: {
+          targetNoticeTab: "SCHOOL_PART_LEADER",
+          targetGisuId: 6,
+          targetSchoolId: 19,
+        },
+      },
+      {
+        gisuGenerationById: buildGisuGenerationLookup([
+          { gisuId: 6, generation: 11 },
+        ]),
+        schoolNameById: new Map([[19, "숙명여자대학교"]]),
+      },
+    )
+
+    expect(withSchool.target).toContain("학교 운영진")
+    expect(withSchool.target).toContain("숙명여자대학교")
+  })
 })
 
 describe("mapNoticeDetailResponse", () => {

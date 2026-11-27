@@ -103,6 +103,7 @@ export type GetNoticeDetailResponse = {
   images: NoticeImageInfo[]
   links: NoticeLinkInfo[]
   mustRead: boolean
+  shouldNotify?: boolean
   targetInfo?: NoticeTargetInfo | null
   title: string
   updatedAt: string
