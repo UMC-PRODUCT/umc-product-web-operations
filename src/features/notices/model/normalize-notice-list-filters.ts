@@ -1,13 +1,15 @@
-import { isStaffCentralNoticeTab } from "./notice-staff-target-rules"
+import { isNoticeListStaffScopeTargetDisabled } from "./notice-create-staff-scope"
+import { NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS } from "./notice-scope-stage"
 
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeCreateStaffScope } from "./notice-create-form"
 import type { NoticeScopeFilterValue } from "./notice-scope-filter"
-import type { NoticeListFilters } from "./types"
+import type { NoticeAudience, NoticeListFilters } from "./types"
 
 export type NoticeListFilterFields = Omit<NoticeListFilters, "audience">
 
 export type NormalizeNoticeListFiltersContext = {
+  audience: NoticeAudience
   /** 인코딩된 지부 범위 값(`chapter:{id}`) 목록 */
   chapterScopeOptions: readonly NoticeScopeFilterValue[]
   /** 인코딩된 학교 범위 값(`school:{id}`) 목록 */
@@ -25,6 +27,8 @@ export type NormalizeNoticeListFiltersContext = {
   staffRecipientScopeAllowlist?: readonly NoticeCreateStaffScope[] | null
   /** 운영진 탭: 받는 사람 고정 */
   staffFixedStaffRecipient?: NoticeCreateStaffScope | null
+  /** 지부장 운영진 탭: 범위·대상 URL 값 제거 */
+  staffScopeTargetListLocked?: boolean
 }
 
 /**
@@ -36,6 +40,7 @@ export function normalizeNoticeListFilters(
   context: NormalizeNoticeListFiltersContext,
 ): NoticeListFilterFields {
   const {
+    audience,
     chapterScopeOptions,
     challengerLockedSchoolScope = null,
     lockedChapterScope = null,
@@ -45,6 +50,7 @@ export function normalizeNoticeListFilters(
     staffFixedStaffRecipient = null,
     staffLockedSchoolScope = null,
     staffRecipientScopeAllowlist = null,
+    staffScopeTargetListLocked = false,
   } = context
 
   let { chapterScope, part, schoolScope, scope, scopeStage, staffRecipient } =
@@ -102,8 +108,30 @@ export function normalizeNoticeListFilters(
     staffRecipient = staffFixedStaffRecipient
   }
 
-  if (staffRecipient != null && isStaffCentralNoticeTab(staffRecipient)) {
+  if (audience === "staff" && staffScopeTargetListLocked) {
     scopeStage = null
+    scope = null
+    part = null
+  }
+
+  if (
+    audience === "staff" &&
+    isNoticeListStaffScopeTargetDisabled(staffRecipient)
+  ) {
+    scopeStage = null
+    scope = null
+    part = null
+  }
+
+  if (
+    scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS &&
+    staffRecipient !== "SCHOOL_CORE" &&
+    staffRecipient !== "SCHOOL_PART_LEADER"
+  ) {
+    scopeStage = null
+  }
+
+  if (scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS) {
     scope = null
     part = null
   }

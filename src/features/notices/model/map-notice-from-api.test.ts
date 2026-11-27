@@ -115,7 +115,65 @@ describe("mapNoticeSummaryToNotice", () => {
     )
 
     expect(notice.audience).toBe("staff")
-    expect(notice.target).toBe("11기 · 회장단 이상 · 숙명여자대학교")
+    expect(notice.target).toBe("11기 · 회장단 · 숙명여자대학교")
+  })
+
+  it("shows 모든 운영진 for UMC-wide SCHOOL_PART_LEADER (ALL_STAFF create mapping)", () => {
+    const notice = mapNoticeSummaryToNotice(
+      {
+        id: 3,
+        title: "전체 운영진",
+        content: "c",
+        createdAt: "2026-10-20T05:00:00.000Z",
+        mustRead: false,
+        viewCount: 0,
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        targetInfo: {
+          targetNoticeTab: "SCHOOL_PART_LEADER",
+          targetGisuId: 6,
+        },
+      },
+      {
+        gisuGenerationById: buildGisuGenerationLookup([
+          { gisuId: 6, generation: 11 },
+        ]),
+      },
+    )
+
+    expect(notice.target).toBe("11기 · 모든 운영진")
+    expect(notice.target).not.toContain("학교 운영진")
+  })
+
+  it("shows 학교 운영진 when school or parts are set on SCHOOL_PART_LEADER", () => {
+    const withSchool = mapNoticeSummaryToNotice(
+      {
+        id: 4,
+        title: "t",
+        content: "c",
+        createdAt: "2026-10-20T05:00:00.000Z",
+        mustRead: false,
+        viewCount: 0,
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        targetInfo: {
+          targetNoticeTab: "SCHOOL_PART_LEADER",
+          targetGisuId: 6,
+          targetSchoolId: 19,
+        },
+      },
+      {
+        gisuGenerationById: buildGisuGenerationLookup([
+          { gisuId: 6, generation: 11 },
+        ]),
+        schoolNameById: new Map([[19, "숙명여자대학교"]]),
+      },
+    )
+
+    expect(withSchool.target).toContain("학교 운영진")
+    expect(withSchool.target).toContain("숙명여자대학교")
   })
 })
 
@@ -161,6 +219,25 @@ describe("mapNoticeDetailResponse", () => {
     expect(detail.link?.url).toBe("https://forms.gle/test")
     expect(detail.poll?.options[0]?.isSelected).toBe(true)
     expect(detail.poll?.settingsLabel).toContain("복수선택")
+    expect(detail.hasBeenUpdated).toBe(true)
+  })
+
+  it("marks detail as not updated when createdAt and updatedAt are equal", () => {
+    const detail = mapNoticeDetailResponse({
+      id: 1,
+      title: "신규",
+      content: "본문",
+      createdAt: "2026-10-20T05:00:00.000Z",
+      updatedAt: "2026-10-20T05:00:00.000Z",
+      mustRead: false,
+      viewCount: 0,
+      authorMemberId: 2,
+      author: { memberId: 2, name: "작성자" },
+      images: [],
+      links: [],
+    })
+
+    expect(detail.hasBeenUpdated).toBe(false)
   })
 
   it("maps CLOSED vote to closed poll status for detail card", () => {

@@ -1,7 +1,10 @@
+import {
+  isNoticeSuperAdminContext,
+  type NoticeAdminAccessContext,
+} from "./notice-admin-access-context"
 import { encodeChapterScope, encodeSchoolScope } from "./notice-scope-filter"
 
 import type { NoticeListChapterOption } from "./map-gisu-organization"
-import type { NoticeAdminAccessContext } from "./notice-admin-access-context"
 import type {
   NoticeCreateFormState,
   NoticeCreateStaffScope,
@@ -20,7 +23,7 @@ export function isNoticeSchoolExecutiveContext(
     "isSuperAdmin" | "scope" | "roleTypes"
   >,
 ): boolean {
-  if (session.isSuperAdmin) {
+  if (isNoticeSuperAdminContext(session)) {
     return false
   }
 
@@ -31,8 +34,9 @@ export function isNoticeSchoolExecutiveContext(
   return session.roleTypes.some((role) => SCHOOL_EXECUTIVE_ROLES.has(role))
 }
 
+/** 학교 회장·부회장(SCHOOL_ADMIN) 운영진 목록 — 받는 사람 (Figma 2808-42349, 중앙 운영진 없음) */
 export const NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS: NoticeCreateStaffScope[] =
-  ["SCHOOL_CORE", "SCHOOL_PART_LEADER"]
+  ["ALL_STAFF", "SCHOOL_CORE", "SCHOOL_PART_LEADER"]
 
 export const NOTICE_SCHOOL_EXECUTIVE_STAFF_CREATE_SCOPE: NoticeCreateStaffScope =
   "SCHOOL_PART_LEADER"

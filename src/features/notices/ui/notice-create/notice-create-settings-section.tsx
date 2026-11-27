@@ -1,7 +1,5 @@
 import { Checkbox } from "@umc-product/react"
 
-import { cn } from "@/shared/lib/cn"
-
 import { NoticeCreateSection } from "./notice-create-section"
 
 import type { NoticeCreateFormState } from "../../model/notice-create-form"
@@ -32,17 +30,18 @@ export function NoticeCreateSettingsSection({
         >
           필독
         </Checkbox>
-        <div
-          className={cn(
-            "flex items-center gap-(--umc-spacing-gap-8)",
-            isEditMode && "pointer-events-none opacity-60 select-none",
-          )}
-        >
+        <div className="flex items-center gap-(--umc-spacing-gap-8)">
           <Checkbox
             checked={form.sendNotification}
-            color={form.sendNotification ? "brand" : "neutral"}
+            color={
+              isEditMode
+                ? "neutral"
+                : form.sendNotification
+                  ? "brand"
+                  : "neutral"
+            }
+            disabled={isEditMode}
             labelPlacement="end"
-            readOnly={isEditMode}
             onCheckedChange={(checked) => {
               onChange({ sendNotification: checked === true })
             }}

@@ -1,3 +1,11 @@
+import {
+  applyNoticeCentralHqChallengerGisuTarget,
+  applyNoticeCentralHqStaffScopeTarget,
+} from "./notice-central-create-access"
+import {
+  applyNoticeCreateChallengerUmcOnlyOrgPatch,
+  canNoticeCreateUseChallengerPartSelection,
+} from "./notice-challenger-target-rules"
 import { applyNoticeChapterPresidentCreateFormLock } from "./notice-chapter-president-access"
 import { filterNoticeCreateParts } from "./notice-create-part-options"
 import {
@@ -8,12 +16,22 @@ import {
 import type { NoticeCreateFormState } from "./notice-create-form"
 
 export type NormalizeNoticeCreateFormContext = {
-  /** 세션(헤더) 기수. 특정 기수 모드에서 대상 기수가 비어 있으면 채운다 */
+  /** HQ_ADMIN: 중앙 운영진·학교 운영진 칩 선택 불가 */
+  centralAdminStaffChipRestricted: boolean
+  /** HQ_LEAD: 학교 운영진 칩 선택 불가 */
+  centralLeadStaffChipRestricted: boolean
+  /** 세션(헤더) 활성 기수 */
   sessionGisuId: number | null
   /** 지부장: 챌린저 공지만 작성 가능 */
   chapterPresidentChallengerOnly: boolean
   chapterPresidentCreateLock: {
     chapterId: number
+    targetGisuId: number
+  } | null
+  /** 교내 파트장·기타 운영진: 챌린저 공지만 작성 */
+  schoolStaffChallengerOnly: boolean
+  schoolStaffCreateLock: {
+    schoolId: number
     targetGisuId: number
   } | null
   schoolExecutiveCreateLock: {
@@ -22,6 +40,8 @@ export type NormalizeNoticeCreateFormContext = {
   } | null
   /** 공지 대상 기수의 기수 번호. 허용되지 않는 파트를 걸러낸다 */
   contextGeneration: number | null
+  /** 슈퍼어드민: 역할·대상 잠금 보정 없음 */
+  noticeCreateSuperAdmin: boolean
 }
 
 /**
@@ -34,12 +54,18 @@ export function normalizeNoticeCreateForm(
 ): NoticeCreateFormState {
   let next = form
 
-  if (
-    context.sessionGisuId != null &&
-    next.gisuMode === "specific" &&
-    next.targetGisuId == null
-  ) {
-    next = { ...next, targetGisuId: context.sessionGisuId }
+  if (context.noticeCreateSuperAdmin) {
+    const nextParts = filterNoticeCreateParts(
+      next.parts,
+      context.contextGeneration,
+    )
+    if (
+      nextParts.length !== next.parts.length ||
+      nextParts.some((part, index) => part !== next.parts[index])
+    ) {
+      return { ...next, parts: nextParts }
+    }
+    return next
   }
 
   if (
@@ -47,6 +73,92 @@ export function normalizeNoticeCreateForm(
     !(next.challengerEnabled && !next.staffEnabled)
   ) {
     next = { ...next, challengerEnabled: true, staffEnabled: false }
+  }
+
+  if (
+    context.schoolStaffChallengerOnly &&
+    !(next.challengerEnabled && !next.staffEnabled)
+  ) {
+    next = { ...next, challengerEnabled: true, staffEnabled: false }
+  }
+
+  if (
+    (context.centralLeadStaffChipRestricted ||
+      context.centralAdminStaffChipRestricted) &&
+    next.staffEnabled &&
+    next.staffScope === "SCHOOL_PART_LEADER"
+  ) {
+    next = { ...next, staffScope: "ALL_STAFF" }
+  }
+
+  if (
+    context.centralAdminStaffChipRestricted &&
+    next.staffEnabled &&
+    next.staffScope === "CENTRAL_MEMBER"
+  ) {
+    next = { ...next, staffScope: "ALL_STAFF" }
+  }
+
+  if (next.challengerEnabled && !next.staffEnabled) {
+    const challengerOrgLocks = {
+      chapterPresidentChallengerActive:
+        context.chapterPresidentCreateLock != null,
+      schoolExecutiveLocked: context.schoolExecutiveCreateLock != null,
+    }
+    const challengerOrgPatch = applyNoticeCreateChallengerUmcOnlyOrgPatch(
+      next,
+      challengerOrgLocks,
+    )
+    if (Object.keys(challengerOrgPatch).length > 0) {
+      next = { ...next, ...challengerOrgPatch }
+    }
+
+    if (
+      !canNoticeCreateUseChallengerPartSelection(next, context.sessionGisuId) &&
+      next.parts.length > 0
+    ) {
+      next = { ...next, parts: [] }
+    }
+
+    if (
+      (context.centralLeadStaffChipRestricted ||
+        context.centralAdminStaffChipRestricted) &&
+      context.sessionGisuId != null
+    ) {
+      const challengerGisuPatch = applyNoticeCentralHqChallengerGisuTarget(
+        next,
+        context.sessionGisuId,
+        {
+          centralAdminStaffChipRestricted:
+            context.centralAdminStaffChipRestricted,
+          centralLeadStaffChipRestricted:
+            context.centralLeadStaffChipRestricted,
+        },
+      )
+      if (Object.keys(challengerGisuPatch).length > 0) {
+        next = { ...next, ...challengerGisuPatch }
+      }
+    }
+  }
+
+  if (
+    (context.centralLeadStaffChipRestricted ||
+      context.centralAdminStaffChipRestricted) &&
+    next.staffEnabled &&
+    context.sessionGisuId != null
+  ) {
+    const leadTargetPatch = applyNoticeCentralHqStaffScopeTarget(
+      next,
+      context.sessionGisuId,
+      {
+        centralAdminStaffChipRestricted:
+          context.centralAdminStaffChipRestricted,
+        centralLeadStaffChipRestricted: context.centralLeadStaffChipRestricted,
+      },
+    )
+    if (Object.keys(leadTargetPatch).length > 0) {
+      next = { ...next, ...leadTargetPatch }
+    }
   }
 
   if (context.chapterPresidentCreateLock != null && next.challengerEnabled) {
@@ -61,6 +173,24 @@ export function normalizeNoticeCreateForm(
       locked.orgMode !== next.orgMode ||
       locked.chapterId !== next.chapterId ||
       locked.schoolId !== next.schoolId
+    ) {
+      next = locked
+    }
+  }
+
+  if (context.schoolStaffCreateLock != null && next.challengerEnabled) {
+    const locked = applyNoticeSchoolExecutiveChallengerCreateLock({
+      form: { ...next, staffEnabled: false },
+      ...context.schoolStaffCreateLock,
+    })
+
+    if (
+      locked.gisuMode !== next.gisuMode ||
+      locked.targetGisuId !== next.targetGisuId ||
+      locked.orgMode !== next.orgMode ||
+      locked.chapterId !== next.chapterId ||
+      locked.schoolId !== next.schoolId ||
+      locked.staffEnabled !== next.staffEnabled
     ) {
       next = locked
     }

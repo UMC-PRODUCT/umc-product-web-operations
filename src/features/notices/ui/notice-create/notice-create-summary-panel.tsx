@@ -4,8 +4,10 @@ import { Button, Tag } from "@umc-product/react"
 type NoticeCreateSummaryPanelProps = {
   audienceTags: string[]
   isSubmitting: boolean
+  /** 운영진: 받는 운영진 칩 라벨 */
   staffScopeLabel: string
-  targetLine: string
+  /** 대상 섹션 받는 사람과 동일 */
+  recipientLine: string
   showMustRead: boolean
   showNotification: boolean
   onCancel: () => void
@@ -14,17 +16,17 @@ type NoticeCreateSummaryPanelProps = {
 
 function NoticeCreateSummaryContent({
   audienceTags,
+  recipientLine,
   showMustRead,
   showNotification,
   staffScopeLabel,
-  targetLine,
 }: Pick<
   NoticeCreateSummaryPanelProps,
   | "audienceTags"
+  | "recipientLine"
   | "showMustRead"
   | "showNotification"
   | "staffScopeLabel"
-  | "targetLine"
 >) {
   return (
     <div className="flex flex-col gap-(--umc-spacing-gap-20)">
@@ -41,9 +43,9 @@ function NoticeCreateSummaryContent({
             {staffScopeLabel}
           </p>
         ) : null}
-        {targetLine ? (
+        {recipientLine ? (
           <p className="text-body-1-regular text-neutral-medium-600">
-            {targetLine}
+            {recipientLine}
           </p>
         ) : null}
       </div>
@@ -87,10 +89,10 @@ export function NoticeCreateSummaryPanel({
   isSubmitting,
   onCancel,
   onPublishClick,
+  recipientLine,
   showMustRead,
   showNotification,
   staffScopeLabel,
-  targetLine,
 }: NoticeCreateSummaryPanelProps) {
   return (
     <aside className="border-neutral-disabled sticky top-0 flex w-[277px] shrink-0 flex-col rounded-(--umc-radius-14) border bg-white p-(--umc-spacing-padding-24)">
@@ -102,8 +104,8 @@ export function NoticeCreateSummaryPanel({
           audienceTags={audienceTags}
           showMustRead={showMustRead}
           showNotification={showNotification}
+          recipientLine={recipientLine}
           staffScopeLabel={staffScopeLabel}
-          targetLine={targetLine}
         />
         <div className="flex flex-col gap-(--umc-spacing-gap-8)">
           <Button

@@ -12,7 +12,15 @@ import {
   normalizeNoticeCreateForm,
   resetNoticeCreateOrganization,
 } from "../model/normalize-notice-create-form"
-import { isNoticeCentralUnrestrictedCreateContext } from "../model/notice-central-create-access"
+import {
+  isNoticeSuperAdminContext,
+  type NoticeAdminAccessContext,
+} from "../model/notice-admin-access-context"
+import {
+  isNoticeCentralAdminStaffChipRestricted,
+  isNoticeCentralLeadStaffChipRestricted,
+  isNoticeCentralUnrestrictedCreateContext,
+} from "../model/notice-central-create-access"
 import {
   isNoticeChapterPresidentChallengerContext,
   resolveNoticeChapterPresidentChallengerLock,
@@ -37,8 +45,12 @@ import {
   NOTICE_CREATE_IMAGE_UPLOAD_FAILURE_TOAST_MESSAGE,
   NOTICE_PUBLISH_TOAST_MESSAGE,
 } from "../model/notice-outcomes"
-import { resolveNoticeSchoolExecutiveLock } from "../model/notice-school-executive-access"
 import {
+  isNoticeSchoolExecutiveContext,
+  resolveNoticeSchoolExecutiveLock,
+} from "../model/notice-school-executive-access"
+import {
+  isNoticeSchoolStaffChallengerOnlyContext,
   isNoticeSchoolStaffContext,
   resolveNoticeSchoolStaffLock,
 } from "../model/notice-school-staff-access"
@@ -64,7 +76,6 @@ import { showNoticePrimarySuccessToast } from "./show-notice-primary-success-toa
 import { useNoticeLeaveConfirm } from "./use-notice-leave-confirm"
 import { useNoticeVoteDraft } from "./use-notice-vote-draft"
 
-import type { NoticeAdminAccessContext } from "../model/notice-admin-access-context"
 import type { NoticeOperatorSession } from "../model/notice-session"
 
 type NoticeCreatePageProps = {
@@ -157,9 +168,25 @@ export function NoticeCreatePage({
     [contextGeneration],
   )
 
-  const chapterPresidentChallengerOnly = useMemo(
-    () => isNoticeChapterPresidentChallengerContext(adminSession),
+  const noticeCreateSuperAdmin = useMemo(
+    () => isNoticeSuperAdminContext(adminSession),
     [adminSession],
+  )
+
+  const chapterPresidentChallengerOnly = useMemo(
+    () =>
+      noticeCreateSuperAdmin
+        ? false
+        : isNoticeChapterPresidentChallengerContext(adminSession),
+    [adminSession, noticeCreateSuperAdmin],
+  )
+
+  const schoolStaffChallengerOnly = useMemo(
+    () =>
+      noticeCreateSuperAdmin
+        ? false
+        : isNoticeSchoolStaffChallengerOnlyContext(adminSession),
+    [adminSession, noticeCreateSuperAdmin],
   )
 
   const centralUnrestrictedCreate = useMemo(
@@ -167,14 +194,32 @@ export function NoticeCreatePage({
     [adminSession],
   )
 
-  const chapterPresidentLockResult = useMemo(
+  const centralLeadStaffChipRestricted = useMemo(
     () =>
-      resolveNoticeChapterPresidentChallengerLock(
-        adminSession,
-        organizationLists,
-      ),
-    [adminSession, organizationLists],
+      noticeCreateSuperAdmin
+        ? false
+        : isNoticeCentralLeadStaffChipRestricted(adminSession),
+    [adminSession, noticeCreateSuperAdmin],
   )
+
+  const centralAdminStaffChipRestricted = useMemo(
+    () =>
+      noticeCreateSuperAdmin
+        ? false
+        : isNoticeCentralAdminStaffChipRestricted(adminSession),
+    [adminSession, noticeCreateSuperAdmin],
+  )
+
+  const chapterPresidentLockResult = useMemo(() => {
+    if (noticeCreateSuperAdmin) {
+      return { status: "not-applicable" as const }
+    }
+
+    return resolveNoticeChapterPresidentChallengerLock(
+      adminSession,
+      organizationLists,
+    )
+  }, [adminSession, noticeCreateSuperAdmin, organizationLists])
 
   const chapterPresidentUnresolved =
     chapterPresidentLockResult.status === "unresolved"
@@ -196,18 +241,45 @@ export function NoticeCreatePage({
   }, [chapterPresidentLockedChapterId, session.gisuId])
 
   const schoolExecutiveLockedSchoolId = useMemo(() => {
-    if (chapterPresidentCreateLock != null || session.gisuId == null) {
+    if (
+      chapterPresidentCreateLock != null ||
+      session.gisuId == null ||
+      schoolStaffChallengerOnly ||
+      !isNoticeSchoolExecutiveContext(adminSession)
+    ) {
       return null
     }
 
-    const resolved =
-      resolveNoticeSchoolExecutiveLock(adminSession, organizationLists) ??
-      resolveNoticeSchoolStaffLock(adminSession, organizationLists)
-    return resolved?.schoolId ?? null
+    return (
+      resolveNoticeSchoolExecutiveLock(adminSession, organizationLists)
+        ?.schoolId ?? null
+    )
   }, [
     adminSession,
     chapterPresidentCreateLock,
     organizationLists,
+    schoolStaffChallengerOnly,
+    session.gisuId,
+  ])
+
+  const schoolStaffLockedSchoolId = useMemo(() => {
+    if (
+      !schoolStaffChallengerOnly ||
+      chapterPresidentCreateLock != null ||
+      session.gisuId == null
+    ) {
+      return null
+    }
+
+    return (
+      resolveNoticeSchoolStaffLock(adminSession, organizationLists)?.schoolId ??
+      null
+    )
+  }, [
+    adminSession,
+    chapterPresidentCreateLock,
+    organizationLists,
+    schoolStaffChallengerOnly,
     session.gisuId,
   ])
 
@@ -222,28 +294,48 @@ export function NoticeCreatePage({
     }
   }, [schoolExecutiveLockedSchoolId, session.gisuId])
 
+  const schoolStaffCreateLock = useMemo(() => {
+    if (schoolStaffLockedSchoolId == null || session.gisuId == null) {
+      return null
+    }
+
+    return {
+      schoolId: schoolStaffLockedSchoolId,
+      targetGisuId: session.gisuId,
+    }
+  }, [schoolStaffLockedSchoolId, session.gisuId])
+
   const schoolStaffPartsRequired = useMemo(
-    () =>
-      isNoticeSchoolStaffContext(adminSession) &&
-      schoolExecutiveCreateLock != null,
-    [adminSession, schoolExecutiveCreateLock],
+    () => !noticeCreateSuperAdmin && isNoticeSchoolStaffContext(adminSession),
+    [adminSession, noticeCreateSuperAdmin],
   )
 
   useEffect(() => {
     setForm((current) =>
       normalizeNoticeCreateForm(current, {
+        centralAdminStaffChipRestricted,
+        centralLeadStaffChipRestricted,
         chapterPresidentChallengerOnly,
         chapterPresidentCreateLock,
         contextGeneration,
         schoolExecutiveCreateLock,
+        schoolStaffChallengerOnly,
+        schoolStaffCreateLock,
+        noticeCreateSuperAdmin,
         sessionGisuId: session.gisuId,
       }),
     )
   }, [
+    centralAdminStaffChipRestricted,
+    centralLeadStaffChipRestricted,
     chapterPresidentChallengerOnly,
+    noticeCreateSuperAdmin,
     chapterPresidentLockedChapterId,
     contextGeneration,
     schoolExecutiveLockedSchoolId,
+    schoolStaffChallengerOnly,
+    schoolStaffCreateLock,
+    schoolStaffLockedSchoolId,
     session.gisuId,
     chapterPresidentCreateLock,
     schoolExecutiveCreateLock,
@@ -252,7 +344,8 @@ export function NoticeCreatePage({
   useEffect(() => {
     if (
       chapterPresidentCreateLock != null ||
-      schoolExecutiveCreateLock != null
+      schoolExecutiveCreateLock != null ||
+      schoolStaffCreateLock != null
     ) {
       return
     }
@@ -264,6 +357,8 @@ export function NoticeCreatePage({
     contextGisuId,
     schoolExecutiveCreateLock,
     schoolExecutiveLockedSchoolId,
+    schoolStaffCreateLock,
+    schoolStaffLockedSchoolId,
   ])
   const organization = useMemo(() => {
     const gisuOptions = (gisuListQuery.data ?? []).map((gisu) => ({
@@ -278,13 +373,24 @@ export function NoticeCreatePage({
     }
   }, [gisuListQuery.data, organizationLists])
 
+  const sessionGisuLabel = useMemo(() => {
+    if (session.gisuId == null) {
+      return null
+    }
+    return (
+      organization.gisuOptions.find(
+        (option) => option.value === String(session.gisuId),
+      )?.label ?? null
+    )
+  }, [organization.gisuOptions, session.gisuId])
+
   const summaryLabels = useMemo(() => {
     const gisuLabel =
-      organization.gisuOptions.find(
-        (option) =>
-          form.targetGisuId != null &&
-          option.value === String(form.targetGisuId),
-      )?.label ?? null
+      form.targetGisuId != null
+        ? (organization.gisuOptions.find(
+            (option) => option.value === String(form.targetGisuId),
+          )?.label ?? null)
+        : null
 
     const chapterName =
       organization.chapters.find((chapter) => chapter.id === form.chapterId)
@@ -294,16 +400,62 @@ export function NoticeCreatePage({
       organization.schools.find((school) => school.schoolId === form.schoolId)
         ?.schoolName ?? null
 
-    return { chapterName, gisuLabel, schoolName }
-  }, [form.chapterId, form.schoolId, form.targetGisuId, organization])
+    return {
+      chapterName,
+      chapterPresidentChallengerActive:
+        chapterPresidentCreateLock != null && form.challengerEnabled,
+      gisuLabel,
+      schoolName,
+      sessionGisuId: session.gisuId,
+    }
+  }, [
+    chapterPresidentCreateLock,
+    form.challengerEnabled,
+    form.chapterId,
+    form.gisuMode,
+    form.schoolId,
+    form.targetGisuId,
+    organization,
+    session.gisuId,
+    sessionGisuLabel,
+  ])
 
   const summary = buildNoticeCreateSummary(form, summaryLabels)
-  const targetSummaryLine = summary.targetLine
+  const recipientSummaryLine = summary.recipientLine
+
+  const normalizeContext = useMemo(
+    () => ({
+      centralAdminStaffChipRestricted,
+      centralLeadStaffChipRestricted,
+      chapterPresidentChallengerOnly,
+      chapterPresidentCreateLock,
+      contextGeneration,
+      schoolExecutiveCreateLock,
+      schoolStaffChallengerOnly,
+      schoolStaffCreateLock,
+      noticeCreateSuperAdmin,
+      sessionGisuId: session.gisuId,
+    }),
+    [
+      centralAdminStaffChipRestricted,
+      centralLeadStaffChipRestricted,
+      chapterPresidentChallengerOnly,
+      chapterPresidentCreateLock,
+      contextGeneration,
+      noticeCreateSuperAdmin,
+      schoolExecutiveCreateLock,
+      schoolStaffChallengerOnly,
+      schoolStaffCreateLock,
+      session.gisuId,
+    ],
+  )
 
   const patchForm = (patch: Partial<NoticeCreateFormState>) => {
     // 입력이 바뀌면 이전 실패 시도의 진행 상황은 더 이상 유효하지 않다
     submitProgressRef.current = null
-    setForm((current) => ({ ...current, ...patch }))
+    setForm((current) =>
+      normalizeNoticeCreateForm({ ...current, ...patch }, normalizeContext),
+    )
     if ("title" in patch || "content" in patch) {
       setShowRequiredFieldErrors(false)
     }
@@ -448,17 +600,24 @@ export function NoticeCreatePage({
 
       <div className="flex w-full items-start gap-(--umc-spacing-gap-24)">
         <NoticeCreateFormFields
+          centralAdminStaffChipRestricted={centralAdminStaffChipRestricted}
+          centralLeadStaffChipRestricted={centralLeadStaffChipRestricted}
           centralUnrestrictedCreate={centralUnrestrictedCreate}
           chapterPresidentChallengerOnly={chapterPresidentChallengerOnly}
           chapterPresidentCreateLock={chapterPresidentCreateLock}
           form={form}
           schoolExecutiveCreateLock={schoolExecutiveCreateLock}
+          schoolStaffChallengerOnly={schoolStaffChallengerOnly}
+          schoolStaffCreateLock={schoolStaffCreateLock}
           schoolStaffPartsRequired={schoolStaffPartsRequired}
+          noticeCreateSuperAdmin={noticeCreateSuperAdmin}
           isOrganizationLoading={
             organizationQuery.isLoading || gisuListQuery.isLoading
           }
           onChange={patchForm}
           partOptions={partOptions}
+          sessionGisuId={session.gisuId}
+          sessionGisuLabel={sessionGisuLabel}
           onImageUploadReject={() => {
             showNoticeImageUploadFailureToast(
               toast,
@@ -470,7 +629,7 @@ export function NoticeCreatePage({
           onVoteDeleteClick={openVoteDeleteDialog}
           onVoteEditClick={openVotePanel}
           showRequiredFieldErrors={showRequiredFieldErrors}
-          targetSummaryLine={targetSummaryLine}
+          recipientSummaryLine={recipientSummaryLine}
           voteDraft={voteDraft}
         />
         <NoticeCreateSummaryPanel
@@ -482,8 +641,8 @@ export function NoticeCreatePage({
           onPublishClick={openPublishDialog}
           showMustRead={form.mustRead}
           showNotification={form.sendNotification}
+          recipientLine={summary.recipientLine}
           staffScopeLabel={summary.staffScopeLabel}
-          targetLine={summary.targetLine}
         />
       </div>
 

@@ -17,10 +17,16 @@ const EMPTY_FILTERS: NoticeListFilterFields = {
 }
 
 const BASE_CONTEXT: NormalizeNoticeListFiltersContext = {
+  audience: "challenger",
   chapterScopeOptions: ["chapter:1", "chapter:2"],
   optionsReady: true,
   partOptions: ["WEB", "DESIGN"],
   schoolScopeOptions: ["school:10", "school:20"],
+}
+
+const STAFF_CONTEXT: NormalizeNoticeListFiltersContext = {
+  ...BASE_CONTEXT,
+  audience: "staff",
 }
 
 describe("normalizeNoticeListFilters", () => {
@@ -68,12 +74,37 @@ describe("normalizeNoticeListFilters", () => {
 
   it("운영진 범위 단계에 맞지 않는 scope를 제거한다", () => {
     const result = normalizeNoticeListFilters(
-      { ...EMPTY_FILTERS, scope: "school:99", scopeStage: "school" },
-      BASE_CONTEXT,
+      {
+        ...EMPTY_FILTERS,
+        scope: "school:99",
+        scopeStage: "school",
+        staffRecipient: "SCHOOL_PART_LEADER",
+      },
+      STAFF_CONTEXT,
     )
 
     expect(result.scope).toBeNull()
     expect(result.scopeStage).toBe("school")
+  })
+
+  it("지부장 운영진 탭은 범위·대상 필터를 URL에서 제거한다", () => {
+    const result = normalizeNoticeListFilters(
+      {
+        ...EMPTY_FILTERS,
+        scopeStage: "school",
+        scope: "school:10",
+        staffRecipient: "SCHOOL_CORE",
+      },
+      {
+        ...BASE_CONTEXT,
+        audience: "staff",
+        staffScopeTargetListLocked: true,
+      },
+    )
+
+    expect(result.scopeStage).toBeNull()
+    expect(result.scope).toBeNull()
+    expect(result.staffRecipient).toBe("SCHOOL_CORE")
   })
 
   it("고정 지부가 있으면 본인 지부 외 선택을 제거한다", () => {
@@ -112,26 +143,58 @@ describe("normalizeNoticeListFilters", () => {
     expect(result.staffRecipient).toBe("SCHOOL_PART_LEADER")
   })
 
-  it("중앙·회장단 받는 사람이면 범위 단계·대상·파트를 초기화한다", () => {
-    const result = normalizeNoticeListFilters(
+  it("받는 사람 전체·모든 운영진·중앙 운영진이면 범위·대상을 초기화한다", () => {
+    const withCentral = normalizeNoticeListFilters(
       {
         ...EMPTY_FILTERS,
         part: "WEB",
         scopeStage: "part",
         staffRecipient: "CENTRAL_MEMBER",
       },
-      BASE_CONTEXT,
+      STAFF_CONTEXT,
     )
 
-    expect(result.scopeStage).toBeNull()
-    expect(result.scope).toBeNull()
-    expect(result.part).toBeNull()
+    expect(withCentral.scopeStage).toBeNull()
+    expect(withCentral.scope).toBeNull()
+    expect(withCentral.part).toBeNull()
+
+    const defaultRecipient = normalizeNoticeListFilters(
+      {
+        ...EMPTY_FILTERS,
+        scope: "school:10",
+        scopeStage: "school",
+      },
+      STAFF_CONTEXT,
+    )
+
+    expect(defaultRecipient.scopeStage).toBeNull()
+    expect(defaultRecipient.scope).toBeNull()
+  })
+
+  it("회장단·학교 운영진이면 범위·대상 필터를 유지한다", () => {
+    const result = normalizeNoticeListFilters(
+      {
+        ...EMPTY_FILTERS,
+        part: "WEB",
+        scopeStage: "part",
+        staffRecipient: "SCHOOL_CORE",
+      },
+      STAFF_CONTEXT,
+    )
+
+    expect(result.scopeStage).toBe("part")
+    expect(result.part).toBe("WEB")
   })
 
   it("학교 고정 운영진은 학교별 범위에서 scope를 고정 학교로 맞춘다", () => {
     const result = normalizeNoticeListFilters(
-      { ...EMPTY_FILTERS, scope: "school:20", scopeStage: "school" },
-      { ...BASE_CONTEXT, staffLockedSchoolScope: "school:10" },
+      {
+        ...EMPTY_FILTERS,
+        scope: "school:20",
+        scopeStage: "school",
+        staffRecipient: "SCHOOL_PART_LEADER",
+      },
+      { ...STAFF_CONTEXT, staffLockedSchoolScope: "school:10" },
     )
 
     expect(result.scope).toBe("school:10")

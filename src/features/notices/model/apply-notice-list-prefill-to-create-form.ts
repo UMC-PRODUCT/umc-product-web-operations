@@ -1,8 +1,6 @@
+import { isStaffUmcWideRecipientScope } from "./notice-create-staff-scope"
 import { parseNoticeScopeFilter } from "./notice-scope-filter"
-import {
-  canStaffNoticeUseSchoolOrg,
-  isStaffCentralNoticeTab,
-} from "./notice-staff-target-rules"
+import { canStaffNoticeUseSchoolOrg } from "./notice-staff-target-rules"
 
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeCreateFormState } from "./notice-create-form"
@@ -111,7 +109,7 @@ export function sanitizeNoticeListCreatePrefill(
   }
 
   const recipient = filters.staffRecipient ?? "CENTRAL_MEMBER"
-  if (isStaffCentralNoticeTab(recipient)) {
+  if (isStaffUmcWideRecipientScope(recipient)) {
     filters.scopeStage = null
     filters.scope = null
     filters.part = null

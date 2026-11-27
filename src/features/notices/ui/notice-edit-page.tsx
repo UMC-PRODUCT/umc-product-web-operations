@@ -177,7 +177,7 @@ export function NoticeEditPage({
   }, [form.chapterId, form.schoolId, form.targetGisuId, organization])
 
   const summary = buildNoticeCreateSummary(form, summaryLabels)
-  const targetSummaryLine = summary.targetLine
+  const recipientSummaryLine = summary.recipientLine
 
   const patchForm = (patch: Partial<NoticeCreateFormState>) => {
     setForm((current) => ({ ...current, ...patch }))
@@ -318,7 +318,7 @@ export function NoticeEditPage({
           onVoteEditClick={openVotePanel}
           organization={organization}
           showRequiredFieldErrors={showRequiredFieldErrors}
-          targetSummaryLine={targetSummaryLine}
+          recipientSummaryLine={recipientSummaryLine}
           voteDraft={voteDraft}
         />
         <NoticeEditSummaryPanel

@@ -1,7 +1,11 @@
 import type { MemberPart } from "@/entities/member"
 
 export type NoticeTab =
-  "CHALLENGER" | "CENTRAL_MEMBER" | "SCHOOL_CORE" | "SCHOOL_PART_LEADER"
+  | "CHALLENGER"
+  | "ALL_STAFF"
+  | "CENTRAL_MEMBER"
+  | "SCHOOL_CORE"
+  | "SCHOOL_PART_LEADER"
 
 export type NoticePart = MemberPart
 
@@ -99,6 +103,7 @@ export type GetNoticeDetailResponse = {
   images: NoticeImageInfo[]
   links: NoticeLinkInfo[]
   mustRead: boolean
+  shouldNotify?: boolean
   targetInfo?: NoticeTargetInfo | null
   title: string
   updatedAt: string

@@ -125,6 +125,29 @@ describe("buildCreateNoticeRequests", () => {
     expect(request!.targetInfo.targetGisuId).toBe(12)
   })
 
+  it("maps ALL_STAFF (모든 운영진) to SCHOOL_PART_LEADER without school or parts", () => {
+    const form = {
+      ...INITIAL_NOTICE_CREATE_FORM,
+      challengerEnabled: false,
+      staffEnabled: true,
+      staffScope: "ALL_STAFF" as const,
+      gisuMode: "specific" as const,
+      orgMode: "umc" as const,
+      targetGisuId: 9,
+      title: "t",
+      content: "c",
+    }
+
+    const [request] = buildCreateNoticeRequests(form, 9, 11)
+    expect(request).toBeDefined()
+    expect(request!.targetInfo).toEqual({
+      targetNoticeTab: "SCHOOL_PART_LEADER",
+      targetGisuId: 9,
+      targetSchoolId: null,
+      targetParts: [],
+    })
+  })
+
   it("does not send chapter or school when challenger notice has all-gisu mode", () => {
     const form = {
       ...INITIAL_NOTICE_CREATE_FORM,

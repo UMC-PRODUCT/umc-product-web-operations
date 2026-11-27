@@ -13,6 +13,10 @@ import {
   validateNoticeCreateVoteForSubmit,
 } from "./build-notice-create-vote-request"
 import {
+  isNoticeSuperAdminContext,
+  type NoticeAdminAccessContext,
+} from "./notice-admin-access-context"
+import {
   getHttpStatus,
   getNoticeApiErrorMessage,
   isNoticeForbiddenError,
@@ -35,7 +39,6 @@ import {
 } from "./notice-school-staff-access"
 import { validateStaffNoticeCreateForm } from "./notice-staff-target-rules"
 
-import type { NoticeAdminAccessContext } from "./notice-admin-access-context"
 import type { NoticeCreateVoteDraft } from "./notice-create-vote-draft"
 import type { NoticeOperatorSession } from "./notice-session"
 
@@ -170,6 +173,7 @@ export async function submitNoticeCreate(input: {
   const validationMessage = validateNoticeCreateForm(input.form, {
     schoolStaffPartsRequired:
       input.adminSession != null &&
+      !isNoticeSuperAdminContext(input.adminSession) &&
       isNoticeSchoolStaffContext(input.adminSession),
   })
   if (validationMessage) {

@@ -5,7 +5,21 @@ import type {
   NoticeTab,
   NoticeTargetInfo,
 } from "../api/notice-api.types"
-import type { NoticeCreateFormState } from "./notice-create-form"
+import type {
+  NoticeCreateFormState,
+  NoticeCreateStaffScope,
+} from "./notice-create-form"
+
+/** NOTICE-201 — UI「모든 운영진」은 API enum `ALL_STAFF` 없음 → 최상위 운영진 탭 */
+export function resolveStaffScopeToNoticeTab(
+  staffScope: NoticeCreateStaffScope,
+): Exclude<NoticeTab, "CHALLENGER" | "ALL_STAFF"> {
+  if (staffScope === "ALL_STAFF") {
+    return "SCHOOL_PART_LEADER"
+  }
+
+  return staffScope
+}
 
 function resolveStaffTargetGisuId(
   form: NoticeCreateFormState,
@@ -157,7 +171,7 @@ export function buildCreateNoticeRequests(
     requests.push(
       buildCreateNoticeRequest(
         form,
-        form.staffScope,
+        resolveStaffScopeToNoticeTab(form.staffScope),
         sessionGisuId,
         targetGeneration,
       ),

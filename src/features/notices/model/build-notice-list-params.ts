@@ -1,5 +1,6 @@
 import { resolveNoticeTab } from "./notice-notice-tab"
 import { parseNoticeScopeFilter } from "./notice-scope-filter"
+import { resolveNoticeStaffRecipientScope } from "./notice-staff-recipient-display"
 
 import type {
   GetNoticeSummaryResponse,
@@ -23,15 +24,56 @@ export function resolveNoticeListNoticeTab(
 
 /**
  * 운영진 "받는 사람" 필터. API에 대응 파라미터가 없어 현재 페이지 응답에만 클라이언트로 적용한다.
- * (totalElements/totalPages는 서버 값 그대로이므로 필터 시 한 페이지 항목 수가 적을 수 있다.)
+ * API 미지원 시 목록 쿼리가 서버 페이지를 모두 받은 뒤 필터·페이지네이션한다.
  */
+/** NOTICE-001 응답 targetNoticeTab ↔ UI 받는 사람(ALL_STAFF는 API enum 없음) */
+export function noticeSummaryMatchesStaffRecipient(
+  summary: GetNoticeSummaryResponse,
+  staffRecipient: NoticeCreateStaffScope,
+): boolean {
+  const targetInfo = summary.targetInfo
+  if (targetInfo?.targetNoticeTab == null) {
+    return false
+  }
+
+  return resolveNoticeStaffRecipientScope(targetInfo) === staffRecipient
+}
+
 export function filterStaffNoticeSummariesByRecipient(
   content: GetNoticeSummaryResponse[],
   staffRecipient: NoticeCreateStaffScope,
 ): GetNoticeSummaryResponse[] {
-  return content.filter(
-    (summary) => summary.targetInfo?.targetNoticeTab === staffRecipient,
+  return content.filter((summary) =>
+    noticeSummaryMatchesStaffRecipient(summary, staffRecipient),
   )
+}
+
+/** 학교를 지정하지 않은 운영진 공지 (Figma — 모든 학교 대상) */
+export function filterStaffNoticeSummariesByAllSchoolsTarget(
+  content: GetNoticeSummaryResponse[],
+): GetNoticeSummaryResponse[] {
+  return content.filter((summary) => summary.targetInfo?.targetSchoolId == null)
+}
+
+/** 받는 사람 클라이언트 필터 후 목록 페이지네이션 */
+export function paginateNoticeListSummaries<T>(
+  items: T[],
+  page: number,
+  pageSize: number = NOTICE_LIST_PAGE_SIZE,
+): {
+  content: T[]
+  totalElements: number
+  totalPages: number
+} {
+  const totalElements = items.length
+  const totalPages = totalElements > 0 ? Math.ceil(totalElements / pageSize) : 0
+  const start = page * pageSize
+
+  return {
+    content: items.slice(start, start + pageSize),
+    totalElements,
+    totalPages,
+  }
 }
 
 export function normalizeNoticeListFiltersForApi(input: {

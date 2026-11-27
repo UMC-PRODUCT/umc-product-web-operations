@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest"
 
 import {
   buildNoticeListRequest,
+  filterStaffNoticeSummariesByAllSchoolsTarget,
   filterStaffNoticeSummariesByRecipient,
   normalizeNoticeListFiltersForApi,
+  NOTICE_LIST_PAGE_SIZE,
+  noticeSummaryMatchesStaffRecipient,
+  paginateNoticeListSummaries,
 } from "./build-notice-list-params"
 import { encodeChapterScope, encodeSchoolScope } from "./notice-scope-filter"
 
@@ -192,6 +196,35 @@ describe("buildNoticeListRequest", () => {
     expect(partRequest?.params.schoolId).toBeUndefined()
   })
 
+  it("filters staff summaries without target school (모든 학교 대상)", () => {
+    const filtered = filterStaffNoticeSummariesByAllSchoolsTarget([
+      {
+        createdAt: "2026-01-01T00:00:00Z",
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        id: 1,
+        mustRead: false,
+        title: "a",
+        viewCount: 0,
+        targetInfo: { targetNoticeTab: "SCHOOL_CORE", targetSchoolId: null },
+      },
+      {
+        createdAt: "2026-01-01T00:00:00Z",
+        hasImages: false,
+        hasLinks: false,
+        hasVote: false,
+        id: 2,
+        mustRead: false,
+        title: "b",
+        viewCount: 0,
+        targetInfo: { targetNoticeTab: "SCHOOL_CORE", targetSchoolId: 10 },
+      },
+    ])
+
+    expect(filtered.map((row) => row.id)).toEqual([1])
+  })
+
   it("filters staff summaries by targetNoticeTab", () => {
     const filtered = filterStaffNoticeSummariesByRecipient(
       [
@@ -222,6 +255,128 @@ describe("buildNoticeListRequest", () => {
     )
 
     expect(filtered.map((item) => item.id)).toEqual([1])
+  })
+
+  it("maps ALL_STAFF recipient filter to UMC-wide SCHOOL_PART_LEADER notices", () => {
+    const filtered = filterStaffNoticeSummariesByRecipient(
+      [
+        {
+          createdAt: "2026-01-01T00:00:00Z",
+          hasImages: false,
+          hasLinks: false,
+          hasVote: false,
+          id: 1,
+          mustRead: false,
+          title: "all staff",
+          viewCount: 0,
+          targetInfo: {
+            targetNoticeTab: "SCHOOL_PART_LEADER",
+            targetSchoolId: null,
+            targetParts: [],
+          },
+        },
+        {
+          createdAt: "2026-01-01T00:00:00Z",
+          hasImages: false,
+          hasLinks: false,
+          hasVote: false,
+          id: 2,
+          mustRead: false,
+          title: "school parts",
+          viewCount: 0,
+          targetInfo: {
+            targetNoticeTab: "SCHOOL_PART_LEADER",
+            targetSchoolId: 5,
+            targetParts: [],
+          },
+        },
+      ],
+      "ALL_STAFF",
+    )
+
+    expect(filtered.map((item) => item.id)).toEqual([1])
+  })
+
+  it("excludes UMC-wide all-staff notices when filtering 학교 운영진", () => {
+    const filtered = filterStaffNoticeSummariesByRecipient(
+      [
+        {
+          createdAt: "2026-01-01T00:00:00Z",
+          hasImages: false,
+          hasLinks: false,
+          hasVote: false,
+          id: 1,
+          mustRead: false,
+          title: "all staff",
+          viewCount: 0,
+          targetInfo: {
+            targetNoticeTab: "SCHOOL_PART_LEADER",
+            targetSchoolId: null,
+            targetParts: [],
+          },
+        },
+        {
+          createdAt: "2026-01-01T00:00:00Z",
+          hasImages: false,
+          hasLinks: false,
+          hasVote: false,
+          id: 2,
+          mustRead: false,
+          title: "school staff",
+          viewCount: 0,
+          targetInfo: {
+            targetNoticeTab: "SCHOOL_PART_LEADER",
+            targetSchoolId: 5,
+            targetParts: [],
+          },
+        },
+      ],
+      "SCHOOL_PART_LEADER",
+    )
+
+    expect(filtered.map((item) => item.id)).toEqual([2])
+  })
+
+  it("does not match 학교 운영진 filter for ALL_STAFF tab notices", () => {
+    expect(
+      noticeSummaryMatchesStaffRecipient(
+        {
+          createdAt: "2026-01-01T00:00:00Z",
+          hasImages: false,
+          hasLinks: false,
+          hasVote: false,
+          id: 9,
+          mustRead: false,
+          title: "legacy all staff",
+          viewCount: 0,
+          targetInfo: {
+            targetNoticeTab: "ALL_STAFF",
+            targetGisuId: 9,
+          },
+        },
+        "SCHOOL_PART_LEADER",
+      ),
+    ).toBe(false)
+  })
+
+  it("paginates client-filtered summaries with filtered totals", () => {
+    const items = Array.from({ length: 15 }, (_, index) => ({ id: index }))
+
+    expect(
+      paginateNoticeListSummaries(items, 0, NOTICE_LIST_PAGE_SIZE),
+    ).toMatchObject({
+      totalElements: 15,
+      totalPages: 2,
+      content: items.slice(0, 10),
+    })
+
+    expect(
+      paginateNoticeListSummaries(items, 1, NOTICE_LIST_PAGE_SIZE),
+    ).toMatchObject({
+      totalElements: 15,
+      totalPages: 2,
+      content: items.slice(10, 15),
+    })
   })
 
   it("keeps session noticeTab when staff recipient filter is selected", () => {

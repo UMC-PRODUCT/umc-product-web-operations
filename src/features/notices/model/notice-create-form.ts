@@ -2,7 +2,7 @@ import type { NoticePart, NoticeTab } from "../api/notice-api.types"
 
 export type NoticeCreateStaffScope = Extract<
   NoticeTab,
-  "CENTRAL_MEMBER" | "SCHOOL_CORE" | "SCHOOL_PART_LEADER"
+  "ALL_STAFF" | "CENTRAL_MEMBER" | "SCHOOL_CORE" | "SCHOOL_PART_LEADER"
 >
 
 export type NoticeCreateGisuMode = "all" | "specific"
@@ -40,7 +40,7 @@ export const NOTICE_CREATE_CONTENT_MAX_LENGTH = 3000
 export const INITIAL_NOTICE_CREATE_FORM: NoticeCreateFormState = {
   challengerEnabled: false,
   staffEnabled: false,
-  staffScope: "CENTRAL_MEMBER",
+  staffScope: "ALL_STAFF",
   gisuMode: "all",
   targetGisuId: null,
   orgMode: "umc",
@@ -61,7 +61,8 @@ export const NOTICE_CREATE_STAFF_SCOPE_OPTIONS: {
   value: NoticeCreateStaffScope
   label: string
 }[] = [
-  { value: "CENTRAL_MEMBER", label: "중앙운영사무국" },
-  { value: "SCHOOL_CORE", label: "회장단 이상" },
-  { value: "SCHOOL_PART_LEADER", label: "교내 운영진 전체" },
+  { value: "ALL_STAFF", label: "모든 운영진" },
+  { value: "CENTRAL_MEMBER", label: "중앙 운영진" },
+  { value: "SCHOOL_CORE", label: "회장단" },
+  { value: "SCHOOL_PART_LEADER", label: "학교 운영진" },
 ]

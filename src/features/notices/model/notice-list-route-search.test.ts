@@ -43,6 +43,29 @@ describe("notice-list-route-search", () => {
     expect(parsed.filters).toEqual(filters)
   })
 
+  it("round-trips staff 모든 학교 대상 scope through search params", () => {
+    const filters = {
+      ...emptyFilters,
+      scopeStage: "allSchools" as const,
+      staffRecipient: "SCHOOL_CORE" as const,
+    }
+
+    const built = buildNoticeListFilterSearchParams({
+      audience: "staff",
+      filters,
+    })
+
+    expect(built).toEqual({
+      scopeStage: "allSchools",
+      staffRecipient: "SCHOOL_CORE",
+    })
+
+    const parsed = parseNoticeListFiltersFromSearch(built, {
+      audience: "staff",
+    })
+    expect(parsed.filters).toEqual(filters)
+  })
+
   it("round-trips staff list filters through search params", () => {
     const filters = {
       ...emptyFilters,

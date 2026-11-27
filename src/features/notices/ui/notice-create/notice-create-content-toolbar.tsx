@@ -75,12 +75,12 @@ const TEXT_STYLE_ITEMS: {
 const HIGHLIGHT_ITEMS: {
   color: NoticeContentHighlightColor
   label: string
-  swatchClassName?: string
 }[] = [
-  { color: "purple", label: "보라", swatchClassName: "bg-[#e5c7fa]" },
-  { color: "pink", label: "분홍", swatchClassName: "bg-[#fcc7d1]" },
-  { color: "orange", label: "주황", swatchClassName: "bg-[#ffdbad]" },
-  { color: "mint", label: "민트", swatchClassName: "bg-[#b8edeb]" },
+  { color: "purple", label: "보라" },
+  { color: "pink", label: "분홍" },
+  { color: "orange", label: "주황" },
+  { color: "mint", label: "민트" },
+  { color: "blue", label: "파랑" },
   { color: "none", label: "없음" },
 ]
 
@@ -529,10 +529,11 @@ export function NoticeCreateContentToolbar({
               item.label
             ) : (
               <span
-                className={cn(
-                  "text-body-2-regular text-neutral-default-900 inline-flex px-1",
-                  item.swatchClassName,
-                )}
+                className="text-body-2-regular text-neutral-default-900 inline-flex px-1"
+                style={{
+                  backgroundColor:
+                    NOTICE_CONTENT_HIGHLIGHT_SWATCH[item.color].bg,
+                }}
               >
                 {item.label}
               </span>

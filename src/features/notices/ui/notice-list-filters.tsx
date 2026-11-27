@@ -3,27 +3,26 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 
-import { NOTICE_CREATE_STAFF_SCOPE_OPTIONS } from "../model/notice-create-form"
+import { isNoticeListStaffScopeTargetDisabled } from "../model/notice-create-staff-scope"
 import {
   isNoticeListFilterAllValue,
   NOTICE_LIST_FILTER_ALL,
 } from "../model/notice-list-filter-all"
+import { buildNoticeListStaffRecipientSelectOptions } from "../model/notice-list-staff-recipient-filter-options"
+import { buildNoticeListStaffScopeStageSelectOptions } from "../model/notice-list-staff-scope-stage-filter-options"
 import {
   encodeChapterScope,
   encodeSchoolScope,
   parseNoticeScopeFilter,
 } from "../model/notice-scope-filter"
-import {
-  isStaffCentralNoticeTab,
-  STAFF_NOTICE_LIST_SCOPE_STAGE_OPTIONS,
-} from "../model/notice-staff-target-rules"
+import { NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS } from "../model/notice-scope-stage"
 import { NOTICE_FILTER_SELECT_TYPO_CLASS } from "./constants"
 
 import type { NoticePart } from "../api/notice-api.types"
 import type { NoticeListFilterFields } from "../model/normalize-notice-list-filters"
 import type { NoticeCreateStaffScope } from "../model/notice-create-form"
 import type { NoticeCreatePartOption } from "../model/notice-create-part-options"
-import type { NoticeScopeStage } from "../model/notice-scope-stage"
+import type { NoticeListScopeStage } from "../model/notice-scope-stage"
 import type { NoticeListFilters } from "../model/types"
 
 type NoticeListFiltersProps = {
@@ -37,8 +36,12 @@ type NoticeListFiltersProps = {
   onQueryChange: (query: string) => void
   /** 지부장 챌린저 탭: 지부 전체 + 본인 지부만 선택 */
   lockedChapterScope?: string | null
-  /** 지부장 운영진 탭: 범위·대상 필터 비활성 */
+  /** 지부 미확정 등: 받는 사람·범위·대상 필터 비활성 */
   staffListFiltersDisabled?: boolean
+  /** 지부장 운영진 탭: 범위·대상 항상 비활성 (받는 사람만 선택) */
+  staffScopeTargetListDisabled?: boolean
+  /** 받는 사람 옵션 프리셋 (Figma 역할별) */
+  staffRecipientFilterVariant?: "default" | "chapterAdmin" | "schoolAdmin"
   /** 학교 회장단 챌린저 탭: 학교 전체 + 본인 학교만 선택 */
   challengerLockedSchoolScope?: string | null
   /** 학교 회장단 운영진 탭: 받는 사람 옵션 제한 */
@@ -65,6 +68,8 @@ export function NoticeListFiltersBar({
   onQueryChange,
   lockedChapterScope = null,
   staffListFiltersDisabled = false,
+  staffScopeTargetListDisabled = false,
+  staffRecipientFilterVariant = "default",
   challengerLockedSchoolScope = null,
   staffRecipientScopeAllowlist = null,
   staffLockedSchoolScope = null,
@@ -200,23 +205,28 @@ export function NoticeListFiltersBar({
   const staffTargetSelectValue =
     filters.scopeStage === "part" ? filters.part : filters.scope
 
-  const staffRecipientSelectOptions = useMemo(() => {
-    const scopeOptions =
-      staffRecipientScopeAllowlist == null
-        ? NOTICE_CREATE_STAFF_SCOPE_OPTIONS
-        : NOTICE_CREATE_STAFF_SCOPE_OPTIONS.filter((option) =>
-            staffRecipientScopeAllowlist.includes(option.value),
-          )
+  const staffRecipientSelectOptions = useMemo(
+    () =>
+      buildNoticeListStaffRecipientSelectOptions(
+        staffRecipientScopeAllowlist,
+        staffRecipientFilterVariant,
+      ),
+    [staffRecipientFilterVariant, staffRecipientScopeAllowlist],
+  )
 
-    return [
-      { label: "받는 사람 전체", value: NOTICE_LIST_FILTER_ALL },
-      ...scopeOptions,
-    ]
-  }, [staffRecipientScopeAllowlist])
+  const staffScopeStageSelectOptions = useMemo(
+    () => buildNoticeListStaffScopeStageSelectOptions(filters.staffRecipient),
+    [filters.staffRecipient],
+  )
 
-  const staffScopeTargetFiltersLocked =
-    filters.staffRecipient != null &&
-    isStaffCentralNoticeTab(filters.staffRecipient)
+  const staffScopeTargetFiltersLocked = isNoticeListStaffScopeTargetDisabled(
+    filters.staffRecipient,
+  )
+
+  const staffTargetSelectDisabled =
+    staffScopeTargetFiltersLocked ||
+    filters.scopeStage == null ||
+    filters.scopeStage === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS
 
   const staffSchoolTargetLocked =
     staffLockedSchoolScope != null && filters.scopeStage === "school"
@@ -298,6 +308,7 @@ export function NoticeListFiltersBar({
           <Select
             aria-label="받는 사람"
             className={NOTICE_FILTER_SELECT_TYPO_CLASS}
+            itemSize="md"
             disabled={
               isOrganizationLoading ||
               staffListFiltersDisabled ||
@@ -311,20 +322,31 @@ export function NoticeListFiltersBar({
               const staffRecipient = isNoticeListFilterAllValue(value)
                 ? null
                 : (value as NoticeCreateStaffScope)
-              onFiltersChange(
-                staffRecipient != null &&
-                  isStaffCentralNoticeTab(staffRecipient)
-                  ? {
-                      part: null,
-                      scope: null,
-                      scopeStage: null,
-                      staffRecipient,
-                    }
-                  : { staffRecipient },
-              )
+
+              if (staffRecipient == null) {
+                onFiltersChange({
+                  part: null,
+                  scope: null,
+                  scopeStage: null,
+                  staffRecipient: null,
+                })
+                return
+              }
+
+              if (isNoticeListStaffScopeTargetDisabled(staffRecipient)) {
+                onFiltersChange({
+                  part: null,
+                  scope: null,
+                  scopeStage: null,
+                  staffRecipient,
+                })
+                return
+              }
+
+              onFiltersChange({ staffRecipient })
             }}
             options={staffRecipientSelectOptions}
-            placeholder="받는 사람"
+            placeholder="받는 사람 전체"
             size="md"
             value={filters.staffRecipient}
             variant={filterSelectVariant(filters.staffRecipient)}
@@ -335,18 +357,37 @@ export function NoticeListFiltersBar({
             disabled={
               isOrganizationLoading ||
               staffListFiltersDisabled ||
-              staffScopeTargetFiltersLocked
+              staffScopeTargetListDisabled ||
+              staffScopeTargetFiltersLocked ||
+              staffScopeStageSelectOptions.length === 0
             }
+            itemSize="md"
             onValueChange={(value) => {
+              if (isNoticeListFilterAllValue(value)) {
+                onFiltersChange({
+                  part: null,
+                  scope: null,
+                  scopeStage: null,
+                })
+                return
+              }
+
+              if (value === NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS) {
+                onFiltersChange({
+                  part: null,
+                  scope: null,
+                  scopeStage: NOTICE_LIST_STAFF_SCOPE_ALL_SCHOOLS,
+                })
+                return
+              }
+
               onFiltersChange({
                 part: null,
                 scope: null,
-                scopeStage: isNoticeListFilterAllValue(value)
-                  ? null
-                  : (value as NoticeScopeStage),
+                scopeStage: value as NoticeListScopeStage,
               })
             }}
-            options={STAFF_NOTICE_LIST_SCOPE_STAGE_OPTIONS}
+            options={staffScopeStageSelectOptions}
             placeholder="범위 전체"
             size="md"
             value={filters.scopeStage}
@@ -357,9 +398,9 @@ export function NoticeListFiltersBar({
             className={NOTICE_FILTER_SELECT_TYPO_CLASS}
             disabled={
               staffListFiltersDisabled ||
+              staffScopeTargetListDisabled ||
               staffSchoolTargetLocked ||
-              staffScopeTargetFiltersLocked ||
-              !filters.scopeStage ||
+              staffTargetSelectDisabled ||
               isOrganizationLoading
             }
             onValueChange={(value) => {

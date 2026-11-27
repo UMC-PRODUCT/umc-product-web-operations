@@ -8,7 +8,10 @@ import { toOrganizationLists } from "@/entities/organization"
 
 import { normalizeNoticeListFiltersForApi } from "../model/build-notice-list-params"
 import { normalizeNoticeListFilters } from "../model/normalize-notice-list-filters"
-import { resolveNoticeChapterPresidentChallengerLock } from "../model/notice-chapter-president-access"
+import {
+  NOTICE_CHAPTER_ADMIN_STAFF_LIST_RECIPIENTS,
+  resolveNoticeChapterPresidentChallengerLock,
+} from "../model/notice-chapter-president-access"
 import { noticeCreateGisuListQueryOptions } from "../model/notice-create-gisu-query"
 import { resolveNoticeCreatePartOptions } from "../model/notice-create-part-options"
 import { noticeListOrganizationQueryOptions } from "../model/notice-list-organization-query"
@@ -33,7 +36,6 @@ import {
   resolveNoticeSchoolExecutiveLock,
 } from "../model/notice-school-executive-access"
 import {
-  NOTICE_SCHOOL_STAFF_STAFF_FIXED_RECIPIENT,
   NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS,
   resolveNoticeSchoolStaffLock,
 } from "../model/notice-school-staff-access"
@@ -253,28 +255,66 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
     schoolStaffLock != null &&
     !isNoticeSchoolExecutiveContext(adminSession)
 
+  const chapterPresidentStaffListActive =
+    audience === "staff" && chapterPresidentContext != null
+
+  const schoolExecutiveStaffListActive =
+    audience === "staff" &&
+    schoolExecutiveStaffLock != null &&
+    isNoticeSchoolExecutiveContext(adminSession)
+
   const staffRecipientScopeAllowlist = useMemo(() => {
+    if (chapterPresidentStaffListActive) {
+      return NOTICE_CHAPTER_ADMIN_STAFF_LIST_RECIPIENTS
+    }
+
     if (schoolStaffStaffFiltersActive) {
       return NOTICE_SCHOOL_STAFF_STAFF_LIST_RECIPIENTS
     }
 
-    if (
-      schoolExecutiveStaffLock != null &&
-      isNoticeSchoolExecutiveContext(adminSession)
-    ) {
+    if (schoolExecutiveStaffListActive) {
       return NOTICE_SCHOOL_EXECUTIVE_STAFF_LIST_RECIPIENTS
     }
 
     return null
-  }, [adminSession, schoolExecutiveStaffLock, schoolStaffStaffFiltersActive])
+  }, [
+    chapterPresidentStaffListActive,
+    schoolExecutiveStaffListActive,
+    schoolStaffStaffFiltersActive,
+  ])
 
-  const staffFixedStaffRecipient = schoolStaffStaffFiltersActive
-    ? NOTICE_SCHOOL_STAFF_STAFF_FIXED_RECIPIENT
-    : null
+  const staffFixedStaffRecipient = null
 
-  const staffListFiltersDisabled =
-    (audience === "staff" && chapterPresidentContext != null) ||
-    chapterPresidentUnresolved
+  const staffListFiltersDisabled = chapterPresidentUnresolved
+
+  const staffScopeTargetListDisabled =
+    chapterPresidentStaffListActive ||
+    schoolExecutiveStaffListActive ||
+    schoolStaffStaffFiltersActive
+
+  const staffRecipientFilterVariant = chapterPresidentStaffListActive
+    ? ("chapterAdmin" as const)
+    : schoolExecutiveStaffListActive || schoolStaffStaffFiltersActive
+      ? ("schoolAdmin" as const)
+      : ("default" as const)
+
+  const chapterPresidentChallengerListScope = useMemo(() => {
+    if (
+      audience !== "challenger" ||
+      chapterPresidentChallengerLock == null ||
+      session.gisuId == null
+    ) {
+      return null
+    }
+
+    return {
+      chapterId: chapterPresidentChallengerLock.chapterId,
+      schoolIdsInChapter: chapterPresidentChallengerLock.schoolOptions.map(
+        (school) => school.schoolId,
+      ),
+      sessionGisuId: session.gisuId,
+    }
+  }, [audience, chapterPresidentChallengerLock, session.gisuId])
 
   const challengerLockedChapterScope = chapterPresidentUnresolved
     ? null
@@ -338,6 +378,7 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
   const filters = useMemo(
     () =>
       normalizeNoticeListFilters(routeFilters, {
+        audience,
         challengerLockedSchoolScope,
         chapterScopeOptions,
         lockedChapterScope: challengerLockedChapterScope,
@@ -347,8 +388,10 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
         staffFixedStaffRecipient,
         staffLockedSchoolScope,
         staffRecipientScopeAllowlist,
+        staffScopeTargetListLocked: staffScopeTargetListDisabled,
       }),
     [
+      audience,
       challengerLockedChapterScope,
       challengerLockedSchoolScope,
       chapterScopeOptions,
@@ -359,6 +402,7 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
       staffFixedStaffRecipient,
       staffLockedSchoolScope,
       staffRecipientScopeAllowlist,
+      staffScopeTargetListDisabled,
     ],
   )
 
@@ -396,6 +440,8 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
   const listQuery = useQuery(
     noticeListQueryOptions({
       audience,
+      chapterPresidentChallengerListScope,
+      chapterPresidentStaffListActive: chapterPresidentStaffListActive,
       filters,
       page: page - 1,
       session,
@@ -405,6 +451,8 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
   const registeredQuery = useQuery(
     noticeListQueryOptions({
       audience,
+      chapterPresidentChallengerListScope,
+      chapterPresidentStaffListActive: chapterPresidentStaffListActive,
       filters: DEFAULT_FILTERS,
       page: 0,
       session,
@@ -439,8 +487,30 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
   const totalPages =
     listQuery.data?.kind === "success" ? listQuery.data.totalPages : 0
 
+  useEffect(() => {
+    if (listQuery.data?.kind !== "success") {
+      return
+    }
+
+    const loadedTotalPages = listQuery.data.totalPages
+    if (loadedTotalPages === 0) {
+      if (page !== 1) {
+        setPage(1)
+      }
+      return
+    }
+
+    if (page > loadedTotalPages) {
+      setPage(loadedTotalPages)
+    }
+  }, [listQuery.data, page])
+
   const showPagination =
-    !listState.isLoading && !listState.isError && !isForbidden && totalPages > 1
+    !listState.isLoading &&
+    !listState.isError &&
+    !isForbidden &&
+    listState.notices.length > 0 &&
+    totalPages > 1
 
   const tableEmptyState = useMemo(() => {
     if (listState.isError || isForbidden || listState.isLoading) {
@@ -547,6 +617,8 @@ export function NoticeListPage({ adminSession, session }: NoticeListPageProps) {
           challengerLockedSchoolScope={challengerLockedSchoolScope}
           lockedChapterScope={challengerLockedChapterScope}
           staffListFiltersDisabled={staffListFiltersDisabled}
+          staffRecipientFilterVariant={staffRecipientFilterVariant}
+          staffScopeTargetListDisabled={staffScopeTargetListDisabled}
           staffFixedStaffRecipient={staffFixedStaffRecipient}
           staffLockedSchoolScope={staffLockedSchoolScope}
           staffRecipientScopeAllowlist={staffRecipientScopeAllowlist}

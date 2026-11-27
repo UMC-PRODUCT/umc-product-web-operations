@@ -8,9 +8,9 @@ import {
   formatNoticeListDate,
   formatNoticeVotePeriod,
 } from "./format-notice-date"
-import { NOTICE_CREATE_STAFF_SCOPE_OPTIONS } from "./notice-create-form"
 import { NOTICE_PART_LABELS } from "./notice-part-options"
 import { recomputePollPercents } from "./notice-poll-vote"
+import { resolveStaffRecipientDisplayLabel } from "./notice-staff-recipient-display"
 import { parseNoticeMemberId } from "./notice-viewer"
 import { resolveNoticeVoteUiStatus } from "./resolve-notice-vote-ui-status"
 
@@ -18,7 +18,6 @@ import type {
   GetNoticeDetailResponse,
   GetNoticeSummaryResponse,
   NoticeAuthorInfo,
-  NoticeTab,
   NoticeTargetInfo,
 } from "../api/notice-api.types"
 import type { NoticeDetail, NoticePoll } from "./notice-detail.types"
@@ -72,17 +71,6 @@ function formatAuthorDisplay(
   }
 
   return `${baseName} · ${roleParts.join(" · ")}`
-}
-
-function formatStaffRecipientLabel(tab: NoticeTab | undefined): string | null {
-  if (tab == null || tab === "CHALLENGER") {
-    return null
-  }
-
-  return (
-    NOTICE_CREATE_STAFF_SCOPE_OPTIONS.find((option) => option.value === tab)
-      ?.label ?? null
-  )
 }
 
 function formatTargetGisuLabel(
@@ -149,9 +137,7 @@ export function formatTargetDisplay(
   const partsLabel = formatTargetPartsLabel(targetInfo)
 
   if (targetInfo.targetNoticeTab !== "CHALLENGER") {
-    const staffRecipientLabel = formatStaffRecipientLabel(
-      targetInfo.targetNoticeTab,
-    )
+    const staffRecipientLabel = resolveStaffRecipientDisplayLabel(targetInfo)
     return [gisuLabel, staffRecipientLabel, schoolLabel, partsLabel]
       .filter((segment): segment is string => segment != null && segment !== "")
       .join(" · ")
@@ -239,6 +225,18 @@ export function mapNoticeSummaryToNotice(
   }
 }
 
+function isNoticeUpdatedAfterCreate(
+  createdAt: string,
+  updatedAt: string,
+): boolean {
+  const createdMs = Date.parse(createdAt)
+  const updatedMs = Date.parse(updatedAt)
+  if (Number.isNaN(createdMs) || Number.isNaN(updatedMs)) {
+    return false
+  }
+  return updatedMs > createdMs
+}
+
 export function mapNoticeDetailResponse(
   detail: GetNoticeDetailResponse,
   context?: NoticeTargetDisplayContext,
@@ -291,6 +289,10 @@ export function mapNoticeDetailResponse(
       : undefined,
     poll: detail.vote ? mapNoticeVoteInfoToPoll(detail.vote) : undefined,
     targetDisplay: formatTargetDisplay(detail.targetInfo, context),
+    hasBeenUpdated: isNoticeUpdatedAfterCreate(
+      detail.createdAt,
+      detail.updatedAt,
+    ),
     updatedAt: formatNoticeDetailDateTime(detail.updatedAt),
   }
 }

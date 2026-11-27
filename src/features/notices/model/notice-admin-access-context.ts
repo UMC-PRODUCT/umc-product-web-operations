@@ -9,3 +9,10 @@ export type NoticeAdminAccessContext = {
   schoolId: number | null
   schoolName?: string | null
 }
+
+/** 슈퍼어드민 — 역할·조직 잠금·HQ 작성 제한 없음 */
+export function isNoticeSuperAdminContext(
+  session: Pick<NoticeAdminAccessContext, "isSuperAdmin" | "scope">,
+): boolean {
+  return session.isSuperAdmin || session.scope === "SUPER_ADMIN"
+}

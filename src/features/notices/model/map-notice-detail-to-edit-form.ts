@@ -1,24 +1,13 @@
 import {
   INITIAL_NOTICE_CREATE_FORM,
   type NoticeCreateFormState,
-  type NoticeCreateStaffScope,
 } from "./notice-create-form"
+import { resolveStaffScopeFromTargetInfo } from "./notice-staff-recipient-display"
 
 import type {
   GetNoticeDetailResponse,
-  NoticeTab,
   NoticeTargetInfo,
 } from "../api/notice-api.types"
-
-function mapStaffScope(tab: NoticeTab): NoticeCreateStaffScope {
-  if (tab === "SCHOOL_CORE") {
-    return "SCHOOL_CORE"
-  }
-  if (tab === "SCHOOL_PART_LEADER") {
-    return "SCHOOL_PART_LEADER"
-  }
-  return "CENTRAL_MEMBER"
-}
 
 function mapTargetInfoToFormFields(
   targetInfo: NoticeTargetInfo | null | undefined,
@@ -58,7 +47,7 @@ function mapTargetInfoToFormFields(
   return {
     challengerEnabled,
     staffEnabled,
-    staffScope: mapStaffScope(tab),
+    staffScope: resolveStaffScopeFromTargetInfo(targetInfo),
     gisuMode,
     targetGisuId:
       gisuMode === "specific" && Number.isFinite(targetGisuId)
@@ -87,7 +76,7 @@ export function mapNoticeDetailToEditForm(
     title: detail.title,
     content: detail.content,
     mustRead: detail.mustRead,
-    sendNotification: false,
+    sendNotification: detail.shouldNotify ?? false,
     links: sortedLinks.map((link) => link.url),
     linkDraft: "",
     imageFiles: [],

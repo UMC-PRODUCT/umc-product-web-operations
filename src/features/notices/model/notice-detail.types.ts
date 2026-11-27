@@ -37,6 +37,8 @@ export type NoticeDetail = Notice & {
   link?: NoticeLinkAttachment
   poll?: NoticePoll
   targetDisplay: string
+  /** `createdAt`보다 `updatedAt`이 늦을 때만 상세 메타에 수정 일시 표시 */
+  hasBeenUpdated: boolean
   updatedAt: string
 }
 
